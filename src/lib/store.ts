@@ -34,7 +34,7 @@ export function useAppStore() {
       if (path.includes('timeline') || hash.includes('timeline')) return 'timeline';
       if (path.includes('events') || hash.includes('events')) return 'events';
       if (path.includes('map') || hash.includes('map')) return 'map';
-      if (path.includes('mymumbai') || hash.includes('mymumbai')) return 'mymumbai';
+      if (path.includes('mymumbai') || path.includes('/me') || hash.includes('mymumbai') || hash.includes('me')) return 'mymumbai';
     }
     return 'home';
   });
@@ -58,7 +58,7 @@ export function useAppStore() {
       else if (path.includes('timeline') || hash.includes('timeline')) setActiveTabState('timeline');
       else if (path.includes('events') || hash.includes('events')) setActiveTabState('events');
       else if (path.includes('map') || hash.includes('map')) setActiveTabState('map');
-      else if (path.includes('mymumbai') || hash.includes('mymumbai')) setActiveTabState('mymumbai');
+      else if (path.includes('mymumbai') || path.includes('/me') || hash.includes('mymumbai') || hash.includes('me')) setActiveTabState('mymumbai');
       else setActiveTabState('home');
     };
     window.addEventListener('popstate', handlePopState);
