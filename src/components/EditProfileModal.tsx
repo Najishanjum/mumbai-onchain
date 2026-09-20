@@ -152,7 +152,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         <div className="bg-[#FFFFFF] border-b-2 border-[#000000] p-5 sm:p-6 flex items-center justify-between">
           <div>
             <div className="font-mono text-xs text-[#666666] uppercase tracking-widest">
-              LOCALSTORAGE DIRECTORY
+              COMMUNITY DIRECTORY
             </div>
             <h3 className="font-heading font-black text-2xl text-[#050505] tracking-tight">
               {currentProfile ? 'EDIT YOUR PROFILE' : 'CREATE COMMUNITY PROFILE'}

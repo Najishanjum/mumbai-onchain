@@ -91,3 +91,51 @@ CREATE POLICY "Private notes are viewable by owner only"
 
 CREATE POLICY "User event overrides viewable by owner only" 
   ON user_events FOR ALL USING (auth.role() = 'authenticated');
+
+-- 5. Create Profiles Table (Community Directory)
+CREATE TABLE IF NOT EXISTS profiles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  city TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Builder',
+  bio TEXT DEFAULT '',
+  avatar TEXT DEFAULT '',
+  x_handle TEXT DEFAULT '',
+  github_url TEXT DEFAULT '',
+  linkedin_url TEXT DEFAULT '',
+  attending_events TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexing for profile performance
+CREATE INDEX IF NOT EXISTS idx_profiles_category ON profiles(category);
+CREATE INDEX IF NOT EXISTS idx_profiles_city ON profiles(city);
+CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at DESC);
+
+-- Enable Row Level Security for profiles
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to all profiles so everyone can see everyone
+CREATE POLICY "Community profiles are viewable by everyone" 
+  ON profiles FOR SELECT USING (true);
+
+-- Allow anyone with anon key to insert new profile
+CREATE POLICY "Anyone can insert community profiles" 
+  ON profiles FOR INSERT WITH CHECK (true);
+
+-- Allow anyone with anon key to update their profile
+CREATE POLICY "Anyone can update community profiles" 
+  ON profiles FOR UPDATE USING (true);
+
+-- Enable Realtime for profiles (new profiles broadcast to all connected devices)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  -- Realtime publication might already have the table or be managed by dashboard
+  NULL;
+END $$;
+

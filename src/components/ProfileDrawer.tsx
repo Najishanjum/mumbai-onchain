@@ -298,7 +298,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
         {/* Footer */}
         <div className="sticky bottom-0 bg-[#FAFAFA] border-t border-[#000000] p-4 flex items-center justify-between">
           <div className="font-mono text-[11px] text-[#666666]">
-            MUMBAI ONCHAIN WEEK // LOCALSTORAGE PERSISTED
+            MUMBAI ONCHAIN WEEK // COMMUNITY NETWORK
           </div>
           <button
             onClick={onClose}

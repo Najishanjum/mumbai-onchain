@@ -1,13 +1,48 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { PersonProfile, ConnectionStatus, PeopleFilterState } from '../types/person';
 import { INITIAL_PEOPLE } from '../data/people';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 const PEOPLE_STORAGE_KEY = 'mumbai_onchain_people_profiles_v2';
 const MY_PROFILE_STORAGE_KEY = 'mumbai_onchain_my_profile_v2';
 const CONNECTIONS_STORAGE_KEY = 'mumbai_onchain_connections_v2';
 
+interface DbProfileRow {
+  id: string;
+  name: string;
+  city: string;
+  category: string;
+  bio?: string | null;
+  avatar?: string | null;
+  x_handle?: string | null;
+  github_url?: string | null;
+  linkedin_url?: string | null;
+  attending_events?: string[] | null;
+  created_at?: string;
+}
+
+function mapDbToPerson(row: DbProfileRow, myProfileId?: string): PersonProfile {
+  return {
+    id: row.id,
+    name: row.name || 'Anonymous Builder',
+    city: row.city || 'Mumbai',
+    category: (row.category as PersonProfile['category']) || 'Builder',
+    bio: row.bio || '',
+    avatar: row.avatar || '',
+    xHandle: row.x_handle || '',
+    githubUrl: row.github_url || '',
+    linkedinUrl: row.linkedin_url || '',
+    attendingEvents: Array.isArray(row.attending_events) ? row.attending_events : [],
+    isCurrentUser: Boolean(myProfileId && row.id === myProfileId),
+    createdAt: row.created_at || new Date().toISOString(),
+  };
+}
+
 export function usePeopleStore() {
-  // Load Community directory from LocalStorage
+  const isCloudConnected = isSupabaseConfigured();
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Load Community directory from LocalStorage initially as fallback
   const [people, setPeople] = useState<PersonProfile[]>(() => {
     try {
       const saved = localStorage.getItem(PEOPLE_STORAGE_KEY);
@@ -46,7 +81,6 @@ export function usePeopleStore() {
     } catch (e) {
       console.error('Error reading connections from localStorage:', e);
     }
-    // Provide 2 realistic pre-connected contacts if brand new
     return {
       'person-aarav-patel': 'CONNECTED',
       'person-priya-sharma': 'REQUESTED',
@@ -65,7 +99,7 @@ export function usePeopleStore() {
     connectionStatus: 'ALL',
   });
 
-  // Save people list to LocalStorage
+  // Save people list to LocalStorage as cache
   useEffect(() => {
     try {
       localStorage.setItem(PEOPLE_STORAGE_KEY, JSON.stringify(people));
@@ -96,7 +130,98 @@ export function usePeopleStore() {
     }
   }, [connections]);
 
-  // Ensure current user's profile is synchronized in the community directory
+  // Fetch profiles from Supabase and subscribe to realtime changes
+  const fetchSupabaseProfiles = useCallback(async () => {
+    if (!isSupabaseConfigured() || !supabase) return;
+    try {
+      setIsSyncing(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Could not load profiles from Supabase:', error.message);
+        return;
+      }
+
+      if (data) {
+        const remoteProfiles = (data as DbProfileRow[]).map(row => mapDbToPerson(row, myProfile?.id));
+        
+        setPeople(prev => {
+          const map = new Map<string, PersonProfile>();
+          // Base seeded profiles
+          INITIAL_PEOPLE.forEach(p => map.set(p.id, p));
+          // Cached local profiles
+          prev.forEach(p => map.set(p.id, p));
+          // Remote profiles from Supabase override
+          remoteProfiles.forEach(p => map.set(p.id, p));
+
+          // Ensure current user profile is correctly tagged
+          if (myProfile) {
+            const existing = map.get(myProfile.id);
+            if (existing) {
+              map.set(myProfile.id, { ...existing, ...myProfile, isCurrentUser: true });
+            } else {
+              map.set(myProfile.id, { ...myProfile, isCurrentUser: true });
+            }
+          }
+
+          return Array.from(map.values());
+        });
+      }
+    } catch (err) {
+      console.error('Error in fetchSupabaseProfiles:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [myProfile?.id]);
+
+  // Initial fetch and Realtime subscription
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
+    const client = supabase;
+
+    fetchSupabaseProfiles();
+
+    // Set up Realtime listener for cross-browser live sync
+    const channel = client
+      .channel('realtime:community_profiles')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const updatedPerson = mapDbToPerson(payload.new as DbProfileRow, myProfile?.id);
+            setPeople(prev => {
+              const idx = prev.findIndex(p => p.id === updatedPerson.id);
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = {
+                  ...updatedPerson,
+                  isCurrentUser: Boolean(myProfile && myProfile.id === updatedPerson.id),
+                };
+                return next;
+              } else {
+                return [updatedPerson, ...prev];
+              }
+            });
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            const deletedId = (payload.old as { id?: string }).id;
+            if (deletedId) {
+              setPeople(prev => prev.filter(p => p.id !== deletedId));
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  }, [fetchSupabaseProfiles, myProfile?.id]);
+
+  // Ensure current user's profile is synchronized in the community directory locally
   useEffect(() => {
     if (!myProfile) return;
     setPeople(prev => {
@@ -111,9 +236,9 @@ export function usePeopleStore() {
     });
   }, [myProfile]);
 
-  // Save or Update My Profile
-  const saveMyProfile = useCallback((profileData: Partial<PersonProfile>) => {
-    const id = myProfile?.id || `user-profile-${Date.now()}`;
+  // Save or Update My Profile (both locally and to Supabase)
+  const saveMyProfile = useCallback(async (profileData: Partial<PersonProfile>) => {
+    const id = myProfile?.id || `user-profile-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const newProfile: PersonProfile = {
       id,
       name: profileData.name || 'Anonymous Builder',
@@ -129,8 +254,37 @@ export function usePeopleStore() {
       createdAt: myProfile?.createdAt || new Date().toISOString(),
     };
 
+    // Immediate optimistic local update
     setMyProfile(newProfile);
     setIsEditModalOpen(false);
+
+    // Sync to Supabase cloud if connected
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        setIsSyncing(true);
+        const { error } = await supabase.from('profiles').upsert({
+          id: newProfile.id,
+          name: newProfile.name,
+          city: newProfile.city,
+          category: newProfile.category,
+          bio: newProfile.bio,
+          avatar: newProfile.avatar,
+          x_handle: newProfile.xHandle,
+          github_url: newProfile.githubUrl,
+          linkedin_url: newProfile.linkedinUrl,
+          attending_events: newProfile.attendingEvents,
+          updated_at: new Date().toISOString(),
+        });
+
+        if (error) {
+          console.error('Supabase profile save error:', error);
+        }
+      } catch (e) {
+        console.error('Failed to sync profile to Supabase:', e);
+      } finally {
+        setIsSyncing(false);
+      }
+    }
   }, [myProfile]);
 
   // Transition connection: CONNECT -> REQUESTED -> CONNECTED -> NOT_CONNECTED
@@ -163,7 +317,6 @@ export function usePeopleStore() {
   // Filtered list calculation
   const filteredPeople = useMemo(() => {
     return people.filter(person => {
-      // Don't filter out if user matches
       if (filters.category !== 'ALL' && person.category !== filters.category) {
         return false;
       }
@@ -231,6 +384,9 @@ export function usePeopleStore() {
     filters,
     filteredPeople,
     stats,
+    isCloudConnected,
+    isSyncing,
+    refreshProfiles: fetchSupabaseProfiles,
     setSelectedPersonId,
     setIsEditModalOpen,
     setFilters,
