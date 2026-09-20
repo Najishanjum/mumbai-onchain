@@ -1,6 +1,6 @@
 import React from 'react';
 import type { FilterState } from '../types/event';
-import { Search, Filter, Calendar as CalendarIcon, Tag } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface EventFiltersProps {
   filters: FilterState;
@@ -19,24 +19,24 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
     'Ecosystem',
     'Ethereum',
     'Solana',
-    'Privacy',
-    'Security',
     'DeFi',
+    'Security',
+    'Privacy',
     'Hackathon',
     'Networking',
     'Governance',
   ];
 
   const dates = [
-    'ALL',
-    '2026-11-01',
-    '2026-11-02',
-    '2026-11-03',
-    '2026-11-04',
-    '2026-11-05',
-    '2026-11-06',
-    '2026-11-07',
-    '2026-11-08',
+    { label: 'ALL DAYS', value: 'ALL' },
+    { label: '01 NOV', value: '2026-11-01' },
+    { label: '02 NOV', value: '2026-11-02' },
+    { label: '03 NOV', value: '2026-11-03' },
+    { label: '04 NOV', value: '2026-11-04' },
+    { label: '05 NOV', value: '2026-11-05' },
+    { label: '06 NOV', value: '2026-11-06' },
+    { label: '07 NOV', value: '2026-11-07' },
+    { label: '08 NOV', value: '2026-11-08' },
   ];
 
   const statuses = [
@@ -45,113 +45,114 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
     'ATTENDING',
     'INTERESTED',
     'PENDING',
-    'PENDING APPROVAL',
     'COMPLETED',
   ];
 
   return (
-    <div className="w-full bg-[#0A0A0A] border border-[#202020] rounded-2xl p-4 sm:p-5 space-y-4 shadow-card">
+    <div className="w-full bg-[#FFFFFF] border border-[#000000] p-4 sm:p-6 space-y-5 select-none">
       
-      {/* Top Search Bar & Result Count */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+      {/* Top Search Bar & Counter */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-[#D8D8D8] pb-4">
+        <div className="relative w-full sm:w-96">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#555555]" />
           <input
             type="text"
-            placeholder="Search events, venues, organizers..."
+            placeholder="SEARCH BY TITLE, VENUE, ORGANIZER..."
             value={filters.searchQuery}
             onChange={(e) => onFilterChange({ ...filters, searchQuery: e.target.value })}
-            className="w-full bg-[#121212] border border-[#252525] focus:border-[#627EEA] rounded-xl pl-9 pr-4 py-2 text-xs font-mono text-white placeholder-zinc-500 outline-none transition-colors"
+            className="w-full bg-[#FAFAFA] border border-[#D8D8D8] focus:border-[#000000] text-[#050505] pl-9 pr-4 py-2 font-mono text-xs focus:outline-none placeholder:text-[#888888]"
           />
         </div>
 
-        <div className="font-mono text-xs text-zinc-400 flex items-center gap-2">
-          <span>FILTERED RESULTS:</span>
-          <span className="font-bold text-[#627EEA] bg-[#627EEA]/10 px-2 py-0.5 rounded border border-[#627EEA]/30">
-            {totalResults} EVENTS
+        <div className="flex items-center gap-3 justify-between sm:justify-end">
+          <span className="font-mono text-xs text-[#555555]">
+            CATALOGUE RESULTS: <strong className="text-[#000000] font-pixel text-[13px]">{totalResults}</strong>
           </span>
+
+          {(filters.category !== 'ALL' || filters.date !== 'ALL' || filters.status !== 'ALL' || filters.searchQuery) && (
+            <button
+              onClick={() => onFilterChange({ category: 'ALL', date: 'ALL', status: 'ALL', searchQuery: '' })}
+              className="font-mono text-[11px] underline text-[#000000] hover:text-[#555555] font-semibold"
+            >
+              RESET FILTERS [×]
+            </button>
+          )}
         </div>
       </div>
 
       {/* Date Filter Row */}
-      <div className="space-y-1.5">
-        <div className="font-mono text-[11px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-          <CalendarIcon className="w-3 h-3 text-[#627EEA]" /> DATE FILTER (NOV 1–8)
-        </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+      <div className="space-y-2">
+        <span className="font-mono text-[10px] text-[#666666] uppercase tracking-widest block font-bold">
+          DATE SELECTOR:
+        </span>
+        <div className="flex flex-wrap gap-1.5">
           {dates.map((d) => {
-            const label = d === 'ALL' ? 'ALL DATES' : `NOV ${d.slice(8)}`;
-            const isSelected = filters.date === d;
+            const isActive = filters.date === d.value;
             return (
               <button
-                key={d}
-                onClick={() => onFilterChange({ ...filters, date: d })}
-                className={`px-3 py-1 rounded-lg font-mono text-xs whitespace-nowrap transition-all ${
-                  isSelected
-                    ? 'bg-[#627EEA] text-white font-bold shadow-glow-eth'
-                    : 'bg-[#121212] text-zinc-400 hover:text-white border border-[#222]'
+                key={d.value}
+                onClick={() => onFilterChange({ ...filters, date: d.value })}
+                className={`px-3 py-1.5 font-mono text-xs transition-all duration-100 border ${
+                  isActive
+                    ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] font-bold shadow-xs'
+                    : 'bg-[#FFFFFF] text-[#050505] border-[#D8D8D8] hover:border-[#000000]'
                 }`}
               >
-                {label}
+                {d.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Category & Status Filter Pills */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#1A1A1A]">
-        
-        {/* Categories */}
-        <div className="space-y-1.5">
-          <div className="font-mono text-[11px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-            <Tag className="w-3 h-3 text-[#8B5CF6]" /> CATEGORY
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {categories.map((cat) => {
-              const isSelected = filters.category === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => onFilterChange({ ...filters, category: cat })}
-                  className={`px-2.5 py-1 rounded-md font-mono text-[11px] transition-all ${
-                    isSelected
-                      ? 'bg-[#8B5CF6] text-white font-bold'
-                      : 'bg-[#141414] text-zinc-400 hover:text-white border border-[#222]'
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+      {/* Category Filter Row */}
+      <div className="space-y-2">
+        <span className="font-mono text-[10px] text-[#666666] uppercase tracking-widest block font-bold">
+          ECOSYSTEM TRACK:
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {categories.map((cat) => {
+            const isActive = filters.category === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => onFilterChange({ ...filters, category: cat })}
+                className={`px-3 py-1.5 font-mono text-xs transition-all duration-100 border ${
+                  isActive
+                    ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] font-bold shadow-xs'
+                    : 'bg-[#FFFFFF] text-[#050505] border-[#D8D8D8] hover:border-[#000000]'
+                }`}
+              >
+                {cat.toUpperCase()}
+              </button>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Attendance Status */}
-        <div className="space-y-1.5">
-          <div className="font-mono text-[11px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-            <Filter className="w-3 h-3 text-[#22C55E]" /> ATTENDANCE STATUS
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {statuses.map((st) => {
-              const isSelected = filters.status === st;
-              return (
-                <button
-                  key={st}
-                  onClick={() => onFilterChange({ ...filters, status: st })}
-                  className={`px-2.5 py-1 rounded-md font-mono text-[11px] transition-all ${
-                    isSelected
-                      ? 'bg-[#22C55E] text-black font-bold'
-                      : 'bg-[#141414] text-zinc-400 hover:text-white border border-[#222]'
-                  }`}
-                >
-                  {st}
-                </button>
-              );
-            })}
-          </div>
+      {/* Status Filter Row */}
+      <div className="space-y-2 pt-1 border-t border-[#EAEAEA]">
+        <span className="font-mono text-[10px] text-[#666666] uppercase tracking-widest block font-bold">
+          ATTENDANCE STATUS:
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {statuses.map((st) => {
+            const isActive = filters.status === st;
+            return (
+              <button
+                key={st}
+                onClick={() => onFilterChange({ ...filters, status: st })}
+                className={`px-2.5 py-1 font-mono text-[11px] transition-all duration-100 border ${
+                  isActive
+                    ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] font-bold'
+                    : 'bg-[#FFFFFF] text-[#555555] border-[#D8D8D8] hover:border-[#000000] hover:text-[#000000]'
+                }`}
+              >
+                {st}
+              </button>
+            );
+          })}
         </div>
-
       </div>
 
     </div>

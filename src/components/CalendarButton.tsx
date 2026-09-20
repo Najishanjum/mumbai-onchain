@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, Download, ExternalLink, ChevronDown } from 'lucide-react';
+import { Calendar, ExternalLink, ChevronDown, Download } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { downloadICSFile, getGoogleCalendarUrl, getOutlookCalendarUrl } from '../lib/calendar';
 
@@ -23,25 +23,25 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ event, size = 'm
   }, []);
 
   const sizeClasses = size === 'sm' 
-    ? 'px-2.5 py-1.5 text-xs' 
+    ? 'px-2.5 py-1 text-[11px]' 
     : 'px-3.5 py-2 text-xs font-mono tracking-wider';
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center gap-2 bg-[#181818] hover:bg-[#222] text-[#F5F5F5] border border-[#333] rounded-lg transition-all duration-150 active:scale-95 ${sizeClasses}`}
+        className={`inline-flex items-center gap-1.5 bg-[#FFFFFF] hover:bg-[#F5F5F5] text-[#000000] border border-[#000000] font-mono transition-all duration-150 active:scale-95 ${sizeClasses}`}
         aria-label="Add to calendar options"
       >
-        <Calendar className="w-4 h-4 text-[#627EEA]" />
-        <span>ADD TO CALENDAR</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <Calendar className="w-3.5 h-3.5 text-[#000000]" />
+        <span>CALENDAR</span>
+        <ChevronDown className={`w-3 h-3 text-[#555555] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#0F0F0F] border border-[#252525] shadow-2xl z-50 overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-150">
-          <div className="px-3 py-2 text-[10px] font-mono text-zinc-500 uppercase border-b border-[#202020]">
-            Export Event
+        <div className="absolute right-0 mt-1 w-52 bg-[#FFFFFF] border border-[#000000] shadow-xl z-50 overflow-hidden animate-in fade-in duration-100">
+          <div className="px-3 py-1.5 text-[10px] font-mono text-[#777777] uppercase border-b border-[#EAEAEA] bg-[#FAFAFA]">
+            ADD TO CALENDAR
           </div>
           
           <button
@@ -49,21 +49,10 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ event, size = 'm
               window.open(getGoogleCalendarUrl(event), '_blank');
               setIsOpen(false);
             }}
-            className="w-full text-left px-3.5 py-2.5 text-xs font-mono text-zinc-200 hover:bg-[#1A1A1A] hover:text-white flex items-center justify-between border-b border-[#1A1A1A] transition-colors"
+            className="w-full text-left px-3.5 py-2 text-xs font-mono text-[#000000] hover:bg-[#F5F5F5] flex items-center justify-between border-b border-[#EAEAEA] transition-colors"
           >
             <span>Google Calendar</span>
-            <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
-          </button>
-
-          <button
-            onClick={() => {
-              downloadICSFile(event);
-              setIsOpen(false);
-            }}
-            className="w-full text-left px-3.5 py-2.5 text-xs font-mono text-zinc-200 hover:bg-[#1A1A1A] hover:text-white flex items-center justify-between border-b border-[#1A1A1A] transition-colors"
-          >
-            <span>Apple Calendar (.ics)</span>
-            <Download className="w-3.5 h-3.5 text-zinc-500" />
+            <ExternalLink className="w-3 h-3 text-[#777777]" />
           </button>
 
           <button
@@ -71,10 +60,10 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ event, size = 'm
               window.open(getOutlookCalendarUrl(event), '_blank');
               setIsOpen(false);
             }}
-            className="w-full text-left px-3.5 py-2.5 text-xs font-mono text-zinc-200 hover:bg-[#1A1A1A] hover:text-white flex items-center justify-between border-b border-[#1A1A1A] transition-colors"
+            className="w-full text-left px-3.5 py-2 text-xs font-mono text-[#000000] hover:bg-[#F5F5F5] flex items-center justify-between border-b border-[#EAEAEA] transition-colors"
           >
             <span>Outlook Web</span>
-            <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+            <ExternalLink className="w-3 h-3 text-[#777777]" />
           </button>
 
           <button
@@ -82,10 +71,10 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ event, size = 'm
               downloadICSFile(event);
               setIsOpen(false);
             }}
-            className="w-full text-left px-3.5 py-2.5 text-xs font-mono text-[#627EEA] hover:bg-[#1A1A1A] hover:text-[#8299F0] flex items-center justify-between transition-colors"
+            className="w-full text-left px-3.5 py-2 text-xs font-mono text-[#000000] hover:bg-[#F5F5F5] flex items-center justify-between transition-colors"
           >
-            <span>Download iCal File</span>
-            <Download className="w-3.5 h-3.5" />
+            <span>Apple / iCal (.ics)</span>
+            <Download className="w-3 h-3 text-[#777777]" />
           </button>
         </div>
       )}

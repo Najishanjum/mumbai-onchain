@@ -1,5 +1,6 @@
 import { useAppStore } from './lib/store';
 import { Navbar } from './components/Navbar';
+import { MarqueeTicker } from './components/MarqueeTicker';
 import { MobileNav } from './components/MobileNav';
 import { Hero } from './components/Hero';
 import { PrimaryEvent } from './components/PrimaryEvent';
@@ -14,7 +15,7 @@ import { MyMumbai } from './components/MyMumbai';
 import { SideEvents } from './components/SideEvents';
 import { Footer } from './components/Footer';
 import { detectScheduleConflicts } from './lib/conflicts';
-import { Calendar, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export function App() {
   const {
@@ -62,7 +63,7 @@ export function App() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#050505] text-[#F5F5F5]">
+    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#050505] tech-grid">
       
       {/* Desktop Navigation */}
       <Navbar
@@ -70,6 +71,9 @@ export function App() {
         setActiveTab={setActiveTab}
         conflictCount={conflicts.length}
       />
+
+      {/* Top Ticker / Marquee Strip (Immediately below Navbar as requested) */}
+      <MarqueeTicker />
 
       {/* Main Content View Switcher */}
       <main className="flex-1 pb-20 md:pb-12">
@@ -115,13 +119,16 @@ export function App() {
 
         {activeTab === 'events' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
-            <div className="bg-[#0A0A0A] border border-[#202020] rounded-3xl p-6 tech-grid">
-              <div className="flex items-center gap-2 font-mono text-xs text-[#627EEA] uppercase tracking-widest mb-1">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>ALL MUMBAI EVENTS</span>
+            <div className="bg-[#FFFFFF] border border-[#000000] p-6 sm:p-8 space-y-2 select-none">
+              <div className="font-mono text-xs text-[#666666] uppercase tracking-widest">
+                FULL DIRECTORY // 01—08 NOV 2026
               </div>
-              <h2 className="font-heading font-extrabold text-3xl text-white">ALL MUMBAI EVENTS</h2>
-              <p className="font-mono text-xs text-zinc-400 mt-1">Filter side events, hackathons, and conferences</p>
+              <h2 className="font-heading font-black text-3xl sm:text-5xl text-[#050505] uppercase tracking-tight">
+                ALL MUMBAI EVENTS
+              </h2>
+              <p className="font-mono text-xs text-[#555555]">
+                Curated catalogue of side events, hackathons, and conferences across Mumbai with interactive status tracking.
+              </p>
             </div>
 
             <EventFilters
@@ -131,17 +138,18 @@ export function App() {
             />
 
             {filteredEvents.length === 0 ? (
-              <div className="py-16 text-center border border-dashed border-[#222] rounded-3xl bg-[#080808]">
-                <AlertCircle className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
-                <h4 className="font-mono text-sm font-bold text-zinc-300">NO MATCHING EVENTS FOUND</h4>
-                <p className="font-mono text-xs text-zinc-500 mt-1">Try relaxing your search or filter parameters.</p>
+              <div className="py-16 text-center border border-dashed border-[#D8D8D8] bg-[#FAFAFA] select-none">
+                <AlertCircle className="w-8 h-8 text-[#888888] mx-auto mb-2" />
+                <h4 className="font-mono text-sm font-bold text-[#000000]">NO MATCHING EVENTS FOUND</h4>
+                <p className="font-mono text-xs text-[#666666] mt-1">Try relaxing your search query or ecosystem filter.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredEvents.map(evt => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredEvents.map((evt, idx) => (
                   <EventCard
                     key={evt.id}
                     event={evt}
+                    index={idx}
                     hasConflict={conflictIds.has(evt.id)}
                     onSelectEvent={(id) => setSelectedEventId(id)}
                   />
@@ -173,7 +181,7 @@ export function App() {
         )}
       </main>
 
-      {/* Event Details Right Drawer & Mobile Bottom Sheet */}
+      {/* Event Details Right Drawer */}
       <EventDrawer
         event={selectedEvent}
         note={selectedEventId ? notes[selectedEventId] : undefined}
@@ -195,4 +203,5 @@ export function App() {
     </div>
   );
 }
+
 export default App;

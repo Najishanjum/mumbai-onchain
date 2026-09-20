@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Clock, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight } from 'lucide-react';
 import type { ScheduleConflict } from '../types/event';
 
 interface ConflictAlertProps {
@@ -11,66 +11,80 @@ export const ConflictAlert: React.FC<ConflictAlertProps> = ({ conflicts, onSelec
   if (conflicts.length === 0) return null;
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-4 select-none">
       {conflicts.map((conflict, idx) => (
         <div
           key={idx}
-          className="w-full bg-[#1A0A0A] border-2 border-red-500/50 rounded-2xl p-4 sm:p-5 relative overflow-hidden shadow-2xl animate-in fade-in duration-300"
+          className="w-full bg-[#FFFFFF] border-2 border-[#EF4444] p-5 sm:p-6 relative overflow-hidden"
         >
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 shrink-0">
-              <AlertTriangle className="w-5 h-5 animate-pulse" />
+          {/* Top Banner Tag */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#FCA5A5] pb-3 mb-4 font-mono text-xs">
+            <div className="flex items-center gap-2 text-[#DC2626] font-bold tracking-widest">
+              <AlertTriangle className="w-4 h-4" />
+              <span>SCHEDULE COLLISION // {conflict.date}</span>
+            </div>
+            <div className="font-bold text-[#000000] bg-[#FEE2E2] px-2.5 py-1">
+              OVERLAP INTERVAL: {conflict.overlapStart} — {conflict.overlapEnd} IST
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="font-heading font-black text-2xl sm:text-3xl text-[#050505] tracking-tight leading-tight">
+              {conflict.event1.title}
+              <span className="text-[#EF4444] mx-3">×</span>
+              {conflict.event2.title}
             </div>
 
-            <div className="flex-1 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono text-xs font-bold text-red-400 uppercase tracking-widest flex items-center gap-1.5">
-                  SCHEDULE CONFLICT DETECTED // OVERLAP ({conflict.date})
-                </span>
-                <span className="font-mono text-xs text-zinc-400 bg-red-950/40 px-2.5 py-0.5 rounded border border-red-800/40">
-                  <Clock className="w-3 h-3 inline mr-1 text-red-400" />
-                  OVERLAP: {conflict.overlapStart} – {conflict.overlapEnd} IST
-                </span>
+            <p className="font-mono text-xs text-[#555555]">
+              Direct timing collision detected on your Mumbai itinerary. Both tracks require physical attendance simultaneously.
+            </p>
+
+            {/* Two Competing Events Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              
+              {/* Event 1 */}
+              <div
+                onClick={() => onSelectEvent(conflict.event1.id)}
+                className="bg-[#FAFAFA] hover:bg-[#F4F4F5] p-4 border border-[#D8D8D8] hover:border-[#000000] transition-all cursor-pointer group"
+              >
+                <div className="flex justify-between items-center font-mono text-[11px] text-[#666666] mb-1.5">
+                  <span>{conflict.event1.startTime} — {conflict.event1.endTime}</span>
+                  <span className="font-bold text-[#000000] border border-[#000000] px-1.5 py-0.2">
+                    {conflict.event1.status}
+                  </span>
+                </div>
+                <h4 className="font-heading font-bold text-base text-[#050505] group-hover:underline flex items-center justify-between">
+                  <span className="truncate">{conflict.event1.title}</span>
+                  <ArrowUpRight className="w-4 h-4 shrink-0 ml-1 text-[#555555] group-hover:text-[#000000]" />
+                </h4>
+                <div className="font-mono text-[11px] text-[#777777] mt-1 truncate">
+                  {conflict.event1.location}
+                </div>
               </div>
 
-              <p className="text-xs text-zinc-300 font-sans leading-relaxed">
-                2 scheduled events overlap during this timeframe. Review both events and adjust attendance priority:
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                {/* Event 1 */}
-                <div
-                  onClick={() => onSelectEvent(conflict.event1.id)}
-                  className="bg-[#121212] hover:bg-[#1A1A1A] p-3 rounded-xl border border-red-900/30 hover:border-red-500/50 transition-all cursor-pointer group"
-                >
-                  <div className="flex justify-between text-[10px] font-mono text-zinc-400 mb-1">
-                    <span>{conflict.event1.startTime} - {conflict.event1.endTime}</span>
-                    <span className="text-red-400 font-bold">{conflict.event1.status}</span>
-                  </div>
-                  <h4 className="font-heading font-bold text-sm text-white group-hover:text-red-400 transition-colors flex items-center justify-between">
-                    <span className="truncate">{conflict.event1.title}</span>
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0 ml-1 text-zinc-500 group-hover:text-red-400" />
-                  </h4>
+              {/* Event 2 */}
+              <div
+                onClick={() => onSelectEvent(conflict.event2.id)}
+                className="bg-[#FAFAFA] hover:bg-[#F4F4F5] p-4 border border-[#D8D8D8] hover:border-[#000000] transition-all cursor-pointer group"
+              >
+                <div className="flex justify-between items-center font-mono text-[11px] text-[#666666] mb-1.5">
+                  <span>{conflict.event2.startTime} — {conflict.event2.endTime}</span>
+                  <span className="font-bold text-[#000000] border border-[#000000] px-1.5 py-0.2">
+                    {conflict.event2.status}
+                  </span>
                 </div>
-
-                {/* Event 2 */}
-                <div
-                  onClick={() => onSelectEvent(conflict.event2.id)}
-                  className="bg-[#121212] hover:bg-[#1A1A1A] p-3 rounded-xl border border-red-900/30 hover:border-red-500/50 transition-all cursor-pointer group"
-                >
-                  <div className="flex justify-between text-[10px] font-mono text-zinc-400 mb-1">
-                    <span>{conflict.event2.startTime} - {conflict.event2.endTime}</span>
-                    <span className="text-red-400 font-bold">{conflict.event2.status}</span>
-                  </div>
-                  <h4 className="font-heading font-bold text-sm text-white group-hover:text-red-400 transition-colors flex items-center justify-between">
-                    <span className="truncate">{conflict.event2.title}</span>
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0 ml-1 text-zinc-500 group-hover:text-red-400" />
-                  </h4>
+                <h4 className="font-heading font-bold text-base text-[#050505] group-hover:underline flex items-center justify-between">
+                  <span className="truncate">{conflict.event2.title}</span>
+                  <ArrowUpRight className="w-4 h-4 shrink-0 ml-1 text-[#555555] group-hover:text-[#000000]" />
+                </h4>
+                <div className="font-mono text-[11px] text-[#777777] mt-1 truncate">
+                  {conflict.event2.location}
                 </div>
               </div>
 
             </div>
           </div>
+
         </div>
       ))}
     </div>

@@ -43,6 +43,7 @@ export default {
         heading: ['Space Grotesk', 'sans-serif'],
         sans: ['Inter', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],
+        pixel: ['Silkscreen', 'Pixelify Sans', 'monospace'],
       },
       boxShadow: {
         'glow-eth': '0 0 25px rgba(98, 126, 234, 0.25)',

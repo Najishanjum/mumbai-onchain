@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, MapPin, Clock, CheckCircle2, FileText } from 'lucide-react';
+import { X, ExternalLink, MapPin } from 'lucide-react';
 import type { EventItem, UserEventNote, EventStatus } from '../types/event';
 import { StatusBadge } from './StatusBadge';
 import { CalendarButton } from './CalendarButton';
@@ -24,90 +24,90 @@ export const EventDrawer: React.FC<EventDrawerProps> = ({
 
   if (!event) return null;
 
-  const isCompleted = event.status === 'COMPLETED';
-
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 flex justify-end animate-in fade-in duration-150 select-none">
       
       {/* Click outside backdrop */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      {/* Drawer Container (Right side on desktop, bottom sheet on mobile) */}
-      <div className="relative w-full max-w-2xl bg-[#0A0A0A] border-l border-[#202020] h-full flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
+      {/* Drawer Container (Editorial Side Panel) */}
+      <div className="relative w-full max-w-2xl bg-[#FFFFFF] border-l-2 border-[#000000] h-full flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
         
         {/* Header bar */}
-        <div className="sticky top-0 z-20 bg-[#0A0A0A]/95 border-b border-[#202020] p-4 sm:p-6 flex items-center justify-between backdrop-blur-xl">
+        <div className="sticky top-0 z-20 bg-[#FFFFFF] border-b border-[#000000] p-5 sm:p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <StatusBadge status={event.status} size="md" />
-            <span className="font-mono text-xs text-zinc-400 uppercase">{event.category}</span>
+            <span className="font-pixel text-base font-bold text-[#000000]">
+              CATALOGUE ENTRY
+            </span>
+            <span className="text-[#999999]">•</span>
+            <StatusBadge status={event.status} size="sm" />
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-[#141414] hover:bg-[#1F1F1F] text-zinc-400 hover:text-white border border-[#2B2B2B] transition-colors"
+            className="p-1.5 border border-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] transition-colors"
             aria-label="Close drawer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tab switcher for Drawer: Event Info vs Personal Notes */}
-        <div className="flex border-b border-[#202020] bg-[#0E0E0E] px-6">
+        {/* Tab switcher: Info vs Notes */}
+        <div className="flex border-b border-[#D8D8D8] bg-[#FAFAFA] px-6">
           <button
             onClick={() => setActiveSubTab('info')}
-            className={`px-4 py-3 font-mono text-xs font-semibold tracking-wider border-b-2 transition-all ${
+            className={`px-4 py-3 font-mono text-xs font-bold tracking-wider border-b-2 transition-all ${
               activeSubTab === 'info'
-                ? 'border-[#627EEA] text-white'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-[#000000] text-[#000000]'
+                : 'border-transparent text-[#777777] hover:text-[#000000]'
             }`}
           >
-            EVENT INFORMATION
+            01 // EVENT DETAILS
           </button>
-
           <button
             onClick={() => setActiveSubTab('notes')}
-            className={`px-4 py-3 font-mono text-xs font-semibold tracking-wider border-b-2 transition-all flex items-center gap-2 ${
+            className={`px-4 py-3 font-mono text-xs font-bold tracking-wider border-b-2 transition-all flex items-center gap-1.5 ${
               activeSubTab === 'notes'
-                ? 'border-[#8B5CF6] text-white'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-[#000000] text-[#000000]'
+                : 'border-transparent text-[#777777] hover:text-[#000000]'
             }`}
           >
-            <FileText className="w-3.5 h-3.5 text-[#8B5CF6]" />
-            MY PERSONAL NOTES & RECAP
+            <span>02 // MY NOTES & CONTACTS</span>
             {(note?.peopleMet || note?.takeaways) && (
-              <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" />
+              <span className="w-2 h-2 rounded-full bg-[#000000]" />
             )}
           </button>
         </div>
 
-        {/* Body Content */}
-        <div className="p-6 sm:p-8 space-y-6 flex-1">
-          
+        {/* Drawer Content Body */}
+        <div className="p-6 sm:p-8 flex-1 space-y-6">
           {activeSubTab === 'info' ? (
             <div className="space-y-6">
               
-              {/* Event Title & Organizer */}
+              {/* Event Title & Category */}
               <div>
-                <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-white tracking-tight mb-2">
+                <div className="font-mono text-xs text-[#666666] uppercase tracking-widest mb-1">
+                  CATEGORY: <span className="font-bold text-[#000000]">{event.category}</span>
+                </div>
+                <h2 className="font-heading font-black text-2xl sm:text-4xl text-[#050505] uppercase tracking-tight leading-tight">
                   {event.title}
                 </h2>
-                <p className="font-mono text-xs text-zinc-400">
-                  Organized by: <span className="text-white font-semibold">{event.organizer}</span>
-                </p>
               </div>
 
-              {/* Status Update Control */}
-              <div className="bg-[#121212] border border-[#222] p-4 rounded-2xl space-y-2">
-                <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest block">UPDATE ATTENDANCE STATUS</span>
-                <div className="flex flex-wrap gap-2">
+              {/* Status Updater Radio/Button Group */}
+              <div className="border border-[#D8D8D8] bg-[#FAFAFA] p-4 space-y-2">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-[#666666] font-bold block">
+                  UPDATE MY STATUS:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
                   {(['VOLUNTEER', 'ATTENDING', 'INTERESTED', 'PENDING', 'COMPLETED'] as EventStatus[]).map((st) => (
                     <button
                       key={st}
                       onClick={() => onUpdateStatus(event.id, st)}
-                      className={`px-3 py-1.5 rounded-lg font-mono text-xs transition-all ${
+                      className={`px-2.5 py-1 font-mono text-xs transition-all border ${
                         event.status === st
-                          ? 'bg-[#627EEA] text-white font-bold border border-[#627EEA]'
-                          : 'bg-[#181818] text-zinc-400 hover:text-white border border-[#262626]'
+                          ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] font-bold'
+                          : 'bg-[#FFFFFF] text-[#555555] border-[#D8D8D8] hover:border-[#000000] hover:text-[#000000]'
                       }`}
                     >
                       {st}
@@ -116,102 +116,87 @@ export const EventDrawer: React.FC<EventDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Time & Venue Metadata */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-[#101010] p-4 rounded-2xl border border-[#202020] space-y-1">
-                  <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-[#627EEA]" /> DATE & TIME
-                  </span>
-                  <div className="font-mono text-sm font-bold text-white">{event.startDate}</div>
-                  <div className="font-mono text-xs text-zinc-400">{event.startTime} - {event.endTime} IST</div>
+              {/* Key Metadata Table */}
+              <div className="border border-[#000000] divide-y divide-[#D8D8D8] font-mono text-xs">
+                <div className="p-3.5 flex justify-between bg-[#FAFAFA]">
+                  <span className="text-[#666666]">DATE:</span>
+                  <span className="font-bold text-[#000000]">{event.startDate}</span>
                 </div>
-
-                <div className="bg-[#101010] p-4 rounded-2xl border border-[#202020] space-y-1">
-                  <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-[#22C55E]" /> VENUE LOCATION
-                  </span>
-                  <div className="font-mono text-sm font-bold text-white truncate">{event.location}</div>
-                  <div className="font-mono text-xs text-zinc-400 truncate">{event.address || 'Mumbai, Maharashtra'}</div>
+                <div className="p-3.5 flex justify-between">
+                  <span className="text-[#666666]">TIME:</span>
+                  <span className="font-bold text-[#000000]">{event.startTime} — {event.endTime} IST</span>
                 </div>
+                <div className="p-3.5 flex justify-between bg-[#FAFAFA]">
+                  <span className="text-[#666666]">ORGANIZER:</span>
+                  <span className="font-bold text-[#000000]">{event.organizer}</span>
+                </div>
+                <div className="p-3.5 flex justify-between">
+                  <span className="text-[#666666]">LOCATION:</span>
+                  <span className="font-bold text-[#000000] text-right">{event.location}</span>
+                </div>
+                {event.address && (
+                  <div className="p-3.5 flex justify-between bg-[#FAFAFA]">
+                    <span className="text-[#666666]">ADDRESS:</span>
+                    <span className="text-[#333333] text-right max-w-xs">{event.address}</span>
+                  </div>
+                )}
               </div>
 
               {/* Description */}
-              <div className="space-y-2">
-                <h4 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">ABOUT THIS EVENT</h4>
-                <p className="text-zinc-300 text-sm leading-relaxed font-sans bg-[#101010] p-4 rounded-2xl border border-[#202020]">
-                  {event.description || 'No detailed description available for this event.'}
-                </p>
-              </div>
-
-              {/* Devcon Tracks if applicable */}
-              {event.devconTracks && (
+              {event.description && (
                 <div className="space-y-2">
-                  <h4 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">DEVCON TRACK FOCUS</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {event.devconTracks.map((tr, i) => (
-                      <span key={i} className="px-2.5 py-1 rounded-md text-xs font-mono bg-[#141414] text-zinc-300 border border-[#262626]">
-                        {tr}
-                      </span>
-                    ))}
-                  </div>
+                  <span className="font-mono text-xs uppercase tracking-wider text-[#666666] font-bold block">
+                    OVERVIEW:
+                  </span>
+                  <p className="font-sans text-sm text-[#333333] leading-relaxed border-l-2 border-[#000000] pl-4">
+                    {event.description}
+                  </p>
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="pt-4 border-t border-[#202020] space-y-3">
+              <div className="space-y-2.5 pt-4">
                 <a
                   href={event.officialUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-[#627EEA] hover:bg-[#526DDA] text-white px-5 py-3 rounded-xl font-mono text-xs font-bold tracking-wider transition-all shadow-glow-eth"
+                  className="w-full inline-flex items-center justify-between bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] px-5 py-3.5 font-mono text-xs font-bold tracking-wider transition-all"
                 >
-                  <span>OPEN OFFICIAL EVENT WEBSITE</span>
+                  <span>OPEN OFFICIAL EVENT PORTAL →</span>
                   <ExternalLink className="w-4 h-4" />
                 </a>
 
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  {event.mapUrl && (
-                    <a
-                      href={event.mapUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full sm:w-1/2 inline-flex items-center justify-center gap-2 bg-[#181818] hover:bg-[#222] text-white border border-[#333] px-4 py-2.5 rounded-xl font-mono text-xs font-semibold"
-                    >
-                      <MapPin className="w-4 h-4 text-[#22C55E]" />
-                      <span>OPEN MAP</span>
-                    </a>
-                  )}
+                {event.mapUrl && (
+                  <a
+                    href={event.mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-between bg-transparent hover:bg-[#F5F5F5] text-[#000000] border border-[#000000] px-5 py-3.5 font-mono text-xs font-semibold tracking-wider transition-all"
+                  >
+                    <span>OPEN MAP DESTINATION →</span>
+                    <MapPin className="w-4 h-4" />
+                  </a>
+                )}
 
-                  <div className="w-full sm:w-1/2">
-                    <CalendarButton event={event} size="md" />
-                  </div>
+                <div className="pt-2">
+                  <CalendarButton event={event} size="md" />
                 </div>
-
-                <button
-                  onClick={() => onUpdateStatus(event.id, isCompleted ? 'ATTENDING' : 'COMPLETED')}
-                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs font-semibold border transition-all ${
-                    isCompleted
-                      ? 'bg-zinc-900 text-zinc-400 border-zinc-800'
-                      : 'bg-[#22C55E]/15 hover:bg-[#22C55E]/25 text-[#4ADE80] border-[#22C55E]/40'
-                  }`}
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isCompleted ? 'MARKED COMPLETED' : 'MARK COMPLETED'}</span>
-                </button>
               </div>
 
             </div>
           ) : (
-            <NotesPanel
-              event={event}
-              note={note}
-              onSave={(noteData) => onSaveNote(event.id, noteData)}
-            />
+            <NotesPanel event={event} note={note} onSave={(data) => onSaveNote(event.id, data)} />
           )}
+        </div>
 
+        {/* Footer info strip */}
+        <div className="p-4 bg-[#FAFAFA] border-t border-[#D8D8D8] text-[11px] font-mono text-[#777777] flex items-center justify-between">
+          <span>MUMBAI // ONCHAIN WEEK 2026</span>
+          <span>SAVED TO LOCAL STORAGE & SUPABASE</span>
         </div>
 
       </div>
+
     </div>
   );
 };

@@ -3,7 +3,6 @@ import type { EventItem } from '../types/event';
 import { TimelineDay } from './TimelineDay';
 import { ConflictAlert } from './ConflictAlert';
 import { detectScheduleConflicts } from '../lib/conflicts';
-import { Clock } from 'lucide-react';
 
 interface TimelineProps {
   events: EventItem[];
@@ -38,52 +37,66 @@ export const Timeline: React.FC<TimelineProps> = ({ events, onSelectEvent }) => 
     : [selectedDayFilter];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 select-none">
       
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0A0A0A] p-6 rounded-3xl border border-[#202020] tech-grid shadow-card">
-        <div>
-          <div className="flex items-center gap-2 font-mono text-xs text-[#627EEA] uppercase tracking-widest mb-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span>FULL EVENT TIMELINE // NOV 01 - NOV 08 2026</span>
+      {/* Editorial Header & Day Filter Controls */}
+      <div className="bg-[#FFFFFF] border border-[#000000] p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#D8D8D8] pb-6">
+          <div>
+            <div className="font-mono text-xs text-[#666666] uppercase tracking-widest mb-1">
+              PROGRAMME // 01—08 NOVEMBER 2026
+            </div>
+            <h2 className="font-heading font-black text-3xl sm:text-5xl text-[#050505] tracking-tight uppercase">
+              SCHEDULE MATRIX
+            </h2>
+            <p className="font-mono text-xs text-[#555555] mt-1 max-w-xl">
+              Chronological exhibition programme across Mumbai with automated collision detection between concurrent sessions.
+            </p>
           </div>
-          <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-white tracking-wide">
-            SCHEDULE MATRIX & CONFLICT DETECTOR
-          </h2>
+
+          <div className="font-mono text-xs text-right">
+            <span className="text-[#000000] font-bold block">TIMEZONE: ASIA/KOLKATA (IST)</span>
+            <span className="text-[#777777]">UTC +05:30 • MUMBAI</span>
+          </div>
         </div>
 
-        {/* Day Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          <button
-            onClick={() => setSelectedDayFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg font-mono text-xs whitespace-nowrap transition-all ${
-              selectedDayFilter === 'ALL'
-                ? 'bg-[#627EEA] text-white font-bold shadow-glow-eth'
-                : 'bg-[#141414] text-zinc-400 hover:text-white border border-[#222]'
-            }`}
-          >
-            SHOW ALL DAYS
-          </button>
-          {days.map((d) => (
+        {/* Day Selector Buttons */}
+        <div className="space-y-2">
+          <span className="font-mono text-[10px] text-[#666666] uppercase tracking-widest block font-bold">
+            FILTER BY DATE:
+          </span>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             <button
-              key={d}
-              onClick={() => setSelectedDayFilter(d)}
-              className={`px-3 py-1.5 rounded-lg font-mono text-xs whitespace-nowrap transition-all ${
-                selectedDayFilter === d
-                  ? 'bg-[#627EEA] text-white font-bold shadow-glow-eth'
-                  : 'bg-[#141414] text-zinc-400 hover:text-white border border-[#222]'
+              onClick={() => setSelectedDayFilter('ALL')}
+              className={`px-3.5 py-1.5 font-mono text-xs whitespace-nowrap transition-all border ${
+                selectedDayFilter === 'ALL'
+                  ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] font-bold'
+                  : 'bg-[#FFFFFF] text-[#050505] border-[#D8D8D8] hover:border-[#000000]'
               }`}
             >
-              NOV {d.slice(8)}
+              ALL DAYS (01—08)
             </button>
-          ))}
+            {days.map((d) => (
+              <button
+                key={d}
+                onClick={() => setSelectedDayFilter(d)}
+                className={`px-3.5 py-1.5 font-mono text-xs whitespace-nowrap transition-all border ${
+                  selectedDayFilter === d
+                    ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] font-bold'
+                    : 'bg-[#FFFFFF] text-[#050505] border-[#D8D8D8] hover:border-[#000000]'
+                }`}
+              >
+                NOV {d.slice(8)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Conflict Alert Banner */}
+      {/* Automatic Collision Detector */}
       <ConflictAlert conflicts={conflicts} onSelectEvent={onSelectEvent} />
 
-      {/* Timeline Days List */}
+      {/* Timeline Days */}
       <div className="space-y-6">
         {activeDays.map((dayDate) => {
           const dayEvents = events.filter(e => {

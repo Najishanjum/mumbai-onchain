@@ -2,7 +2,8 @@ import React from 'react';
 import type { EventItem } from '../types/event';
 import { formatDateDisplay } from '../lib/date';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, AlertTriangle } from 'lucide-react';
+import { MapPin, ArrowUpRight, AlertTriangle } from 'lucide-react';
+import { CalendarButton } from './CalendarButton';
 
 interface TimelineDayProps {
   date: string;
@@ -19,82 +20,95 @@ export const TimelineDay: React.FC<TimelineDayProps> = ({
 }) => {
   if (events.length === 0) return null;
 
+  // Extract date parts
+  const dayNumber = date.slice(8); // '01', '04', etc.
+  const weekday = formatDateDisplay(date, 'EEEE').toUpperCase(); // 'WEDNESDAY'
+
   return (
-    <div className="w-full bg-[#0A0A0A] border border-[#202020] rounded-2xl p-5 space-y-4">
+    <div className="w-full bg-[#FFFFFF] border border-[#000000] p-6 sm:p-8 select-none">
       
-      {/* Date Header */}
-      <div className="flex items-center justify-between border-b border-[#202020] pb-3">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#627EEA]" />
-          <h3 className="font-heading font-extrabold text-xl text-white tracking-wide">
-            {formatDateDisplay(date, 'EEEE, dd MMM yyyy')}
-          </h3>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-start">
+        
+        {/* Left Column: Date Visual Anchor (as requested in Section 16) */}
+        <div className="md:col-span-3 border-b md:border-b-0 md:border-r border-[#D8D8D8] pb-4 md:pb-0 md:pr-6">
+          <div className="space-y-0.5 sticky top-24">
+            <span className="font-mono text-xs font-bold text-[#666666] tracking-widest block">
+              NOV
+            </span>
+            <span className="font-heading font-black text-6xl sm:text-7xl lg:text-8xl text-[#050505] leading-none block select-none">
+              {dayNumber}
+            </span>
+            <span className="font-mono text-xs sm:text-sm font-bold text-[#000000] tracking-wider block pt-1">
+              {weekday}
+            </span>
+            <span className="font-mono text-[11px] text-[#777777] block pt-2">
+              {events.length} {events.length === 1 ? 'SESSION / TRACK' : 'SESSIONS / TRACKS'}
+            </span>
+          </div>
         </div>
-        <span className="font-mono text-xs text-zinc-500 bg-[#121212] px-2.5 py-1 rounded-lg border border-[#222]">
-          {events.length} {events.length === 1 ? 'EVENT' : 'EVENTS'}
-        </span>
-      </div>
 
-      {/* Events Timeline vertical list */}
-      <div className="relative pl-4 border-l-2 border-[#202020] space-y-4 my-2">
-        {events.map((evt) => {
-          const hasConflict = conflictEventIds.has(evt.id);
+        {/* Right Column: Editorial Programme List (as requested in Section 15) */}
+        <div className="md:col-span-9 divide-y divide-[#D8D8D8]">
+          {events.map((evt) => {
+            const hasConflict = conflictEventIds.has(evt.id);
 
-          return (
-            <div key={evt.id} className="relative group">
-              
-              {/* Timeline marker node */}
-              <div className={`absolute -left-[23px] top-1.5 w-3.5 h-3.5 rounded-full border-2 transition-transform duration-200 group-hover:scale-125 ${
-                evt.isPrimary
-                  ? 'bg-[#627EEA] border-white shadow-glow-eth'
-                  : hasConflict
-                  ? 'bg-red-500 border-red-300'
-                  : 'bg-[#181818] border-[#444]'
-              }`} />
-
-              {/* Event Block */}
+            return (
               <div
-                onClick={() => onSelectEvent(evt.id)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                  evt.isPrimary
-                    ? 'bg-[#0D101C] border-[#627EEA]/60 hover:border-[#627EEA] shadow-card'
-                    : hasConflict
-                    ? 'bg-[#180A0A] border-red-500/40 hover:border-red-500'
-                    : 'bg-[#101010] border-[#202020] hover:border-[#333] hover:bg-[#141414]'
+                key={evt.id}
+                className={`py-5 first:pt-0 last:pb-0 transition-colors group cursor-pointer ${
+                  evt.isPrimary ? 'bg-[#FAFAFA] -mx-4 px-4 py-6 border-l-4 border-l-[#000000]' : ''
                 }`}
+                onClick={() => onSelectEvent(evt.id)}
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-[#627EEA] font-bold bg-[#627EEA]/10 px-2 py-0.5 rounded border border-[#627EEA]/30">
-                      <Clock className="w-3 h-3 inline mr-1" />
-                      {evt.startTime} – {evt.endTime}
+                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-2">
+                  
+                  {/* Time Stamp */}
+                  <div className="flex items-center gap-3 font-mono text-xs">
+                    <span className="font-bold text-[#000000] text-sm bg-[#F5F5F5] px-2 py-0.5 border border-[#E0E0E0]">
+                      {evt.startTime} — {evt.endTime}
+                    </span>
+                    <span className="text-[#666666] uppercase text-[11px]">
+                      {evt.category}
                     </span>
                     {hasConflict && (
-                      <span className="font-mono text-[10px] text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/30 font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> OVERLAP CONFLICT
+                      <span className="font-mono text-[10px] text-[#DC2626] font-bold flex items-center gap-1 bg-[#FEE2E2] px-2 py-0.5">
+                        <AlertTriangle className="w-3 h-3" /> COLLISION
                       </span>
                     )}
                   </div>
-                  <StatusBadge status={evt.status} size="sm" />
+
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <StatusBadge status={evt.status} size="sm" />
+                    <CalendarButton event={evt} size="sm" />
+                  </div>
                 </div>
 
-                <h4 className="font-heading font-bold text-base text-white group-hover:text-[#627EEA] transition-colors">
-                  {evt.title}
+                {/* Event Title */}
+                <h4 className="font-heading font-black text-xl sm:text-2xl text-[#050505] group-hover:underline flex items-center justify-between">
+                  <span>{evt.title}</span>
+                  <ArrowUpRight className="w-4 h-4 text-[#888888] group-hover:text-[#000000] transition-colors shrink-0 ml-2" />
                 </h4>
 
-                <div className="flex items-center gap-3 font-mono text-xs text-zinc-400 mt-2">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-[#22C55E]" />
+                {/* Metadata */}
+                <div className="flex flex-wrap items-center gap-4 font-mono text-xs text-[#555555] mt-2">
+                  <span className="flex items-center gap-1 text-[#222222]">
+                    <MapPin className="w-3.5 h-3.5 text-[#000000]" />
                     {evt.location}
                   </span>
                   <span>•</span>
-                  <span>By: <strong className="text-zinc-300">{evt.organizer}</strong></span>
+                  <span>Organizer: <strong className="text-[#000000]">{evt.organizer}</strong></span>
                 </div>
-              </div>
 
-            </div>
-          );
-        })}
+                {evt.isPrimary && (
+                  <div className="mt-3 font-mono text-[11px] text-[#000000] font-bold uppercase tracking-wider bg-[#EEEEEE] px-3 py-1 inline-block">
+                    ★ PRIMARY VOLUNTEER & ATTENDEE MISSION
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
       </div>
 
     </div>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { EventItem, UserEventNote, EventStatus } from '../types/event';
-import { CheckCircle2, Sparkles, Users, FolderGit2, Lightbulb, Share2 } from 'lucide-react';
 
 interface PostEventRecapProps {
   events: EventItem[];
@@ -21,7 +20,6 @@ export const PostEventRecap: React.FC<PostEventRecapProps> = ({
   const [peopleMet, setPeopleMet] = useState(currentNote.peopleMet || '');
   const [projects, setProjects] = useState(currentNote.projects || '');
   const [takeaways, setTakeaways] = useState(currentNote.takeaways || '');
-  const [contentIdea, setContentIdea] = useState(currentNote.contentIdea || '');
 
   const handleRecapSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,33 +29,33 @@ export const PostEventRecap: React.FC<PostEventRecapProps> = ({
       peopleMet,
       projects,
       takeaways,
-      contentIdea,
     });
 
     onUpdateStatus(selectedEventId, 'COMPLETED');
-    alert('Post-event recap saved and event marked COMPLETED!');
+    alert('Post-event journal entry saved! Event marked as COMPLETED.');
   };
 
   return (
-    <div className="bg-[#0A0A0A] border border-[#202020] rounded-3xl p-6 sm:p-8 space-y-6 tech-grid shadow-card">
-      <div className="border-b border-[#202020] pb-4">
-        <div className="flex items-center gap-2 font-mono text-xs text-[#8B5CF6] uppercase tracking-widest mb-1">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>POST-EVENT RECAP & REFLECTION</span>
+    <div className="bg-[#FFFFFF] border border-[#000000] p-6 sm:p-8 space-y-6 select-none">
+      <div className="border-b border-[#D8D8D8] pb-4">
+        <div className="font-mono text-xs text-[#666666] uppercase tracking-widest mb-1">
+          POST-EVENT JOURNAL LOG
         </div>
-        <h3 className="font-heading font-extrabold text-2xl text-white tracking-wide">
+        <h3 className="font-heading font-black text-2xl sm:text-3xl text-[#050505] tracking-tight uppercase">
           WHAT HAPPENED?
         </h3>
-        <p className="font-mono text-xs text-zinc-400 mt-0.5">
-          Record your networking, learnings, and key takeaways after attending an event in Mumbai.
+        <p className="font-mono text-xs text-[#555555] mt-1">
+          Record your learnings, networking connections, and prototype discussions to archive your personal journey.
         </p>
       </div>
 
-      <form onSubmit={handleRecapSubmit} className="space-y-4">
+      <form onSubmit={handleRecapSubmit} className="space-y-4 font-mono text-xs">
         
         {/* Select Event */}
-        <div>
-          <label className="font-mono text-xs text-zinc-300 font-semibold block mb-1">SELECT EVENT TO RECAP</label>
+        <div className="space-y-1">
+          <label className="text-[#000000] font-bold block uppercase tracking-wider">
+            SELECT COMPLETED EVENT:
+          </label>
           <select
             value={selectedEventId}
             onChange={(e) => {
@@ -66,79 +64,51 @@ export const PostEventRecap: React.FC<PostEventRecapProps> = ({
               setPeopleMet(n.peopleMet || '');
               setProjects(n.projects || '');
               setTakeaways(n.takeaways || '');
-              setContentIdea(n.contentIdea || '');
             }}
-            className="w-full bg-[#121212] border border-[#222] rounded-xl p-3 text-xs font-mono text-white outline-none focus:border-[#8B5CF6]"
+            className="w-full bg-[#FAFAFA] border border-[#000000] text-[#000000] p-3 font-mono text-xs focus:outline-none"
           >
-            {events.map(e => (
-              <option key={e.id} value={e.id}>
-                {e.startDate} — {e.title} ({e.status})
+            {events.map((evt) => (
+              <option key={evt.id} value={evt.id}>
+                [{evt.startDate.slice(5)}] {evt.title} ({evt.status})
               </option>
             ))}
           </select>
         </div>
 
-        {/* Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="font-mono text-xs text-zinc-300 font-semibold flex items-center gap-1.5 mb-1">
-              <Users className="w-3.5 h-3.5 text-[#627EEA]" /> PEOPLE I MET
-            </label>
-            <textarea
-              value={peopleMet}
-              onChange={(e) => setPeopleMet(e.target.value)}
-              placeholder="Names, X handles, Telegram..."
-              rows={3}
-              className="w-full bg-[#101010] border border-[#222] rounded-xl p-3 text-xs font-mono text-white"
-            />
-          </div>
-
-          <div>
-            <label className="font-mono text-xs text-zinc-300 font-semibold flex items-center gap-1.5 mb-1">
-              <FolderGit2 className="w-3.5 h-3.5 text-[#8B5CF6]" /> PROJECTS DISCOVERED
-            </label>
-            <textarea
-              value={projects}
-              onChange={(e) => setProjects(e.target.value)}
-              placeholder="Cool protocols, repos, repos..."
-              rows={3}
-              className="w-full bg-[#101010] border border-[#222] rounded-xl p-3 text-xs font-mono text-white"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="font-mono text-xs text-zinc-300 font-semibold flex items-center gap-1.5 mb-1">
-            <Lightbulb className="w-3.5 h-3.5 text-[#F59E0B]" /> KEY TAKEAWAYS & HIGHLIGHTS
+        {/* People Met */}
+        <div className="space-y-1">
+          <label className="text-[#000000] font-bold block uppercase tracking-wider">
+            PEOPLE I MET & NETWORKING CONTACTS:
           </label>
           <textarea
+            rows={3}
+            value={peopleMet}
+            onChange={(e) => setPeopleMet(e.target.value)}
+            placeholder="Names, X handles, Telegram IDs, roles..."
+            className="w-full bg-[#FAFAFA] border border-[#D8D8D8] focus:border-[#000000] p-3 font-sans text-xs focus:outline-none"
+          />
+        </div>
+
+        {/* Takeaways */}
+        <div className="space-y-1">
+          <label className="text-[#000000] font-bold block uppercase tracking-wider">
+            KEY TAKEAWAYS & PROTOCOL REFLECTIONS:
+          </label>
+          <textarea
+            rows={3}
             value={takeaways}
             onChange={(e) => setTakeaways(e.target.value)}
-            placeholder="Main insights gained during session/talk..."
-            rows={2}
-            className="w-full bg-[#101010] border border-[#222] rounded-xl p-3 text-xs font-mono text-white"
+            placeholder="Key technical presentations, insights, ecosystem trends..."
+            className="w-full bg-[#FAFAFA] border border-[#D8D8D8] focus:border-[#000000] p-3 font-sans text-xs focus:outline-none"
           />
         </div>
 
-        <div>
-          <label className="font-mono text-xs text-zinc-300 font-semibold flex items-center gap-1.5 mb-1">
-            <Share2 className="w-3.5 h-3.5 text-[#3B82F6]" /> X / CONTENT POST IDEA
-          </label>
-          <textarea
-            value={contentIdea}
-            onChange={(e) => setContentIdea(e.target.value)}
-            placeholder="Draft tweet or post takeaway..."
-            rows={2}
-            className="w-full bg-[#101010] border border-[#222] rounded-xl p-3 text-xs font-mono text-white"
-          />
-        </div>
-
+        {/* Submit button */}
         <button
           type="submit"
-          className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-5 py-3 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-glow-violet active:scale-95"
+          className="bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] px-6 py-3 font-mono text-xs font-bold tracking-wider transition-all"
         >
-          <CheckCircle2 className="w-4 h-4" />
-          <span>MARK COMPLETED & SAVE RECAP</span>
+          ARCHIVE ENTRY & MARK COMPLETED [✓]
         </button>
 
       </form>

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { EventItem, UserEventNote, EventStatus } from '../types/event';
 import { PostEventRecap } from './PostEventRecap';
-import { Activity, FileText } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 interface MyMumbaiProps {
   events: EventItem[];
@@ -18,138 +18,207 @@ export const MyMumbai: React.FC<MyMumbaiProps> = ({
   onSaveNote,
   onUpdateStatus,
 }) => {
-  // Calculated stats directly from database state
   const totalEvents = events.length;
   const attendingCount = events.filter(e => e.status === 'ATTENDING').length;
   const volunteerCount = events.filter(e => e.status === 'VOLUNTEER').length;
   const pendingCount = events.filter(e => e.status === 'PENDING' || e.status === 'PENDING APPROVAL').length;
   const completedCount = events.filter(e => e.status === 'COMPLETED').length;
 
-  const notesList = Object.values(notes).filter(n => n.peopleMet || n.projects || n.takeaways);
+  const notesList = Object.entries(notes).filter(([_, n]) => n.peopleMet || n.projects || n.takeaways);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12 select-none">
       
-      {/* Dashboard Top Header */}
-      <div className="bg-[#0A0A0A] border border-[#202020] rounded-3xl p-6 sm:p-8 tech-grid shadow-card">
-        <div className="flex items-center gap-2 font-mono text-xs text-[#8B5CF6] uppercase tracking-widest mb-1">
-          <Activity className="w-3.5 h-3.5" />
-          <span>PERSONAL MISSION CONTROL DASHBOARD</span>
+      {/* Top Editorial Dashboard Header */}
+      <div className="bg-[#FFFFFF] border border-[#000000] p-6 sm:p-10 space-y-4">
+        <div className="font-mono text-xs text-[#666666] uppercase tracking-widest">
+          TELEMETRY & PERSONAL MISSION REPORT
         </div>
-        <h2 className="font-heading font-extrabold text-3xl text-white tracking-wide">
-          MY MUMBAI DASHBOARD
+        <h2 className="font-heading font-black text-5xl sm:text-7xl lg:text-8xl text-[#050505] leading-none tracking-tighter uppercase">
+          MY<br />
+          MUMBAI
         </h2>
-        <p className="font-mono text-xs text-zinc-400 mt-1">
-          Personal trip telemetry, attendance metrics, networking logs, and post-event recaps for Nov 1–8, 2026.
+        <p className="font-mono text-xs sm:text-sm text-[#444444] max-w-xl">
+          A real-time command overview of verified tickets, volunteer assignments, and community meetings across 01—08 Nov 2026.
         </p>
       </div>
 
-      {/* Calculated Real Telemetry Stat Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      {/* Giant Editorial Statistics (Section 24) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         
-        <div className="bg-[#0A0A0A] border border-[#202020] p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-          <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest">TOTAL EVENTS</span>
-          <span className="font-mono text-3xl font-extrabold text-white mt-1">{totalEvents}</span>
-        </div>
-
-        <div className="bg-[#0A0A0A] border border-[#22C55E]/30 p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-          <span className="font-mono text-[10px] text-[#22C55E] uppercase tracking-widest">ATTENDING</span>
-          <span className="font-mono text-3xl font-extrabold text-[#4ADE80] mt-1">{attendingCount}</span>
-        </div>
-
-        <div className="bg-[#0A0A0A] border border-[#8B5CF6]/30 p-4 rounded-2xl flex flex-col items-center justify-center text-center shadow-[0_0_15px_rgba(139,92,246,0.15)]">
-          <span className="font-mono text-[10px] text-[#8B5CF6] uppercase tracking-widest">VOLUNTEER</span>
-          <span className="font-mono text-3xl font-extrabold text-[#C4B5FD] mt-1">{volunteerCount}</span>
-        </div>
-
-        <div className="bg-[#0A0A0A] border border-[#F59E0B]/30 p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-          <span className="font-mono text-[10px] text-[#F59E0B] uppercase tracking-widest">PENDING</span>
-          <span className="font-mono text-3xl font-extrabold text-[#FBBF24] mt-1">{pendingCount}</span>
-        </div>
-
-        <div className="bg-[#0A0A0A] border border-[#202020] p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-          <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">COMPLETED</span>
-          <span className="font-mono text-3xl font-extrabold text-zinc-300 mt-1">{completedCount}</span>
-        </div>
-
-        <div className="bg-[#0A0A0A] border border-[#627EEA]/30 p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-          <span className="font-mono text-[10px] text-[#627EEA] uppercase tracking-widest">DAYS IN MUMBAI</span>
-          <span className="font-mono text-3xl font-extrabold text-white mt-1">8</span>
-        </div>
-
-      </div>
-
-      {/* Main Grid: Saved Notes Summary & Post-Event Recap */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Column: Saved Personal Notes Overview */}
-        <div className="lg:col-span-6 space-y-6">
-          
-          <div className="bg-[#0A0A0A] border border-[#202020] rounded-3xl p-6 space-y-4 shadow-card">
-            <div className="flex items-center justify-between border-b border-[#202020] pb-3">
-              <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#8B5CF6]" />
-                SAVED NOTES & NETWORK LOGS
-              </h3>
-              <span className="font-mono text-xs text-zinc-500">({notesList.length} LOGS)</span>
-            </div>
-
-            {notesList.length === 0 ? (
-              <div className="py-8 text-center font-mono text-xs text-zinc-500">
-                No personal notes saved yet. Open any event drawer to log contacts and ideas!
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {notesList.map((n) => {
-                  const evt = events.find(e => e.id === n.eventId);
-                  return (
-                    <div
-                      key={n.eventId}
-                      onClick={() => onSelectEvent(n.eventId)}
-                      className="p-4 rounded-2xl bg-[#121212] border border-[#222] hover:border-[#8B5CF6]/50 transition-all cursor-pointer space-y-2"
-                    >
-                      <div className="flex justify-between text-xs font-mono text-[#8B5CF6]">
-                        <span className="font-bold">{evt?.title || n.eventId}</span>
-                        <span className="text-zinc-500">{n.updatedAt.slice(0, 10)}</span>
-                      </div>
-
-                      {n.peopleMet && (
-                        <div className="text-xs font-mono text-zinc-300">
-                          <strong className="text-[#627EEA]">Met:</strong> {n.peopleMet}
-                        </div>
-                      )}
-
-                      {n.projects && (
-                        <div className="text-xs font-mono text-zinc-300">
-                          <strong className="text-[#8B5CF6]">Discovered:</strong> {n.projects}
-                        </div>
-                      )}
-
-                      {n.takeaways && (
-                        <div className="text-xs font-mono text-zinc-300">
-                          <strong className="text-[#F59E0B]">Takeaways:</strong> {n.takeaways}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {/* Total Events */}
+        <div className="bg-[#FFFFFF] border border-[#000000] p-6 flex flex-col justify-between">
+          <span className="font-mono text-xs font-bold text-[#666666] uppercase tracking-widest">
+            EVENTS
+          </span>
+          <div className="mt-6">
+            <span className="font-mono font-black text-6xl sm:text-7xl text-[#050505] leading-none block">
+              {String(totalEvents).padStart(2, '0')}
+            </span>
+            <span className="font-mono text-[11px] text-[#888888] tracking-wider uppercase mt-2 block">
+              TRACKED ONCHAIN
+            </span>
           </div>
-
         </div>
 
-        {/* Right Column: Post-Event Recap Interactive Form */}
-        <div className="lg:col-span-6">
-          <PostEventRecap
-            events={events}
-            notes={notes}
-            onSaveNote={onSaveNote}
-            onUpdateStatus={onUpdateStatus}
-          />
+        {/* Days in Mumbai */}
+        <div className="bg-[#FFFFFF] border border-[#000000] p-6 flex flex-col justify-between">
+          <span className="font-mono text-xs font-bold text-[#666666] uppercase tracking-widest">
+            DAYS
+          </span>
+          <div className="mt-6">
+            <span className="font-mono font-black text-6xl sm:text-7xl text-[#050505] leading-none block">
+              08
+            </span>
+            <span className="font-mono text-[11px] text-[#888888] tracking-wider uppercase mt-2 block">
+              NOV 01—08 2026
+            </span>
+          </div>
+        </div>
+
+        {/* Volunteer Missions */}
+        <div className="bg-[#000000] text-[#FFFFFF] border-2 border-[#000000] p-6 flex flex-col justify-between">
+          <span className="font-mono text-xs font-bold text-[#A0A0A0] uppercase tracking-widest">
+            VOLUNTEER
+          </span>
+          <div className="mt-6">
+            <span className="font-mono font-black text-6xl sm:text-7xl text-[#FFFFFF] leading-none block">
+              {String(volunteerCount).padStart(2, '0')}
+            </span>
+            <span className="font-mono text-[11px] text-[#F97316] font-bold tracking-wider uppercase mt-2 block">
+              DEVCON 8 PRIMARY
+            </span>
+          </div>
+        </div>
+
+        {/* Attending */}
+        <div className="bg-[#FFFFFF] border border-[#000000] p-6 flex flex-col justify-between">
+          <span className="font-mono text-xs font-bold text-[#666666] uppercase tracking-widest">
+            ATTENDING
+          </span>
+          <div className="mt-6">
+            <span className="font-mono font-black text-6xl sm:text-7xl text-[#050505] leading-none block">
+              {String(attendingCount).padStart(2, '0')}
+            </span>
+            <span className="font-mono text-[11px] text-[#888888] tracking-wider uppercase mt-2 block">
+              CONFIRMED PASSES
+            </span>
+          </div>
+        </div>
+
+        {/* Pending & Completed */}
+        <div className="bg-[#FFFFFF] border border-[#000000] p-6 flex flex-col justify-between">
+          <span className="font-mono text-xs font-bold text-[#666666] uppercase tracking-widest">
+            COMPLETED
+          </span>
+          <div className="mt-6">
+            <span className="font-mono font-black text-6xl sm:text-7xl text-[#050505] leading-none block">
+              {String(completedCount).padStart(2, '0')}
+            </span>
+            <span className="font-mono text-[11px] text-[#888888] tracking-wider uppercase mt-2 block">
+              {pendingCount} STILL PENDING
+            </span>
+          </div>
         </div>
 
       </div>
+
+      {/* Post Event Recap Form */}
+      <PostEventRecap
+        events={events}
+        notes={notes}
+        onSaveNote={onSaveNote}
+        onUpdateStatus={onUpdateStatus}
+      />
+
+      {/* Section 25: MY ONCHAIN WEEK (Personal Journey & Journal Entries) */}
+      <section className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#000000] pb-4">
+          <div>
+            <div className="font-mono text-xs text-[#666666] uppercase tracking-widest mb-1">
+              ARCHIVE & LOGBOOK
+            </div>
+            <h3 className="font-heading font-black text-3xl sm:text-5xl text-[#050505] uppercase tracking-tight">
+              MY ONCHAIN WEEK
+            </h3>
+          </div>
+          <p className="font-mono text-xs text-[#555555]">
+            Chronological notes, networking connections, and protocol ideas documented in Mumbai.
+          </p>
+        </div>
+
+        {notesList.length === 0 ? (
+          <div className="p-8 border border-dashed border-[#D8D8D8] text-center font-mono text-xs text-[#777777] bg-[#FAFAFA]">
+            NO JOURNAL ENTRIES RECORDED YET. SELECT AN EVENT ABOVE TO ADD NOTES & REFLECTIONS.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {notesList.map(([evtId, note]) => {
+              const evt = events.find(e => e.id === evtId);
+              return (
+                <div
+                  key={evtId}
+                  className="border border-[#000000] bg-[#FFFFFF] p-6 space-y-4 font-mono text-xs"
+                >
+                  <div className="flex items-center justify-between border-b border-[#D8D8D8] pb-3">
+                    <span className="font-pixel text-xs text-[#000000]">
+                      [{evt?.startDate.slice(5) || 'NOV'}]
+                    </span>
+                    <button
+                      onClick={() => onSelectEvent(evtId)}
+                      className="font-bold underline hover:text-[#555555] flex items-center gap-1"
+                    >
+                      <span>VIEW EVENT</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <h4 className="font-heading font-black text-xl text-[#050505]">
+                    {evt?.title || 'Mumbai Session'}
+                  </h4>
+
+                  {note.peopleMet && (
+                    <div className="space-y-1">
+                      <span className="font-bold text-[#000000] block uppercase tracking-wider">
+                        PEOPLE MET:
+                      </span>
+                      <p className="font-sans text-xs text-[#333333] bg-[#FAFAFA] p-2.5 border border-[#EAEAEA]">
+                        {note.peopleMet}
+                      </p>
+                    </div>
+                  )}
+
+                  {note.takeaways && (
+                    <div className="space-y-1">
+                      <span className="font-bold text-[#000000] block uppercase tracking-wider">
+                        TAKEAWAYS:
+                      </span>
+                      <p className="font-sans text-xs text-[#333333] bg-[#FAFAFA] p-2.5 border border-[#EAEAEA]">
+                        {note.takeaways}
+                      </p>
+                    </div>
+                  )}
+
+                  {note.projects && (
+                    <div className="space-y-1">
+                      <span className="font-bold text-[#000000] block uppercase tracking-wider">
+                        PROJECTS / IDEAS:
+                      </span>
+                      <p className="font-sans text-xs text-[#333333] bg-[#FAFAFA] p-2.5 border border-[#EAEAEA]">
+                        {note.projects}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="pt-2 text-[10px] text-[#888888] border-t border-[#EAEAEA]">
+                    LAST UPDATED: {new Date(note.updatedAt).toLocaleDateString()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
     </div>
   );
