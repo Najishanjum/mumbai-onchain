@@ -55,19 +55,31 @@ export const SideEvents: React.FC = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-4 border border-[#D8D8D8] bg-[#FAFAFA] p-6 space-y-4">
-            <div className="font-mono text-xs text-[#666666] uppercase tracking-wider">
-              VENUE COORDINATES
+          <div className="lg:col-span-4 border border-[#000000] bg-[#FAFAFA] overflow-hidden">
+            <div className="h-48 w-full overflow-hidden relative">
+              <img
+                src="/images/fairmont-mumbai.jpg"
+                alt="Fairmont Mumbai - India Blockchain Week Venue"
+                className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
+              />
+              <div className="absolute top-2.5 left-2.5 bg-[#000000] text-[#FFFFFF] px-2.5 py-0.5 font-mono text-[10px] font-bold">
+                IBW 2026 OFFICIAL VENUE
+              </div>
             </div>
-            <div className="font-mono text-sm font-bold text-[#000000]">
-              FAIRMONT MUMBAI
-            </div>
-            <div className="font-mono text-xs text-[#555555]">
-              Sahar, Andheri East, Mumbai<br />
-              19.0968° N, 72.8584° E
-            </div>
-            <div className="pt-2 border-t border-[#EAEAEA] font-mono text-xs text-[#777777]">
-              Status: <span className="font-bold text-[#000000]">ATTENDING KEYNOTE TRACK</span>
+            <div className="p-5 space-y-2">
+              <div className="font-mono text-xs text-[#666666] uppercase tracking-wider">
+                VENUE COORDINATES
+              </div>
+              <div className="font-mono text-sm font-bold text-[#000000]">
+                FAIRMONT MUMBAI
+              </div>
+              <div className="font-mono text-xs text-[#555555]">
+                Sahar, Andheri East, Mumbai<br />
+                19.0968° N, 72.8584° E
+              </div>
+              <div className="pt-2 border-t border-[#EAEAEA] font-mono text-xs text-[#777777]">
+                Status: <span className="font-bold text-[#000000]">ATTENDING KEYNOTE TRACK</span>
+              </div>
             </div>
           </div>
         </div>

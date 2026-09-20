@@ -4,10 +4,9 @@ import { ArrowUpRight } from 'lucide-react';
 interface NavbarProps {
   activeTab: 'home' | 'timeline' | 'events' | 'map' | 'mymumbai';
   setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'map' | 'mymumbai') => void;
-  conflictCount?: number;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, conflictCount = 0 }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FFFFFF] border-b border-[#D8D8D8] select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -48,18 +47,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, conflic
 
           <button
             onClick={() => setActiveTab('timeline')}
-            className={`px-3 py-1.5 transition-colors border-b-2 font-semibold flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 transition-colors border-b-2 font-semibold ${
               activeTab === 'timeline'
                 ? 'border-[#000000] text-[#000000]'
                 : 'border-transparent text-[#555555] hover:text-[#000000]'
             }`}
           >
-            <span>TIMELINE</span>
-            {conflictCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[#EF4444] text-white font-bold">
-                {conflictCount}
-              </span>
-            )}
+            TIMELINE
           </button>
 
           <button

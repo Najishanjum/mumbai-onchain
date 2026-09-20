@@ -12,8 +12,18 @@ export const PrimaryEvent: React.FC<PrimaryEventProps> = ({ event, onSelectEvent
   return (
     <section className="w-full bg-[#FFFFFF] border-2 border-[#000000] p-6 sm:p-10 lg:p-12 relative overflow-hidden select-none">
       
+      {/* 1st Given Image: Official Devcon 8 India Key Visual Background */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <img
+          src="/images/devcon8-keyvisual.png"
+          alt="Devcon 8 India Gateway of India Artwork"
+          className="w-full h-full object-cover object-center opacity-20 lg:opacity-25 mix-blend-multiply"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-white/75" />
+      </div>
+
       {/* Top Telemetry Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D8D8D8] pb-4 mb-8">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-[#D8D8D8] pb-4 mb-8">
         <div className="flex items-center gap-2 font-mono text-xs font-bold tracking-wider text-[#050505]">
           <span className="w-2.5 h-2.5 bg-[#000000]" />
           <span>PRIMARY MISSION // 01</span>
@@ -23,7 +33,7 @@ export const PrimaryEvent: React.FC<PrimaryEventProps> = ({ event, onSelectEvent
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
         
         {/* Left Column: Giant Editorial Typography & Event Metadata */}
         <div className="lg:col-span-7 space-y-6">

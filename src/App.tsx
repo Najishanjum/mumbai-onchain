@@ -14,7 +14,6 @@ import { MapView } from './components/MapView';
 import { MyMumbai } from './components/MyMumbai';
 import { SideEvents } from './components/SideEvents';
 import { Footer } from './components/Footer';
-import { detectScheduleConflicts } from './lib/conflicts';
 import { AlertCircle } from 'lucide-react';
 
 export function App() {
@@ -31,15 +30,6 @@ export function App() {
     updateEventStatus,
     saveEventNote,
   } = useAppStore();
-
-  const conflicts = detectScheduleConflicts(events);
-
-  // Set of conflict IDs
-  const conflictIds = new Set<string>();
-  conflicts.forEach(c => {
-    conflictIds.add(c.event1.id);
-    conflictIds.add(c.event2.id);
-  });
 
   // Devcon 8 Primary Event item
   const primaryDevconEvent = events.find(e => e.isPrimary || e.id === 'devcon-8-india') || events[0];
@@ -69,7 +59,6 @@ export function App() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        conflictCount={conflicts.length}
       />
 
       {/* Top Ticker / Marquee Strip (Immediately below Navbar as requested) */}
@@ -150,7 +139,6 @@ export function App() {
                     key={evt.id}
                     event={evt}
                     index={idx}
-                    hasConflict={conflictIds.has(evt.id)}
                     onSelectEvent={(id) => setSelectedEventId(id)}
                   />
                 ))}
@@ -194,7 +182,6 @@ export function App() {
       <MobileNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        conflictCount={conflicts.length}
       />
 
       {/* Footer */}

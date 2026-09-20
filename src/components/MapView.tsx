@@ -11,6 +11,31 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
   const venueEvents = events.filter(e => e.location && e.location !== 'TBA, Mumbai');
   const [selectedVenue, setSelectedVenue] = useState<EventItem>(venueEvents[0] || events[0]);
 
+  const getVenueImage = (locationName: string, defaultImg?: string) => {
+    const loc = locationName.toLowerCase();
+    if (loc.includes('jio') || loc.includes('bkc')) {
+      return '/images/jio-world-centre.png';
+    }
+    if (loc.includes('fairmont') || loc.includes('sahar')) {
+      return '/images/fairmont-mumbai.jpg';
+    }
+    if (loc.includes('nesco') || loc.includes('goregaon')) {
+      return '/images/ethglobal-mumbai.png';
+    }
+    if (loc.includes('taj lands') || loc.includes('bandra')) {
+      return '/images/multichain-day.png';
+    }
+    if (loc.includes('taj mahal') || loc.includes('colaba')) {
+      return '/images/money-layer.png';
+    }
+    if (loc.includes('ifbe') || loc.includes('ballard')) {
+      return '/images/yield-layer.png';
+    }
+    return defaultImg || '/images/jio-world-centre.png';
+  };
+
+  const currentVenueImage = getVenueImage(selectedVenue?.location || '', selectedVenue?.imageUrl);
+
   // Google Map embed query
   const mapQuery = selectedVenue?.address
     ? encodeURIComponent(`${selectedVenue.location}, ${selectedVenue.address}`)
@@ -20,7 +45,7 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
   const officialGoogleMapsLink = selectedVenue?.mapUrl || 'https://maps.app.goo.gl/yyQ84FcUdu4bmFPB6';
 
   return (
-    <div className="w-full space-y-6 select-none">
+    <div className="w-full space-y-8 select-none">
       
       {/* Header */}
       <div className="bg-[#FFFFFF] border border-[#000000] p-6 sm:p-8 space-y-4">
@@ -48,6 +73,73 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
             <ExternalLink className="w-4 h-4" />
           </a>
         </div>
+      </div>
+
+      {/* Selected Venue Spotlight Card (Directly addressing user prompt) */}
+      <div className="bg-[#FFFFFF] border-2 border-[#000000] overflow-hidden grid grid-cols-1 lg:grid-cols-12 items-stretch">
+        
+        {/* Venue Photo (2nd given image for Jio World Centre / 3rd given image for Fairmont) */}
+        <div className="lg:col-span-6 relative h-64 sm:h-80 lg:h-auto overflow-hidden bg-[#000000]">
+          <img
+            src={currentVenueImage}
+            alt={selectedVenue?.location}
+            className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
+          />
+          <div className="absolute top-3 left-3 bg-[#000000] text-[#FFFFFF] px-3 py-1 font-mono text-[11px] font-bold tracking-wider">
+            VENUE SPOTLIGHT
+          </div>
+        </div>
+
+        {/* Venue Info Panel */}
+        <div className="lg:col-span-6 p-6 sm:p-8 flex flex-col justify-between space-y-6">
+          <div className="space-y-4">
+            
+            <div className="border-b border-[#D8D8D8] pb-4">
+              <span className="font-mono text-xs text-[#666666] uppercase tracking-widest block font-bold mb-1">
+                SELECTED VENUE
+              </span>
+              <h3 className="font-heading font-black text-2xl sm:text-4xl text-[#050505] uppercase">
+                {selectedVenue?.location}
+              </h3>
+              <p className="font-mono text-xs text-[#444444] mt-1">
+                {selectedVenue?.address || 'Mumbai, Maharashtra'}
+              </p>
+            </div>
+
+            <div className="bg-[#FAFAFA] border border-[#D8D8D8] p-4 space-y-1">
+              <span className="font-mono text-[10px] text-[#666666] uppercase tracking-wider block font-bold">
+                EVENT AT THIS VENUE
+              </span>
+              <h4 className="font-heading font-black text-lg sm:text-xl text-[#000000]">
+                {selectedVenue?.title}
+              </h4>
+              <p className="font-mono text-xs text-[#555555]">
+                Time: <strong className="text-[#000000]">{selectedVenue?.startTime} — {selectedVenue?.endTime} IST</strong> • {selectedVenue?.startDate}
+              </p>
+            </div>
+
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <a
+              href={officialGoogleMapsLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] px-5 py-3 font-mono text-xs font-bold transition-all"
+            >
+              <span>VIEW ON GOOGLE MAPS →</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+
+            <button
+              onClick={() => onSelectEvent(selectedVenue.id)}
+              className="inline-flex items-center gap-2 bg-transparent hover:bg-[#F5F5F5] text-[#000000] border border-[#000000] px-5 py-3 font-mono text-xs font-bold transition-all"
+            >
+              <span>VIEW EVENT BRIEF [01]</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {/* Map Layout Grid */}

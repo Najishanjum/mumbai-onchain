@@ -1,20 +1,18 @@
 import React from 'react';
 import type { EventItem } from '../types/event';
 import { StatusBadge } from './StatusBadge';
-import { MapPin, Clock, ArrowUpRight, AlertTriangle } from 'lucide-react';
+import { MapPin, Clock, ArrowUpRight } from 'lucide-react';
 import { CalendarButton } from './CalendarButton';
 
 interface EventCardProps {
   event: EventItem;
   index?: number;
-  hasConflict?: boolean;
   onSelectEvent: (eventId: string) => void;
 }
 
 export const EventCard: React.FC<EventCardProps> = ({
   event,
   index,
-  hasConflict = false,
   onSelectEvent,
 }) => {
   // Format numeric identifier for exhibition catalogue: 01, 02, 03...
@@ -27,19 +25,17 @@ export const EventCard: React.FC<EventCardProps> = ({
       className={`group relative bg-[#FFFFFF] border p-6 flex flex-col justify-between transition-all duration-200 select-none overflow-hidden ${
         event.isPrimary
           ? 'border-2 border-[#000000] shadow-sm'
-          : hasConflict
-          ? 'border-2 border-[#EF4444]'
           : 'border-[#D8D8D8] hover:border-[#000000]'
       }`}
     >
-      {/* Giant Subtle Background Numbering (as requested in Section 13 & 14) */}
+      {/* Giant Subtle Background Numbering */}
       <div className="absolute right-2 -bottom-4 font-mono font-black text-7xl sm:text-8xl text-[#F2F2F2] group-hover:text-[#EAEAEA] transition-colors pointer-events-none select-none z-0">
         {displayNumber}
       </div>
 
       <div className="relative z-10 space-y-4">
         
-        {/* Card Header: Exhibition Index + Conflict Alert + Status Badge */}
+        {/* Card Header: Exhibition Index + Status Badge */}
         <div className="flex items-center justify-between gap-2 border-b border-[#EAEAEA] pb-3">
           <div className="flex items-center gap-2">
             <span className="font-pixel text-xs sm:text-sm text-[#000000] font-bold">
@@ -50,12 +46,7 @@ export const EventCard: React.FC<EventCardProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            {hasConflict && (
-              <span className="px-2 py-0.5 font-mono text-[10px] font-bold bg-[#EF4444] text-white flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" /> COLLISION
-              </span>
-            )}
+          <div>
             <StatusBadge status={event.status} size="sm" />
           </div>
         </div>

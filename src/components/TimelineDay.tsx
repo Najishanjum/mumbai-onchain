@@ -2,34 +2,32 @@ import React from 'react';
 import type { EventItem } from '../types/event';
 import { formatDateDisplay } from '../lib/date';
 import { StatusBadge } from './StatusBadge';
-import { MapPin, ArrowUpRight, AlertTriangle } from 'lucide-react';
+import { MapPin, ArrowUpRight } from 'lucide-react';
 import { CalendarButton } from './CalendarButton';
 
 interface TimelineDayProps {
   date: string;
   events: EventItem[];
-  conflictEventIds: Set<string>;
   onSelectEvent: (eventId: string) => void;
 }
 
 export const TimelineDay: React.FC<TimelineDayProps> = ({
   date,
   events,
-  conflictEventIds,
   onSelectEvent,
 }) => {
   if (events.length === 0) return null;
 
   // Extract date parts
   const dayNumber = date.slice(8); // '01', '04', etc.
-  const weekday = formatDateDisplay(date, 'EEEE').toUpperCase(); // 'WEDNESDAY'
+  const weekday = formatDateDisplay(date, 'EEEE').toUpperCase(); // 'SUNDAY', 'WEDNESDAY', etc.
 
   return (
     <div className="w-full bg-[#FFFFFF] border border-[#000000] p-6 sm:p-8 select-none">
       
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-start">
         
-        {/* Left Column: Date Visual Anchor (as requested in Section 16) */}
+        {/* Left Column: Date Visual Anchor */}
         <div className="md:col-span-3 border-b md:border-b-0 md:border-r border-[#D8D8D8] pb-4 md:pb-0 md:pr-6">
           <div className="space-y-0.5 sticky top-24">
             <span className="font-mono text-xs font-bold text-[#666666] tracking-widest block">
@@ -47,11 +45,9 @@ export const TimelineDay: React.FC<TimelineDayProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Editorial Programme List (as requested in Section 15) */}
+        {/* Right Column: Editorial Programme List */}
         <div className="md:col-span-9 divide-y divide-[#D8D8D8]">
           {events.map((evt) => {
-            const hasConflict = conflictEventIds.has(evt.id);
-
             return (
               <div
                 key={evt.id}
@@ -70,11 +66,6 @@ export const TimelineDay: React.FC<TimelineDayProps> = ({
                     <span className="text-[#666666] uppercase text-[11px]">
                       {evt.category}
                     </span>
-                    {hasConflict && (
-                      <span className="font-mono text-[10px] text-[#DC2626] font-bold flex items-center gap-1 bg-[#FEE2E2] px-2 py-0.5">
-                        <AlertTriangle className="w-3 h-3" /> COLLISION
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>

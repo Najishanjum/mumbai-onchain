@@ -4,10 +4,9 @@ import { Home, Clock, Calendar, MapPin, User } from 'lucide-react';
 interface MobileNavProps {
   activeTab: 'home' | 'timeline' | 'events' | 'map' | 'mymumbai';
   setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'map' | 'mymumbai') => void;
-  conflictCount?: number;
 }
 
-export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, setActiveTab, conflictCount = 0 }) => {
+export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, setActiveTab }) => {
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FFFFFF] border-t-2 border-[#000000] px-2 py-1 select-none">
       <div className="grid grid-cols-5 gap-1 max-w-md mx-auto">
@@ -33,9 +32,6 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, setActiveTab, c
         >
           <Clock className="w-4 h-4 mb-0.5" />
           <span className="text-[10px] font-mono tracking-wider">TIMELINE</span>
-          {conflictCount > 0 && (
-            <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-[#EF4444]" />
-          )}
         </button>
 
         <button
