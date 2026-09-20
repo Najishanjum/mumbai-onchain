@@ -2,8 +2,8 @@ import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'home' | 'timeline' | 'events' | 'map' | 'mymumbai';
-  setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'map' | 'mymumbai') => void;
+  activeTab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai';
+  setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
@@ -65,6 +65,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             }`}
           >
             ALL EVENTS
+          </button>
+
+          <button
+            onClick={() => setActiveTab('people')}
+            className={`px-3 py-1.5 transition-colors border-b-2 font-semibold flex items-center gap-1.5 ${
+              activeTab === 'people'
+                ? 'border-[#000000] text-[#000000]'
+                : 'border-transparent text-[#555555] hover:text-[#000000]'
+            }`}
+          >
+            <span>PEOPLE / CONNECT</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] inline-block" />
           </button>
 
           <button

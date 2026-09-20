@@ -24,8 +24,46 @@ export function useAppStore() {
   });
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'timeline' | 'events' | 'map' | 'mymumbai'>('home');
   const [activeDateFilter, setActiveDateFilter] = useState<string>('ALL');
+
+  const [activeTab, setActiveTabState] = useState<'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai'>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path.includes('people') || hash.includes('people')) return 'people';
+      if (path.includes('timeline') || hash.includes('timeline')) return 'timeline';
+      if (path.includes('events') || hash.includes('events')) return 'events';
+      if (path.includes('map') || hash.includes('map')) return 'map';
+      if (path.includes('mymumbai') || hash.includes('mymumbai')) return 'mymumbai';
+    }
+    return 'home';
+  });
+
+  const setActiveTab = (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai') => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      const newPath = tab === 'home' ? '/' : `/${tab}`;
+      if (window.location.pathname !== newPath) {
+        window.history.pushState({ tab }, '', newPath);
+      }
+    }
+  };
+
+  // Listen to popstate (back/forward browser navigation)
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path.includes('people') || hash.includes('people')) setActiveTabState('people');
+      else if (path.includes('timeline') || hash.includes('timeline')) setActiveTabState('timeline');
+      else if (path.includes('events') || hash.includes('events')) setActiveTabState('events');
+      else if (path.includes('map') || hash.includes('map')) setActiveTabState('map');
+      else if (path.includes('mymumbai') || hash.includes('mymumbai')) setActiveTabState('mymumbai');
+      else setActiveTabState('home');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const [filters, setFilters] = useState<FilterState>({
     category: 'ALL',

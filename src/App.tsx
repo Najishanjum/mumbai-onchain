@@ -13,6 +13,7 @@ import { EventDrawer } from './components/EventDrawer';
 import { MapView } from './components/MapView';
 import { MyMumbai } from './components/MyMumbai';
 import { SideEvents } from './components/SideEvents';
+import { PeopleDirectory } from './components/PeopleDirectory';
 import { Footer } from './components/Footer';
 import { AlertCircle } from 'lucide-react';
 
@@ -144,6 +145,15 @@ export function App() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'people' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+            <PeopleDirectory
+              events={events}
+              onSelectEvent={(id) => setSelectedEventId(id)}
+            />
           </div>
         )}
 
