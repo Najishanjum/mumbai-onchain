@@ -15,10 +15,7 @@ import {
   X,
   Sparkles,
   AlertCircle,
-  Database,
   RefreshCw,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 
 interface PeopleDirectoryProps {
@@ -47,7 +44,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
     filters,
     filteredPeople,
     stats,
-    isCloudConnected,
     isSyncing,
     refreshProfiles,
     setSelectedPersonId,
@@ -57,8 +53,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
     cycleConnection,
     getConnectionStatus,
   } = usePeopleStore();
-
-  const [showSetupGuide, setShowSetupGuide] = React.useState(false);
 
   // Helper to resolve event name
   const getEventTitleById = (id: string): string => {
@@ -76,32 +70,17 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
             <div className="font-mono text-xs uppercase tracking-widest flex items-center gap-2 flex-wrap">
               <span className="text-[#666666]">COMMUNITY DIRECTORY // 01—08 NOV 2026</span>
               <span className="text-[#CCCCCC]">•</span>
-              {isCloudConnected ? (
-                <span className="inline-flex items-center gap-1.5 bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-0.5 text-[#15803D] font-bold">
-                  <span className="w-2 h-2 bg-[#22C55E] rounded-full inline-block animate-pulse" />
-                  <span>SUPABASE CLOUD LIVE</span>
-                  {isSyncing && <RefreshCw className="w-3 h-3 animate-spin text-[#15803D]" />}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowSetupGuide(prev => !prev)}
-                  className="inline-flex items-center gap-1.5 bg-[#FFFBEB] border border-[#FDE68A] hover:bg-[#FEF3C7] px-2.5 py-0.5 text-[#B45309] font-bold cursor-pointer transition-colors"
-                  title="Click to see Supabase connection guide"
-                >
-                  <span className="w-2 h-2 bg-[#F59E0B] rounded-full inline-block animate-pulse" />
-                  <span>LOCAL DEMO MODE</span>
-                  <span className="text-[10px] underline ml-1">CONNECT SUPABASE</span>
-                </button>
-              )}
+              <span className="inline-flex items-center gap-1.5 bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-0.5 text-[#15803D] font-bold">
+                <span className="w-2 h-2 bg-[#22C55E] rounded-full inline-block animate-pulse" />
+                <span>COMMUNITY LIVE</span>
+                {isSyncing && <RefreshCw className="w-3 h-3 animate-spin text-[#15803D]" />}
+              </span>
             </div>
             <h1 className="font-heading font-black text-3xl sm:text-5xl text-[#050505] uppercase tracking-tight">
               PEOPLE & CONNECT
             </h1>
             <p className="font-mono text-xs text-[#555555] max-w-2xl">
-              {isCloudConnected
-                ? 'Live community directory synced globally with Supabase. Profiles created anywhere appear across all devices in real time.'
-                : 'Connect with developers, founders, volunteers, and researchers. Connect Supabase to share your profile globally across all devices.'}
+              Connect with developers, founders, volunteers, and researchers across Devcon 8, India Blockchain Week, and side events. Create your profile to share it with everyone worldwide.
             </p>
           </div>
 
@@ -184,83 +163,21 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
           </div>
         </div>
 
-        {/* Supabase Connection Banner & Walkthrough */}
-        {!isCloudConnected && (
-          <div className="border border-[#F59E0B] bg-[#FFFBEB] p-4 space-y-3 font-mono text-xs text-[#78350F]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-start gap-2.5">
-                <Database className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-[#92400E] uppercase">Connect Supabase to make profiles visible to everyone:</strong>
-                  <p className="text-[11px] text-[#B45309] mt-0.5">
-                    Currently in local demo mode. Profiles created are only saved in this browser. Hook up your free Supabase database in 3 quick steps so everyone can see each other.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowSetupGuide(prev => !prev)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#000000] text-[#FFFFFF] font-bold text-[11px] hover:bg-[#222222] transition-colors shrink-0 self-start sm:self-auto"
-              >
-                <span>{showSetupGuide ? 'HIDE INSTRUCTIONS' : 'HOW TO CONNECT (3 STEPS)'}</span>
-                {showSetupGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-
-            {showSetupGuide && (
-              <div className="pt-3 border-t border-[#FDE68A] space-y-3 text-xs">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="p-3 bg-[#FFFFFF] border border-[#FCD34D] space-y-1">
-                    <div className="font-bold text-[#000000] flex items-center gap-1.5">
-                      <span className="w-4 h-4 bg-[#000000] text-[#FFFFFF] rounded-full inline-flex items-center justify-center text-[10px]">1</span>
-                      <span>Create Project</span>
-                    </div>
-                    <p className="text-[11px] text-[#666666]">
-                      Go to <a href="https://supabase.com" target="_blank" rel="noreferrer" className="underline font-bold text-[#000000]">supabase.com</a>, create a free organization & new project.
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-[#FFFFFF] border border-[#FCD34D] space-y-1">
-                    <div className="font-bold text-[#000000] flex items-center gap-1.5">
-                      <span className="w-4 h-4 bg-[#000000] text-[#FFFFFF] rounded-full inline-flex items-center justify-center text-[10px]">2</span>
-                      <span>Run SQL Schema</span>
-                    </div>
-                    <p className="text-[11px] text-[#666666]">
-                      Open <strong>SQL Editor</strong> in Supabase, paste the contents of <code className="bg-[#F0F0F0] px-1 py-0.5">supabase/schema.sql</code>, and click <strong>Run</strong>.
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-[#FFFFFF] border border-[#FCD34D] space-y-1">
-                    <div className="font-bold text-[#000000] flex items-center gap-1.5">
-                      <span className="w-4 h-4 bg-[#000000] text-[#FFFFFF] rounded-full inline-flex items-center justify-center text-[10px]">3</span>
-                      <span>Add .env Keys</span>
-                    </div>
-                    <p className="text-[11px] text-[#666666]">
-                      Copy <strong>Project URL</strong> and <strong>anon public key</strong> from Project Settings &gt; API into your <code className="bg-[#F0F0F0] px-1 py-0.5">.env</code> file, then restart dev server.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {isCloudConnected && (
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#15803D] bg-[#F0FDF4] border border-[#BBF7D0] px-3 py-1.5">
-            <span className="flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5" />
-              <span>Connected to Supabase. Profiles are automatically synchronized globally.</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => refreshProfiles()}
-              className="underline font-bold hover:text-[#166534] flex items-center gap-1"
-            >
-              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>Refresh Directory</span>
-            </button>
-          </div>
-        )}
+        {/* Live sync indicator */}
+        <div className="flex items-center justify-between text-[11px] font-mono text-[#15803D] bg-[#F0FDF4] border border-[#BBF7D0] px-3 py-1.5">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 bg-[#22C55E] rounded-full inline-block animate-pulse" />
+            <span>GLOBAL DIRECTORY // SYNCS AUTOMATICALLY ACROSS ALL DEVICES</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => refreshProfiles()}
+            className="underline font-bold hover:text-[#166534] flex items-center gap-1 cursor-pointer"
+          >
+            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Controls */}

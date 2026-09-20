@@ -1,13 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || 'https://nlzklfxqeqtiukfhzedb.supabase.co';
 
-// Create optional client if environment variables exist
-export const supabase = (supabaseUrl && supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5semtsZnhxZXF0aXVrZmh6ZWRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MjA5NzksImV4cCI6MjEwNTQ5Njk3OX0.qm5CyIDP2bqAiifW_WLBEZsDnP9zzhMyHupk0GywrrM';
+
+// Always initialized with the project's Supabase backend
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(supabaseUrl && supabaseAnonKey);
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 };
