@@ -208,10 +208,11 @@ const StackedCard: React.FC<{
   const departureEnd = (index + 1) * seg;
 
   // translateY for incoming card (slides up from 100% below)
+  // First card is already in place; only subsequent cards need to slide in
   const slideY = useTransform(
     scrollProgress,
-    isFirst ? [0, 0.001] : [arrivalStart, arrivalEnd],
-    isFirst ? ['0%', '0%'] : ['100%', '0%'],
+    [arrivalStart, Math.max(arrivalEnd, arrivalStart + 0.001)],
+    ['100%', '0%'],
   );
 
   // scale + slight y-offset as this card goes behind
@@ -231,24 +232,29 @@ const StackedCard: React.FC<{
     isLast ? [1, 1] : [1, 0.82],
   );
 
-  // Clip: incoming card's content only visible once it's arrived
+  // Clip: hide non-first cards until they arrive (fixes blank white screen bug)
+  // First card is ALWAYS fully visible — never clipped
   const clipValue = useTransform(
     scrollProgress,
-    isFirst ? [0, 0.001] : [arrivalStart, arrivalEnd],
-    isFirst ? ['inset(0 0 0 0)'] : ['inset(0 0 100% 0)', 'inset(0 0 0 0)'],
+    [arrivalStart, Math.max(arrivalEnd, arrivalStart + 0.001)],
+    ['inset(0 0 100% 0)', 'inset(0 0 0% 0)'],
   );
 
   return (
     <motion.div
       className="absolute inset-0 will-change-transform"
       style={{
+        // First card: already in position, only departure transforms apply
+        // Other cards: slide in from below, departure transforms apply
         y: isFirst ? yBack : slideY,
         scale: scaleBack,
         opacity: opacityBack,
-        clipPath: clipValue,
+        // First card: NO clipPath (always fully visible)
+        // Other cards: clipped until they arrive from below
+        ...(isFirst ? {} : { clipPath: clipValue }),
         zIndex: index + 1,
         transformOrigin: 'top center',
-        boxShadow: '0 4px 32px 0 rgba(0,0,0,0.09), 0 1px 4px 0 rgba(0,0,0,0.05)',
+        boxShadow: '0 4px 32px 0 rgba(0,0,0,0.10), 0 1px 4px 0 rgba(0,0,0,0.05)',
       }}
     >
       <DayCardContent
@@ -441,7 +447,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events, onSelectEvent }) => 
   });
 
   const totalCards = activeSlots.length;
-  const cardAreaHeight = '82vh';
+  const cardAreaHeight = 'calc(100vh - 64px)';
   const scrollContainerHeight = `${SCROLL_PER_CARD_VH * totalCards}vh`;
 
   // ── Reduced motion: plain list ────────────────────────────────────────────
@@ -487,10 +493,10 @@ export const Timeline: React.FC<TimelineProps> = ({ events, onSelectEvent }) => 
         style={{ height: scrollContainerHeight }}
         className="relative w-full"
       >
-        {/* Sticky viewport */}
+        {/* Sticky viewport — sticks below the 64px navbar */}
         <div
-          className="sticky top-0 w-full overflow-hidden"
-          style={{ height: cardAreaHeight }}
+          className="sticky top-16 w-full"
+          style={{ height: cardAreaHeight, overflow: 'clip' }}
         >
           {/* Card stack */}
           <div className="relative w-full h-full">
