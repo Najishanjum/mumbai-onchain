@@ -81,14 +81,14 @@ export function App() {
       {/* Top Event Telemetry Stream */}
       <MarqueeTicker />
 
-      {/* Dynamic People / Community Ticker (Continuously moving from Left to Right) */}
-      <PeopleMarquee onSelectPerson={(id) => setSelectedPersonId(id)} />
-
       {/* Main Content View Switcher */}
       <main className="flex-1 pb-20 md:pb-12">
         {activeTab === 'home' && (
           <div className="space-y-12">
             <Hero />
+
+            {/* Dynamic People / Community Ticker (Positioned directly above Next Up On Calendar) */}
+            <PeopleMarquee onSelectPerson={(id) => setSelectedPersonId(id)} />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
               {/* Next Event Indicator */}
