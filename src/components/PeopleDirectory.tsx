@@ -3,8 +3,6 @@ import { usePeopleStore } from '../lib/usePeopleStore';
 import type { EventItem } from '../types/event';
 import type { PersonCategory } from '../types/person';
 import { PersonCard } from './PersonCard';
-import { ProfileDrawer } from './ProfileDrawer';
-import { EditProfileModal } from './EditProfileModal';
 import { PersonAvatar } from './PersonAvatar';
 import {
   Search,
@@ -35,12 +33,9 @@ const CATEGORY_TABS: Array<'ALL' | PersonCategory> = [
 
 export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
   events,
-  onSelectEvent,
 }) => {
   const {
     myProfile,
-    selectedPerson,
-    isEditModalOpen,
     filters,
     filteredPeople,
     stats,
@@ -49,7 +44,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
     setSelectedPersonId,
     setIsEditModalOpen,
     setFilters,
-    saveMyProfile,
     cycleConnection,
     getConnectionStatus,
   } = usePeopleStore();
@@ -352,27 +346,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
           ))}
         </div>
       )}
-
-      {/* Profile Details Drawer */}
-      <ProfileDrawer
-        person={selectedPerson}
-        connectionStatus={selectedPerson ? getConnectionStatus(selectedPerson.id) : 'NOT_CONNECTED'}
-        isCurrentUser={Boolean(selectedPerson && (selectedPerson.isCurrentUser || (myProfile && myProfile.id === selectedPerson.id)))}
-        events={events}
-        onClose={() => setSelectedPersonId(null)}
-        onCycleConnection={cycleConnection}
-        onEditProfile={() => setIsEditModalOpen(true)}
-        onSelectEvent={onSelectEvent}
-      />
-
-      {/* Edit / Create Profile Modal */}
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        currentProfile={myProfile}
-        events={events}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={saveMyProfile}
-      />
 
     </div>
   );

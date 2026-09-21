@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import type { PersonProfile, ConnectionStatus, PeopleFilterState } from '../types/person';
 import { INITIAL_PEOPLE } from '../data/people';
 import { supabase, isSupabaseConfigured } from './supabase';
@@ -38,7 +38,7 @@ function mapDbToPerson(row: DbProfileRow, myProfileId?: string): PersonProfile {
   };
 }
 
-export function usePeopleStore() {
+function usePeopleStoreState() {
   const isCloudConnected = isSupabaseConfigured();
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
@@ -395,4 +395,21 @@ export function usePeopleStore() {
     setConnectionStatus,
     getConnectionStatus,
   };
+}
+
+export type PeopleStoreType = ReturnType<typeof usePeopleStoreState>;
+
+const PeopleContext = createContext<PeopleStoreType | null>(null);
+
+export const PeopleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const store = usePeopleStoreState();
+  return React.createElement(PeopleContext.Provider, { value: store }, children);
+};
+
+export function usePeopleStore(): PeopleStoreType {
+  const context = useContext(PeopleContext);
+  if (context) {
+    return context;
+  }
+  return usePeopleStoreState();
 }

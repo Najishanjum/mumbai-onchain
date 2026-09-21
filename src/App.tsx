@@ -1,6 +1,8 @@
 import { useAppStore } from './lib/store';
+import { usePeopleStore } from './lib/usePeopleStore';
 import { Navbar } from './components/Navbar';
 import { MarqueeTicker } from './components/MarqueeTicker';
+import { PeopleMarquee } from './components/PeopleMarquee';
 import { MobileNav } from './components/MobileNav';
 import { Hero } from './components/Hero';
 import { PrimaryEvent } from './components/PrimaryEvent';
@@ -10,6 +12,8 @@ import { Timeline } from './components/Timeline';
 import { EventFilters } from './components/EventFilters';
 import { EventCard } from './components/EventCard';
 import { EventDrawer } from './components/EventDrawer';
+import { ProfileDrawer } from './components/ProfileDrawer';
+import { EditProfileModal } from './components/EditProfileModal';
 import { MapView } from './components/MapView';
 import { MyMumbai } from './components/MyMumbai';
 import { SideEvents } from './components/SideEvents';
@@ -31,6 +35,18 @@ export function App() {
     updateEventStatus,
     saveEventNote,
   } = useAppStore();
+
+  const {
+    selectedPerson,
+    selectedPersonId,
+    myProfile,
+    isEditModalOpen,
+    setSelectedPersonId,
+    setIsEditModalOpen,
+    saveMyProfile,
+    cycleConnection,
+    getConnectionStatus,
+  } = usePeopleStore();
 
   // Devcon 8 Primary Event item
   const primaryDevconEvent = events.find(e => e.isPrimary || e.id === 'devcon-8-india') || events[0];
@@ -62,8 +78,11 @@ export function App() {
         setActiveTab={setActiveTab}
       />
 
-      {/* Top Ticker / Marquee Strip (Immediately below Navbar as requested) */}
+      {/* Top Event Telemetry Stream */}
       <MarqueeTicker />
+
+      {/* Dynamic People / Community Ticker (Continuously moving from Left to Right) */}
+      <PeopleMarquee onSelectPerson={(id) => setSelectedPersonId(id)} />
 
       {/* Main Content View Switcher */}
       <main className="flex-1 pb-20 md:pb-12">
@@ -186,6 +205,27 @@ export function App() {
         onClose={() => setSelectedEventId(null)}
         onUpdateStatus={updateEventStatus}
         onSaveNote={saveEventNote}
+      />
+
+      {/* Community Profile Drawer (Opens from People Marquee on any tab) */}
+      <ProfileDrawer
+        person={selectedPerson}
+        connectionStatus={selectedPersonId ? getConnectionStatus(selectedPersonId) : 'NOT_CONNECTED'}
+        isCurrentUser={Boolean(selectedPerson && (selectedPerson.isCurrentUser || (myProfile && myProfile.id === selectedPerson.id)))}
+        events={events}
+        onClose={() => setSelectedPersonId(null)}
+        onCycleConnection={cycleConnection}
+        onEditProfile={() => setIsEditModalOpen(true)}
+        onSelectEvent={(id) => setSelectedEventId(id)}
+      />
+
+      {/* Global Edit / Create Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        currentProfile={myProfile}
+        events={events}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={saveMyProfile}
       />
 
       {/* Mobile Navigation */}

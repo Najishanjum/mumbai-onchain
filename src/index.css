@@ -75,6 +75,16 @@
   animation-play-state: paused;
 }
 
+.animate-ticker-ltr {
+  display: flex;
+  width: max-content;
+  animation: tickerScrollReverse 36s linear infinite;
+}
+
+.animate-ticker-ltr:hover {
+  animation-play-state: paused;
+}
+
 /* Custom thin editorial scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
