@@ -64,7 +64,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'Events overlapping with Devcon',
     suggestedPrompt4: 'Students from Jabalpur',
     suggestedPrompt5: 'Latest Devcon schedule',
-    unknownAnswer: "I don't have that information yet. Please check the official portal or try asking about another event or attendee.",
+    unknownAnswer: "I'm here to help with everything regarding **Mumbai Onchain Week 2026** and **Devcon 8**! Could you please share a bit more detail, or ask about a specific talk, venue, attendee, or date?",
   },
   hi: {
     assistantName: 'आस्क मुंबई (Ask Mumbai)',
@@ -80,7 +80,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'देवकॉन के साथ ओवरलैप होने वाले इवेंट्स',
     suggestedPrompt4: 'जबलपुर के छात्र',
     suggestedPrompt5: 'नवीनतम देवकॉन शेड्यूल',
-    unknownAnswer: 'मेरे पास अभी यह जानकारी उपलब्ध नहीं है। कृपया आधिकारिक पोर्टल देखें या किसी अन्य इवेंट के बारे में पूछें।',
+    unknownAnswer: 'मैं **मुंबई ऑनचेन वीक 2026** और **Devcon 8** से जुड़े हर सवाल में आपकी मदद के लिए उपलब्ध हूँ! कृपया किसी विशेष सत्र, वेन्यू, तारीख या विषय के बारे में पूछें।',
   },
   es: {
     assistantName: 'Ask Mumbai',
@@ -96,7 +96,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'Eventos que coinciden con Devcon',
     suggestedPrompt4: 'Estudiantes de Jabalpur',
     suggestedPrompt5: 'Último programa de Devcon',
-    unknownAnswer: 'Aún no dispongo de esa información. Por favor consulta la página oficial o prueba con otra pregunta.',
+    unknownAnswer: '¡Estoy aquí para ayudarte con la **Mumbai Onchain Week 2026** y **Devcon 8**! Pregúntame sobre cualquier charla, lugar, participante o fecha.',
   },
   fr: {
     assistantName: 'Ask Mumbai',
@@ -112,7 +112,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'Événements en chevauchement avec Devcon',
     suggestedPrompt4: 'Étudiants de Jabalpur',
     suggestedPrompt5: 'Dernier programme de Devcon',
-    unknownAnswer: "Je n'ai pas encore cette information. Veuillez vérifier les annonces officielles.",
+    unknownAnswer: "Je suis là pour vous aider sur tout ce qui concerne la **Mumbai Onchain Week 2026** et **Devcon 8** ! Posez-moi une question sur un lieu ou une session.",
   },
   de: {
     assistantName: 'Ask Mumbai',
@@ -128,7 +128,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'Events parallel zu Devcon',
     suggestedPrompt4: 'Studenten aus Jabalpur',
     suggestedPrompt5: 'Aktueller Devcon Zeitplan',
-    unknownAnswer: 'Diese Information liegt mir noch nicht vor. Bitte prüfe die offizielle Website.',
+    unknownAnswer: 'Ich bin für alle Fragen rund um die **Mumbai Onchain Week 2026** und **Devcon 8** da! Frag mich gerne nach bestimmten Events oder Locations.',
   },
   ja: {
     assistantName: 'Ask Mumbai',
@@ -144,7 +144,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'Devconと重複するイベント',
     suggestedPrompt4: 'ジャバルプルの学生',
     suggestedPrompt5: '最新のDevconスケジュール',
-    unknownAnswer: 'その情報はまだ確認できていません。公式発表をご確認いただくか、他の質問をお試しください。',
+    unknownAnswer: '**Mumbai Onchain Week 2026** および **Devcon 8** に関するご案内を行っています。特定のイベント、会場、日程などについてお尋ねください！',
   },
   ko: {
     assistantName: 'Ask Mumbai',
@@ -160,7 +160,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'Devcon과 겹치는 이벤트',
     suggestedPrompt4: '자발푸르 출신 학생',
     suggestedPrompt5: '최신 Devcon 일정',
-    unknownAnswer: '아직 해당 정보를 찾을 수 없습니다. 공식 페이지를 확인해 주세요.',
+    unknownAnswer: '**Mumbai Onchain Week 2026** 및 **Devcon 8** 관련 질문을 도와드리고 있습니다. 특정 세션, 장소, 일정에 대해 언제든 물어보세요!',
   },
   zh: {
     assistantName: 'Ask Mumbai',
@@ -176,7 +176,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: '哪些活动与 Devcon 时间冲突？',
     suggestedPrompt4: '来自贾巴尔普尔的学生',
     suggestedPrompt5: '最新的 Devcon 日程安排',
-    unknownAnswer: '我暂时没有该信息。请查看官方页面或尝试询问其他活动。',
+    unknownAnswer: '我随时为您解答关于 **Mumbai Onchain Week 2026** 和 **Devcon 8** 的任何问题！欢迎询问具体的讲座、场地或日程安排。',
   },
   pt: {
     assistantName: 'Ask Mumbai',
@@ -192,7 +192,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'Eventos simultâneos à Devcon',
     suggestedPrompt4: 'Estudantes de Jabalpur',
     suggestedPrompt5: 'Programação mais recente da Devcon',
-    unknownAnswer: 'Ainda não tenho essa informação. Por favor, consulte as fontes oficiais.',
+    unknownAnswer: 'Estou aqui para ajudar com a **Mumbai Onchain Week 2026** e a **Devcon 8**! Pergunte sobre qualquer evento, palestra ou local.',
   },
   ru: {
     assistantName: 'Ask Mumbai',
@@ -208,7 +208,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'События, совпадающие с Devcon',
     suggestedPrompt4: 'Студенты из Джабалпура',
     suggestedPrompt5: 'Последнее расписание Devcon',
-    unknownAnswer: 'У меня пока нет этой информации. Пожалуйста, проверьте официальный портал.',
+    unknownAnswer: 'Я готов помочь со всеми вопросами по **Mumbai Onchain Week 2026** и **Devcon 8**! Задайте вопрос о конкретной сессии, дате или площадке.',
   },
   ar: {
     assistantName: 'Ask Mumbai',
@@ -224,6 +224,6 @@ export const TRANSLATIONS: Record<SupportedLanguage, UiTranslations> = {
     suggestedPrompt3: 'فعاليات تتعارض مع Devcon',
     suggestedPrompt4: 'طلاب من جابالبور',
     suggestedPrompt5: 'أحدث جدول لـ Devcon',
-    unknownAnswer: 'ليس لدي هذه المعلومات بعد. يُرجى التحقق من الموقع الرسمي.',
+    unknownAnswer: 'أنا هنا لمساعدتك في كل ما يتعلق بـ **Mumbai Onchain Week 2026** و **Devcon 8**! يُرجى سؤالي عن أي فعالية أو جدول أو موقع.',
   }
 };

@@ -1,6 +1,7 @@
 import type { EventItem } from '../../types/event';
 import type { QueryContext, AssistantResponse } from './types';
 import { TRANSLATIONS, type SupportedLanguage } from './translations';
+import { askGemini } from './gemini';
 
 function doesOverlapWithDevcon(e: EventItem): boolean {
   if (e.id === 'devcon-8-india') return false;
@@ -34,6 +35,20 @@ function extractTargetDate(query: string): string | null {
   return null;
 }
 
+const GREETING_REPLIES: Record<SupportedLanguage, string> = {
+  en: `Hello! 👋 Welcome to **Mumbai Onchain Week 2026** and **Devcon 8**.\n\nI'm your AI guide powered by Gemini. You can ask me about:\n• **Devcon 8, IBW 2026 & ETHGlobal Mumbai**\n• Today's schedule, side events, and venues across BKC\n• Builders, volunteers, and attendees from specific cities\n• Local Mumbai travel, food, and metro tips\n\nHow can I help you today?`,
+  hi: `नमस्ते! 👋 **मुंबई ऑनचेन वीक 2026** और **Devcon 8** में आपका स्वागत है।\n\nमैं आपका Gemini-पावर्ड AI गाइड हूँ। आप मुझसे पूछ सकते हैं:\n• **Devcon 8, IBW 2026 और ETHGlobal Mumbai**\n• आज का शेड्यूल, साइड इवेंट्स और BKC वेन्यू\n• बिल्डर्स, छात्र और वॉलंटियर्स\n• मुंबई यात्रा, लोकल ट्रेन और खान-पान के टिप्स\n\nआज मैं आपकी क्या मदद कर सकता हूँ?`,
+  es: `¡Hola! 👋 Bienvenido a **Mumbai Onchain Week 2026** y **Devcon 8**.\n\nSoy tu guía de IA. Pregúntame sobre la agenda, Devcon 8, eventos paralelos, participantes o consejos sobre Mumbai. ¿En qué te puedo ayudar?`,
+  fr: `Bonjour ! 👋 Bienvenue à la **Mumbai Onchain Week 2026** et **Devcon 8**.\n\nJe suis votre guide IA. Posez-moi vos questions sur le programme, Devcon 8, les événements parallèles ou la ville de Mumbai !`,
+  de: `Hallo! 👋 Willkommen zur **Mumbai Onchain Week 2026** und **Devcon 8**.\n\nIch bin dein KI-Begleiter. Frag mich gerne nach Zeitplänen, Devcon 8, Side-Events, Teilnehmern oder Mumbai-Tipps!`,
+  ja: `こんにちは！👋 **Mumbai Onchain Week 2026** および **Devcon 8** へようこそ。\n\n公式AIガイドです。Devcon 8、スケジュール、サイドイベント、参加者、ムンバイの観光情報など、何でもお尋ねください！`,
+  ko: `안녕하세요! 👋 **Mumbai Onchain Week 2026** 및 **Devcon 8**에 오신 것을 환영합니다.\n\nAI 안내 도우미입니다. Devcon 8, 일정, 사이드 이벤트, 참가자 및 뭄바이 팁에 대해 언제든 물어보세요!`,
+  zh: `你好！👋 欢迎来到 **Mumbai Onchain Week 2026** 与 **Devcon 8**。\n\n我是您的 AI 助手。您可以向我询问 Devcon 8 日程、分会场活动、参会者信息或孟买出行贴士！`,
+  pt: `Olá! 👋 Bem-vindo à **Mumbai Onchain Week 2026** e **Devcon 8**.\n\nSou seu guia de IA. Pergunte-me sobre a programação, Devcon 8, eventos paralelos ou dicas sobre Mumbai!`,
+  ru: `Привет! 👋 Добро пожаловать на **Mumbai Onchain Week 2026** и **Devcon 8**.\n\nЯ ваш ИИ-помощник. Спрашивайте о расписании, Devcon 8, сайд-ивентах, участниках и передвижении по Мумбаи!`,
+  ar: `مرحباً بك! 👋 أهلاً بك في **أسبوع مومباي أونشين 2026** و **Devcon 8**.\n\nأنا مرشدك الذكي. يمكنك سؤالي عن جدول الفعاليات، Devcon 8، والفعاليات الجانبية، والمشاركين، أو نصائح التنقل في مومباي!`
+};
+
 export async function processUserQuery(
   rawQuery: string,
   context: QueryContext,
@@ -43,6 +58,39 @@ export async function processUserQuery(
   const q = query.toLowerCase();
   const { events, people, connections } = context;
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
+  // Build snippet summary for Gemini
+  const contextSnippet = {
+    eventCount: events.length,
+    peopleCount: people.length,
+    upcomingEventsSnippet: events.slice(0, 5).map(e => `${e.title} (${e.startDate}, ${e.location})`).join('; '),
+    userScheduleSnippet: `User has ${events.filter(e => e.status === 'ATTENDING').length} events marked as attending.`,
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 0. GREETINGS & PLEASANTRIES (e.g. "hiee", "hie", "hello", "hi", "namaste")
+  // ───────────────────────────────────────────────────────────────────────────
+  const isGreeting = /^(hi|hie|hiee+|hello|hey+|hola|namaste|bonjour|ciao|konnichiwa|annyeong|ni hao|yo|sup|greetings|morning|good morning|evening|good evening|afternoon|good afternoon|hlo|heyy+)(\s+.*|\!|\?)*$/i.test(q)
+    || q === 'hi' || q === 'hie' || q === 'hiee' || q === 'hey' || q === 'hello';
+
+  if (isGreeting) {
+    try {
+      const geminiGreeting = await askGemini(rawQuery, contextSnippet, lang);
+      if (geminiGreeting) {
+        return {
+          content: geminiGreeting,
+          sources: [],
+        };
+      }
+    } catch {
+      // Fallback to local greeting reply
+    }
+
+    return {
+      content: GREETING_REPLIES[lang] || GREETING_REPLIES.en,
+      sources: [],
+    };
+  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // 1. PERSONAL SCHEDULE & USER-SPECIFIC QUERIES
@@ -154,13 +202,11 @@ export async function processUserQuery(
   if (
     q.includes("jabalpur") ||
     q.includes("जबलपुर") ||
-    q.includes("people") ||
-    q.includes("attendee") ||
     q.includes("who is attending") ||
     q.includes("student") ||
     q.includes("volunteer") ||
-    q.includes("connected") ||
-    q.includes("builder")
+    q.includes("connected with") ||
+    q.includes("my connections")
   ) {
     // Sub-case: Jabalpur query
     if (q.includes("jabalpur") || q.includes("जबलपुर")) {
@@ -240,13 +286,6 @@ export async function processUserQuery(
         sources: [],
       };
     }
-
-    // Default People directory answer
-    return {
-      content: `The community directory features **${people.length} verified builders, students, founders, and volunteers**:`,
-      people: people.slice(0, 4),
-      sources: [],
-    };
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -259,8 +298,28 @@ export async function processUserQuery(
     );
 
     if (dayEvents.length === 0) {
+      if (targetDate === '2026-11-08') {
+        const msgs: Record<SupportedLanguage, string> = {
+          en: `Mumbai Onchain Week and ETHGlobal Mumbai conclude on **November 07, 2026**.\n\nWhile there are no official conference stages on **November 08**, attendees gather for informal community debriefs, team brunches, and exploring iconic Mumbai spots like Bandra Bandstand, Colaba, and Marine Drive! Check the **People** directory to see who is still in town.`,
+          hi: `मुंबई ऑनचेन वीक और ETHGlobal Mumbai **7 नवंबर 2026** को संपन्न हो रहे हैं।\n\n**8 नवंबर** को मुख्य मंच पर कोई आधिकारिक सत्र नहीं है, लेकिन कम्युनिटी के सदस्य अनौपचारिक ब्रंच, मीटअप और मुंबई दर्शन (मरीन ड्राइव, बांद्रा, कोलाबा) के लिए एकत्र होते हैं। **People** डायरेक्टरी में देखें कि कौन से साथी शहर में हैं!`,
+          es: `La Mumbai Onchain Week y ETHGlobal Mumbai concluyen el **7 de noviembre de 2026**.\n\nEl **8 de noviembre** no hay sesiones oficiales en el escenario principal, pero los asistentes organizan brunchs informales, reuniones de proyectos y visitas por Marine Drive y Bandra.`,
+          fr: `La Mumbai Onchain Week et ETHGlobal Mumbai se terminent le **7 novembre 2026**.\n\nLe **8 novembre**, il n'y a pas de sessions officielles, mais la communauté organise des déjeuners informels et des visites de Mumbai (Marine Drive, Bandra).`,
+          de: `Die Mumbai Onchain Week und die ETHGlobal Mumbai enden am **7. November 2026**.\n\nAm **8. November** finden keine offiziellen Bühnenprogramme statt, dafür aber informelle Community-Brunches und Treffen in Bandra und Colaba.`,
+          ja: `Mumbai Onchain WeekおよびETHGlobal Mumbaiは**2026年11月7日**に閉幕します。\n\n**11月8日**は公式ステージセッションはありませんが、参加者による非公式なブランチやミートアップ、マリーンドライブやバンドラ観光が行われます。`,
+          ko: `Mumbai Onchain Week와 ETHGlobal Mumbai는 **2026년 11월 7일**에 종료됩니다.\n\n**11월 8일**에는 공식 메인 세션이 없지만, 참가자들의 자유로운 브런치 모임과 뭄바이 시내 탐방이 이어집니다.`,
+          zh: `Mumbai Onchain Week 和 ETHGlobal Mumbai 于 **2026年11月7日** 闭幕。\n\n**11月8日** 虽无官方日程，但参会者会自发组织社区聚餐、项目交流以及游览孟买地标（Marine Drive、Bandra）！`,
+          pt: `A Mumbai Onchain Week e a ETHGlobal Mumbai terminam em **7 de novembro de 2026**.\n\nNo dia **8 de novembro**, não há sessões oficiais, mas os participantes se reúnem para encontros informais e passeios por Mumbai.`,
+          ru: `Mumbai Onchain Week и ETHGlobal Mumbai завершаются **7 ноября 2026 года**.\n\n**8 ноября** официальных сессий нет, но участники собираются на неформальные бранчи и экскурсии по городу (Marine Drive, Bandra).`,
+          ar: `يُختتم أسبوع مومباي أونشين و ETHGlobal Mumbai في **7 نوفمبر 2026**.\n\nلا توجد جلسات رسمية في **8 نوفمبر**، لكن المشاركين يجتمعون في لقاءات غير رسمية واستكشاف معالم مومباي!`
+        };
+        return {
+          content: msgs[lang] || msgs.en,
+          sources: [],
+        };
+      }
+
       return {
-        content: `No sessions registered for **${targetDate}**. Please check the community spreadsheet for unofficial gatherings.`,
+        content: `No sessions registered for **${targetDate}**. Please check the full timeline or community events.`,
         sources: [],
       };
     }
@@ -283,7 +342,7 @@ export async function processUserQuery(
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // 5. OFFICIAL OVERVIEWS & SCHEDULE QUERIES (Devcon, IBW, ETHGlobal)
+  // 5. OFFICIAL OVERVIEWS (Devcon, IBW, ETHGlobal)
   // ───────────────────────────────────────────────────────────────────────────
   if (q.includes("devcon") || q.includes("देवकॉन") || q.includes("jio world")) {
     const devconEvent = events.find((e) => e.id === 'devcon-8-india');
@@ -312,12 +371,12 @@ export async function processUserQuery(
     };
   }
 
-  // Match keyword in event titles
+  // Match keyword in event titles or descriptions
   const matchingEvents = events.filter(
     (e) => e.title.toLowerCase().includes(q) || (e.description && e.description.toLowerCase().includes(q))
   );
 
-  if (matchingEvents.length > 0) {
+  if (matchingEvents.length > 0 && matchingEvents.length <= 5) {
     return {
       content: `Found **${matchingEvents.length} event${matchingEvents.length === 1 ? '' : 's'}** matching "${query}":`,
       events: matchingEvents,
@@ -325,7 +384,31 @@ export async function processUserQuery(
     };
   }
 
-  // Concise unknown answer in current language
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. GEMINI AI FOR ALL OTHER QUESTIONS
+  // ───────────────────────────────────────────────────────────────────────────
+  try {
+    const geminiReply = await askGemini(rawQuery, contextSnippet, lang);
+    if (geminiReply) {
+      return {
+        content: geminiReply,
+        events: matchingEvents.length > 0 ? matchingEvents.slice(0, 3) : undefined,
+        sources: [],
+      };
+    }
+  } catch (err) {
+    console.error('Gemini query error:', err);
+  }
+
+  // If Gemini is unreachable, provide an intelligent conference guide response
+  if (matchingEvents.length > 0) {
+    return {
+      content: `Here are matching events from the Mumbai Onchain Week schedule for "${query}":`,
+      events: matchingEvents.slice(0, 4),
+      sources: [],
+    };
+  }
+
   return {
     content: t.unknownAnswer,
     sources: [],
