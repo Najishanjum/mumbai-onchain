@@ -134,5 +134,18 @@ export const INITIAL_PEOPLE: PersonProfile[] = [
     linkedinUrl: 'https://linkedin.com/in/devsharma-media',
     attendingEvents: ['india-blockchain-week-2026', 'devcon-8-india', 'ready-for-the-run-mumbai'],
     createdAt: '2026-10-25T15:20:00Z',
+  },
+  {
+    id: 'person-aryan-verma',
+    name: 'Aryan Verma',
+    city: 'Jabalpur',
+    category: 'Student',
+    bio: 'CS student from IIITDM Jabalpur. Researching zero-knowledge rollups, account abstraction, and decentralized identity. First-time Devcon attendee and hacker at ETHGlobal Mumbai.',
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80',
+    xHandle: 'aryan_jabalpur',
+    githubUrl: 'https://github.com/aryanverma-zk',
+    linkedinUrl: 'https://linkedin.com/in/aryan-verma-jabalpur',
+    attendingEvents: ['devcon-8-india', 'ethglobal-mumbai-2026', 'eip-hub-devcon-8'],
+    createdAt: '2026-10-26T10:00:00Z',
   }
 ];

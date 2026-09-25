@@ -49,7 +49,9 @@ function usePeopleStoreState() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          const existingIds = new Set(parsed.map((p: PersonProfile) => p.id));
+          const missing = INITIAL_PEOPLE.filter(p => !existingIds.has(p.id));
+          return [...parsed, ...missing];
         }
       }
     } catch (e) {

@@ -19,6 +19,7 @@ import { MyMumbai } from './components/MyMumbai';
 import { SideEvents } from './components/SideEvents';
 import { PeopleDirectory } from './components/PeopleDirectory';
 import { Footer } from './components/Footer';
+import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
 import { AlertCircle } from 'lucide-react';
 
 export function App() {
@@ -37,6 +38,8 @@ export function App() {
   } = useAppStore();
 
   const {
+    people,
+    connections,
     selectedPerson,
     selectedPersonId,
     myProfile,
@@ -232,6 +235,17 @@ export function App() {
       <MobileNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+      />
+
+      {/* MUMBAI ONCHAIN AI ASSISTANT (Floating Chatbot across entire website) */}
+      <AskMumbaiAssistant
+        events={events}
+        people={people}
+        myProfile={myProfile}
+        connections={connections}
+        notes={notes}
+        onSelectEvent={(id) => setSelectedEventId(id)}
+        onSelectPerson={(id) => setSelectedPersonId(id)}
       />
 
       {/* Footer */}
