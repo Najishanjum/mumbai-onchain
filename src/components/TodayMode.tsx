@@ -5,6 +5,20 @@ import { MapPin, Clock, ArrowUpRight } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { CalendarButton } from './CalendarButton';
 
+// Today Mode location rule: Keep Devcon 8 / Jio World Centre; update all other locations to Mumbai, India
+const getTodayModeLocation = (evt: EventItem): string => {
+  const isDevcon8 =
+    evt.id === 'devcon-8-india' ||
+    evt.id === 'eip-hub-devcon-8' ||
+    evt.title.toLowerCase().includes('devcon 8') ||
+    evt.location.toLowerCase().includes('jio');
+
+  if (isDevcon8) {
+    return 'Jio World Centre';
+  }
+  return 'Mumbai, India';
+};
+
 interface TodayModeProps {
   events: EventItem[];
   onSelectEvent: (eventId: string) => void;
@@ -93,7 +107,7 @@ export const TodayMode: React.FC<TodayModeProps> = ({ events, onSelectEvent }) =
 
                 <div className="flex items-center gap-2 font-mono text-xs text-[#555555]">
                   <MapPin className="w-3.5 h-3.5 text-[#000000]" />
-                  <span>{evt.location}</span>
+                  <span>{getTodayModeLocation(evt)}</span>
                 </div>
               </div>
 

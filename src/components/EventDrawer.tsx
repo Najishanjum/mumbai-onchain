@@ -13,6 +13,39 @@ interface EventDrawerProps {
   onSaveNote: (eventId: string, noteData: Partial<UserEventNote>) => void;
 }
 
+const getDrawerEventLocation = (event: EventItem) => {
+  const isDevcon8 =
+    event.id === 'devcon-8-india' ||
+    event.id === 'eip-hub-devcon-8' ||
+    event.title.toLowerCase().includes('devcon 8') ||
+    event.location.toLowerCase().includes('jio');
+
+  if (isDevcon8) {
+    return { location: 'Jio World Centre', address: event.address || 'Bandra Kurla Complex (BKC), Mumbai' };
+  }
+
+  const isIBW =
+    event.id === 'india-blockchain-week-2026' ||
+    event.title.toLowerCase().includes('blockchain week') ||
+    event.title.toLowerCase().includes('ibw') ||
+    event.location.toLowerCase().includes('fairmont');
+
+  if (isIBW) {
+    return { location: 'Fairmont Mumbai', address: event.address || 'Near International Airport, Sahar, Mumbai' };
+  }
+
+  const isETHGlobal =
+    event.id === 'ethglobal-mumbai-2026' ||
+    event.title.toLowerCase().includes('ethglobal') ||
+    event.location.toLowerCase().includes('nesco');
+
+  if (isETHGlobal) {
+    return { location: 'NESCO Center', address: event.address || 'Western Express Hwy, Goregaon East, Mumbai' };
+  }
+
+  return { location: 'Mumbai, India', address: 'Mumbai, India' };
+};
+
 export const EventDrawer: React.FC<EventDrawerProps> = ({
   event,
   note,
@@ -23,6 +56,8 @@ export const EventDrawer: React.FC<EventDrawerProps> = ({
   const [activeSubTab, setActiveSubTab] = useState<'info' | 'notes'>('info');
 
   if (!event) return null;
+
+  const drawerLoc = getDrawerEventLocation(event);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 flex justify-end animate-in fade-in duration-150 select-none">
@@ -132,12 +167,12 @@ export const EventDrawer: React.FC<EventDrawerProps> = ({
                 </div>
                 <div className="p-3.5 flex justify-between">
                   <span className="text-[#666666]">LOCATION:</span>
-                  <span className="font-bold text-[#000000] text-right">{event.location}</span>
+                  <span className="font-bold text-[#000000] text-right">{drawerLoc.location}</span>
                 </div>
-                {event.address && (
+                {drawerLoc.address && (
                   <div className="p-3.5 flex justify-between bg-[#FAFAFA]">
                     <span className="text-[#666666]">ADDRESS:</span>
-                    <span className="text-[#333333] text-right max-w-xs">{event.address}</span>
+                    <span className="text-[#333333] text-right max-w-xs">{drawerLoc.address}</span>
                   </div>
                 )}
               </div>

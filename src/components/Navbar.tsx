@@ -89,17 +89,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           >
             MAP
           </button>
-
-          <button
-            onClick={() => setActiveTab('mymumbai')}
-            className={`px-3 py-1.5 transition-colors border-b-2 font-semibold ${
-              activeTab === 'mymumbai'
-                ? 'border-[#000000] text-[#000000]'
-                : 'border-transparent text-[#555555] hover:text-[#000000]'
-            }`}
-          >
-            MY MUMBAI
-          </button>
         </nav>
 
         {/* Right: Black Pill Button (as in the reference screenshots) */}

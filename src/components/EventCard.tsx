@@ -10,6 +10,40 @@ interface EventCardProps {
   onSelectEvent: (eventId: string) => void;
 }
 
+// All Events section rule: Keep Devcon 8 (Jio World Centre), IBW (Fairmont Mumbai), and ETHGlobal (NESCO Center); all others Mumbai, India
+const getAllEventsLocation = (event: EventItem): string => {
+  const isDevcon8 =
+    event.id === 'devcon-8-india' ||
+    event.id === 'eip-hub-devcon-8' ||
+    event.title.toLowerCase().includes('devcon 8') ||
+    event.location.toLowerCase().includes('jio');
+
+  if (isDevcon8) {
+    return 'Jio World Centre';
+  }
+
+  const isIBW =
+    event.id === 'india-blockchain-week-2026' ||
+    event.title.toLowerCase().includes('blockchain week') ||
+    event.title.toLowerCase().includes('ibw') ||
+    event.location.toLowerCase().includes('fairmont');
+
+  if (isIBW) {
+    return 'Fairmont Mumbai';
+  }
+
+  const isETHGlobal =
+    event.id === 'ethglobal-mumbai-2026' ||
+    event.title.toLowerCase().includes('ethglobal') ||
+    event.location.toLowerCase().includes('nesco');
+
+  if (isETHGlobal) {
+    return 'NESCO Center';
+  }
+
+  return 'Mumbai, India';
+};
+
 export const EventCard: React.FC<EventCardProps> = ({
   event,
   index,
@@ -76,7 +110,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div className="space-y-1 font-mono text-xs text-[#555555] pt-1">
           <div className="flex items-start gap-1.5 text-[#222222]">
             <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#000000]" />
-            <span className="truncate font-semibold">{event.location}</span>
+            <span className="truncate font-semibold">{getAllEventsLocation(event)}</span>
           </div>
           <div className="text-[11px] text-[#777777] pl-5">
             By: <strong className="text-[#333333]">{event.organizer}</strong>

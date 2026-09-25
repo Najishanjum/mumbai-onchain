@@ -16,40 +16,57 @@ interface MapViewProps {
 
 const SCROLL_PER_VENUE_VH = 85;
 
-// Helper to map venue to photography
-const getVenueImage = (locationName: string, defaultImg?: string): string => {
-  const loc = locationName.toLowerCase();
-  if (loc.includes('jio') || loc.includes('bkc')) {
+// Identification helpers
+const isDevcon8Venue = (v: EventItem): boolean =>
+  v.id === 'devcon-8-india' ||
+  v.id === 'eip-hub-devcon-8' ||
+  v.title.toLowerCase().includes('devcon 8') ||
+  v.location.toLowerCase().includes('jio');
+
+const isIBWVenue = (v: EventItem): boolean =>
+  v.id === 'india-blockchain-week-2026' ||
+  v.title.toLowerCase().includes('india blockchain week') ||
+  v.title.toLowerCase().includes('ibw') ||
+  v.location.toLowerCase().includes('fairmont');
+
+// Only keep Devcon 8 (Jio World Centre) and Fairmont Mumbai images; remove all images from all other venues
+const getVenueImage = (venue: EventItem): string | null => {
+  if (isDevcon8Venue(venue)) {
     return '/images/jio-world-centre.png';
   }
-  if (loc.includes('fairmont') || loc.includes('sahar')) {
+  if (isIBWVenue(venue)) {
     return '/images/fairmont-mumbai.jpg';
   }
-  if (loc.includes('nesco') || loc.includes('goregaon')) {
-    return '/images/ethglobal-mumbai.png';
+  return null;
+};
+
+// Keep address and location in Devcon 8 Jio World Centre & IBW Fairmont, replace all other locations with "Mumbai, India"
+const getVenueLocationInfo = (venue: EventItem) => {
+  if (isDevcon8Venue(venue)) {
+    return {
+      location: 'Jio World Centre',
+      address: 'Bandra Kurla Complex (BKC), Mumbai, Maharashtra 400051',
+      latitude: 19.0628,
+      longitude: 72.8687,
+      mapQuery: 'Jio+World+Centre+BKC+Mumbai',
+    };
   }
-  if (loc.includes('taj lands') || loc.includes('bandra')) {
-    return '/images/multichain-day.png';
+  if (isIBWVenue(venue)) {
+    return {
+      location: 'Fairmont Mumbai',
+      address: 'Near International Airport, Sahar, Mumbai, Maharashtra 400099',
+      latitude: 19.0968,
+      longitude: 72.8584,
+      mapQuery: 'Fairmont+Mumbai+Sahar',
+    };
   }
-  if (loc.includes('taj mahal') || loc.includes('colaba')) {
-    return '/images/money-layer.png';
-  }
-  if (loc.includes('ifbe') || loc.includes('ballard')) {
-    return '/images/yield-layer.png';
-  }
-  if (loc.includes('lalit')) {
-    return '/images/quantstamp-lounge.png';
-  }
-  if (loc.includes('regis')) {
-    return '/images/ethglobal-mumbai.png';
-  }
-  if (loc.includes('solana') || loc.includes('grand hyatt')) {
-    return '/images/solana-summit.png';
-  }
-  if (loc.includes('antisocial') || loc.includes('ravecon')) {
-    return '/images/ravecon-bender.png';
-  }
-  return defaultImg || '/images/jio-world-centre.png';
+  return {
+    location: 'Mumbai, India',
+    address: 'Mumbai, India',
+    latitude: 19.0760,
+    longitude: 72.8777,
+    mapQuery: 'Mumbai+India',
+  };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,11 +87,9 @@ const VenueCardContent: React.FC<VenueCardContentProps> = ({
   onSelectEvent,
   isCurrent = false,
 }) => {
-  const venueImage = getVenueImage(venue.location, venue.imageUrl);
-  const mapQuery = venue.address
-    ? encodeURIComponent(`${venue.location}, ${venue.address}`)
-    : encodeURIComponent(`${venue.location}, Mumbai`);
-  const officialGoogleMapsLink = venue.mapUrl || `https://maps.google.com/?q=${mapQuery}`;
+  const venueImage = getVenueImage(venue);
+  const locInfo = getVenueLocationInfo(venue);
+  const officialGoogleMapsLink = `https://maps.google.com/?q=${encodeURIComponent(locInfo.mapQuery)}`;
 
   return (
     <div className="w-full h-full bg-[#FFFFFF] border-2 border-[#000000] overflow-hidden flex flex-col justify-between select-none">
@@ -100,51 +115,110 @@ const VenueCardContent: React.FC<VenueCardContentProps> = ({
         </div>
       </div>
 
-      {/* Main Grid Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 min-h-0 items-stretch">
-        
-        {/* Left: Venue Image & Visual Spotlight */}
-        <div className="lg:col-span-6 relative h-56 sm:h-64 lg:h-auto overflow-hidden bg-[#000000] border-b-2 lg:border-b-0 lg:border-r-2 border-[#000000]">
-          <img
-            src={venueImage}
-            alt={venue.location}
-            className="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105"
-          />
-          <div className="absolute top-3 left-3 bg-[#000000] text-[#FFFFFF] px-3 py-1 font-mono text-[11px] font-bold tracking-wider flex items-center gap-1.5 border border-[#333333]">
-            <MapPin className="w-3 h-3 text-[#F97316]" />
-            <span>VENUE SPOTLIGHT #{String(index + 1).padStart(2, '0')}</span>
+      {/* Main Content Area */}
+      {venueImage ? (
+        /* 2-Column with image (Devcon 8 Jio World Centre & Fairmont Mumbai) */
+        <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 min-h-0 items-stretch">
+          <div className="lg:col-span-6 relative h-56 sm:h-64 lg:h-auto overflow-hidden bg-[#000000] border-b-2 lg:border-b-0 lg:border-r-2 border-[#000000]">
+            <img
+              src={venueImage}
+              alt={locInfo.location}
+              className="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105"
+            />
+            <div className="absolute top-3 left-3 bg-[#000000] text-[#FFFFFF] px-3 py-1 font-mono text-[11px] font-bold tracking-wider flex items-center gap-1.5 border border-[#333333]">
+              <MapPin className="w-3 h-3 text-[#F97316]" />
+              <span>VENUE SPOTLIGHT #{String(index + 1).padStart(2, '0')}</span>
+            </div>
+
+            <div className="absolute bottom-3 left-3 bg-[#000000]/85 backdrop-blur-sm text-[#FFFFFF] px-2.5 py-1 font-mono text-[10px] text-[#CCCCCC] border border-[#222222]">
+              {locInfo.latitude.toFixed(4)}° N, {locInfo.longitude.toFixed(4)}° E
+            </div>
           </div>
 
-          {venue.latitude && venue.longitude && (
-            <div className="absolute bottom-3 left-3 bg-[#000000]/85 backdrop-blur-sm text-[#FFFFFF] px-2.5 py-1 font-mono text-[10px] text-[#CCCCCC] border border-[#222222]">
-              {venue.latitude.toFixed(4)}° N, {venue.longitude.toFixed(4)}° E
-            </div>
-          )}
-        </div>
+          <div className="lg:col-span-6 p-6 sm:p-8 flex flex-col justify-between space-y-6 overflow-y-auto">
+            <div className="space-y-4">
+              <div>
+                <span className="font-mono text-xs text-[#777777] uppercase tracking-widest block font-bold mb-1">
+                  LOCATION SPECIFICATION
+                </span>
+                <h3 className="font-heading font-black text-2xl sm:text-4xl text-[#050505] uppercase tracking-tight">
+                  {locInfo.location}
+                </h3>
+                <p className="font-mono text-xs text-[#555555] mt-1.5 flex items-start gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#F97316] shrink-0 mt-0.5" />
+                  <span>{locInfo.address}</span>
+                </p>
+              </div>
 
-        {/* Right: Venue Info & Event Highlights */}
-        <div className="lg:col-span-6 p-6 sm:p-8 flex flex-col justify-between space-y-6 overflow-y-auto">
-          <div className="space-y-4">
+              {/* Event Happening at this Venue */}
+              <div className="bg-[#FAFAFA] border border-[#000000] p-4 space-y-2">
+                <div className="flex items-center justify-between font-mono text-[10px] text-[#666666] uppercase tracking-wider font-bold">
+                  <span>EVENT AT THIS VENUE</span>
+                  <span className="text-[#000000]">{venue.startDate}</span>
+                </div>
+                <h4 className="font-heading font-black text-lg sm:text-xl text-[#000000] leading-snug">
+                  {venue.title}
+                </h4>
+                <p className="font-mono text-xs text-[#555555]">
+                  Timing: <strong className="text-[#000000]">{venue.startTime} — {venue.endTime} IST</strong>
+                  {venue.organizer && <span> • Hosted by {venue.organizer}</span>}
+                </p>
+                {venue.description && (
+                  <p className="font-sans text-xs text-[#666666] line-clamp-2 pt-1 border-t border-[#EAEAEA]">
+                    {venue.description}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <a
+                href={officialGoogleMapsLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] px-5 py-3 font-mono text-xs font-bold transition-all shadow-sm active:scale-95"
+              >
+                <span>VIEW ON GOOGLE MAPS</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
+
+              <button
+                type="button"
+                onClick={() => onSelectEvent(venue.id)}
+                className="inline-flex items-center gap-2 bg-transparent hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] border-2 border-[#000000] px-5 py-2.5 font-mono text-xs font-bold transition-all active:scale-95"
+              >
+                <span>EVENT BRIEF [{String(index + 1).padStart(2, '0')}]</span>
+                <ArrowUpRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Clean Technical Full-Width Layout (All image removed, Location is Mumbai India) */
+        <div className="flex-1 min-h-0 p-6 sm:p-10 flex flex-col justify-between overflow-y-auto bg-[#FFFFFF]">
+          <div className="max-w-3xl space-y-6">
             <div>
-              <span className="font-mono text-xs text-[#777777] uppercase tracking-widest block font-bold mb-1">
-                LOCATION SPECIFICATION
-              </span>
-              <h3 className="font-heading font-black text-2xl sm:text-4xl text-[#050505] uppercase tracking-tight">
-                {venue.location}
+              <div className="flex items-center gap-2 font-mono text-xs text-[#777777] uppercase tracking-widest font-bold mb-1">
+                <MapPin className="w-3.5 h-3.5 text-[#F97316]" />
+                <span>LOCATION SPECIFICATION // NODE #{String(index + 1).padStart(2, '0')}</span>
+              </div>
+              <h3 className="font-heading font-black text-3xl sm:text-5xl text-[#050505] uppercase tracking-tight">
+                {locInfo.location}
               </h3>
-              <p className="font-mono text-xs text-[#555555] mt-1.5 flex items-start gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#F97316] shrink-0 mt-0.5" />
-                <span>{venue.address || 'Mumbai, Maharashtra, India'}</span>
+              <p className="font-mono text-sm text-[#555555] mt-1.5 flex items-center gap-2">
+                <span>Address:</span>
+                <strong className="text-[#000000] font-semibold">{locInfo.address}</strong>
               </p>
             </div>
 
             {/* Event Happening at this Venue */}
-            <div className="bg-[#FAFAFA] border border-[#000000] p-4 space-y-2">
-              <div className="flex items-center justify-between font-mono text-[10px] text-[#666666] uppercase tracking-wider font-bold">
+            <div className="bg-[#FAFAFA] border-2 border-[#000000] p-5 sm:p-6 space-y-3">
+              <div className="flex items-center justify-between font-mono text-xs text-[#666666] uppercase tracking-wider font-bold">
                 <span>EVENT AT THIS VENUE</span>
-                <span className="text-[#000000]">{venue.startDate}</span>
+                <span className="text-[#000000] font-bold">{venue.startDate}</span>
               </div>
-              <h4 className="font-heading font-black text-lg sm:text-xl text-[#000000] leading-snug">
+              <h4 className="font-heading font-black text-xl sm:text-2xl text-[#000000] leading-snug">
                 {venue.title}
               </h4>
               <p className="font-mono text-xs text-[#555555]">
@@ -152,7 +226,7 @@ const VenueCardContent: React.FC<VenueCardContentProps> = ({
                 {venue.organizer && <span> • Hosted by {venue.organizer}</span>}
               </p>
               {venue.description && (
-                <p className="font-sans text-xs text-[#666666] line-clamp-2 pt-1 border-t border-[#EAEAEA]">
+                <p className="font-sans text-sm text-[#555555] leading-relaxed pt-2 border-t border-[#EAEAEA]">
                   {venue.description}
                 </p>
               )}
@@ -160,7 +234,7 @@ const VenueCardContent: React.FC<VenueCardContentProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-4">
             <a
               href={officialGoogleMapsLink}
               target="_blank"
@@ -181,20 +255,19 @@ const VenueCardContent: React.FC<VenueCardContentProps> = ({
             </button>
           </div>
         </div>
-
-      </div>
+      )}
 
       {/* Bottom Footer Bar */}
       <div className="px-5 sm:px-8 py-2 border-t border-[#EAEAEA] bg-[#FAFAFA] flex items-center justify-between font-mono text-[11px] text-[#888888] shrink-0">
         <span>DEVCON 8 & MUMBAI ONCHAIN ECOSYSTEM</span>
-        <span className="font-bold text-[#000000]">{venue.location}</span>
+        <span className="font-bold text-[#000000]">{locInfo.location}</span>
       </div>
     </div>
   );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stacked Venue Card — Scroll-driven Animation (Exact pattern as Timeline.tsx)
+// Stacked Venue Card — Scroll-driven Animation (Preserved Overlapping Mechanics)
 // ─────────────────────────────────────────────────────────────────────────────
 interface StackedVenueCardProps {
   venue: EventItem;
@@ -297,6 +370,14 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
   const selectedVenue =
     venueEvents.find(v => v.id === selectedVenueId) || venueEvents[0] || events[0];
 
+  const selectedInfo = selectedVenue ? getVenueLocationInfo(selectedVenue) : {
+    location: 'Jio World Centre',
+    address: 'Bandra Kurla Complex (BKC), Mumbai, Maharashtra 400051',
+    latitude: 19.0628,
+    longitude: 72.8687,
+    mapQuery: 'Jio+World+Centre+BKC+Mumbai',
+  };
+
   // Scroll tracking for stacked animation
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -322,13 +403,8 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
     return unsub;
   }, [scrollYProgress, totalVenues, venueEvents, viewMode]);
 
-  // Google Map embed URL
-  const mapQuery = selectedVenue?.address
-    ? encodeURIComponent(`${selectedVenue.location}, ${selectedVenue.address}`)
-    : encodeURIComponent(`${selectedVenue?.location || 'Jio World Centre'}, Mumbai`);
-
-  const googleMapEmbedUrl = `https://maps.google.com/maps?q=${mapQuery}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
-  const officialGoogleMapsLink = selectedVenue?.mapUrl || `https://maps.google.com/?q=${mapQuery}`;
+  const googleMapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(selectedInfo.mapQuery)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
+  const officialGoogleMapsLink = `https://maps.google.com/?q=${encodeURIComponent(selectedInfo.mapQuery)}`;
 
   return (
     <div className="w-full space-y-8 select-none">
@@ -351,7 +427,7 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
               MUMBAI EVENT MAP & VENUES
             </h2>
             <p className="font-mono text-xs text-[#555555] mt-1 max-w-2xl">
-              1. Jio World Centre (Devcon 8) → 2. Fairmont Mumbai (IBW) → 3. NESCO Center (ETHGlobal) → ... until Security @ The Lalit Mumbai.
+              1. Jio World Centre (Devcon 8) → 2. Fairmont Mumbai (IBW) → All other venues in Mumbai, India.
             </p>
           </div>
 
@@ -410,6 +486,12 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar font-mono text-xs">
             {venueEvents.map((v, idx) => {
               const isSelected = v.id === selectedVenue?.id;
+              const vInfo = getVenueLocationInfo(v);
+              const label =
+                vInfo.location === 'Mumbai, India'
+                  ? `Mumbai, India [${String(idx + 1).padStart(2, '0')}]`
+                  : vInfo.location;
+
               return (
                 <button
                   key={v.id}
@@ -433,7 +515,7 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
                   <span className={isSelected ? 'text-[#F97316] font-bold' : 'text-[#888888]'}>
                     {String(idx + 1).padStart(2, '0')}
                   </span>
-                  <span>{v.location}</span>
+                  <span>{label}</span>
                 </button>
               );
             })}
@@ -447,7 +529,7 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
           <div className="flex items-center gap-2 truncate">
             <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
             <span className="font-bold uppercase tracking-wider truncate">
-              CURRENT FOCUS: {selectedVenue?.location}
+              CURRENT FOCUS: {selectedInfo.location}
             </span>
           </div>
           <a
@@ -485,12 +567,12 @@ export const MapView: React.FC<MapViewProps> = ({ events, onSelectEvent }) => {
           </h3>
         </div>
         <div className="font-mono text-xs text-[#666666] hidden md:block text-right">
-          <span>01 JIO WORLD → 02 FAIRMONT → ... → 16 THE LALIT</span>
+          <span>01 JIO WORLD → 02 FAIRMONT → 03+ MUMBAI, INDIA</span>
         </div>
       </div>
 
       {/* ────────────────────────────────────────────────────────────────────
-          STACKED CARDS ANIMATION (Same as Timeline Nov 1 → Nov 2 Overlap)
+          STACKED CARDS ANIMATION (Preserved exact smooth overlapping physics)
           ──────────────────────────────────────────────────────────────────── */}
       {viewMode === 'stacked' && !prefersReducedMotion ? (
         <div

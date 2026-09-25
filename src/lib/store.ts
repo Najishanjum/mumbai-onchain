@@ -3,7 +3,7 @@ import type { EventItem, UserEventNote, EventStatus, FilterState } from '../type
 import { INITIAL_EVENTS } from '../data/events';
 import { supabase, isSupabaseConfigured } from './supabase';
 
-const EVENTS_STORAGE_KEY = 'mumbai_onchain_week_events_v1';
+const EVENTS_STORAGE_KEY = 'mumbai_onchain_week_events_v2';
 const NOTES_STORAGE_KEY = 'mumbai_onchain_week_notes_v1';
 
 export function useAppStore() {
