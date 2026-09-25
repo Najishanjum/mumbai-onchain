@@ -21,7 +21,11 @@ const getDrawerEventLocation = (event: EventItem) => {
     event.location.toLowerCase().includes('jio');
 
   if (isDevcon8) {
-    return { location: 'Jio World Centre', address: event.address || 'Bandra Kurla Complex (BKC), Mumbai' };
+    return {
+      location: 'Jio World Centre',
+      address: event.address || 'Bandra Kurla Complex (BKC), Mumbai',
+      mapUrl: event.mapUrl || 'https://maps.google.com/?q=Jio+World+Centre+BKC+Mumbai',
+    };
   }
 
   const isIBW =
@@ -31,7 +35,11 @@ const getDrawerEventLocation = (event: EventItem) => {
     event.location.toLowerCase().includes('fairmont');
 
   if (isIBW) {
-    return { location: 'Fairmont Mumbai', address: event.address || 'Near International Airport, Sahar, Mumbai' };
+    return {
+      location: 'Fairmont Mumbai',
+      address: event.address || 'Near International Airport, Sahar, Mumbai',
+      mapUrl: event.mapUrl || 'https://maps.google.com/?q=Fairmont+Mumbai',
+    };
   }
 
   const isETHGlobal =
@@ -40,10 +48,18 @@ const getDrawerEventLocation = (event: EventItem) => {
     event.location.toLowerCase().includes('nesco');
 
   if (isETHGlobal) {
-    return { location: 'NESCO Center', address: event.address || 'Western Express Hwy, Goregaon East, Mumbai' };
+    return {
+      location: 'NESCO Center',
+      address: event.address || 'Western Express Hwy, Goregaon East, Mumbai',
+      mapUrl: event.mapUrl || 'https://maps.google.com/?q=NESCO+Center+Goregaon+Mumbai',
+    };
   }
 
-  return { location: 'Mumbai, India', address: 'Mumbai, India' };
+  return {
+    location: 'Mumbai, India',
+    address: 'Mumbai, India',
+    mapUrl: 'https://maps.google.com/?q=Mumbai+India',
+  };
 };
 
 export const EventDrawer: React.FC<EventDrawerProps> = ({
@@ -201,9 +217,9 @@ export const EventDrawer: React.FC<EventDrawerProps> = ({
                   <ExternalLink className="w-4 h-4" />
                 </a>
 
-                {event.mapUrl && (
+                {(drawerLoc.mapUrl || event.mapUrl) && (
                   <a
-                    href={event.mapUrl}
+                    href={drawerLoc.mapUrl || event.mapUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full inline-flex items-center justify-between bg-transparent hover:bg-[#F5F5F5] text-[#000000] border border-[#000000] px-5 py-3.5 font-mono text-xs font-semibold tracking-wider transition-all"

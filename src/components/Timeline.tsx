@@ -50,6 +50,20 @@ const DAY_DATES = [
 
 const SCROLL_PER_CARD_VH = 110;
 
+// Timeline section rule: Keep Devcon 8 (Jio World Centre); update all other session locations from Nov 1 to Nov 8 to Mumbai, India
+const getTimelineEventLocation = (evt: EventItem): string => {
+  const isDevcon8 =
+    evt.id === 'devcon-8-india' ||
+    evt.id === 'eip-hub-devcon-8' ||
+    evt.title.toLowerCase().includes('devcon 8') ||
+    evt.location.toLowerCase().includes('jio');
+
+  if (isDevcon8) {
+    return 'Jio World Centre';
+  }
+  return 'Mumbai, India';
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Card content (shared by animated + static fallback)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +152,7 @@ const DayCardContent: React.FC<{
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-[#555555]">
                     <span className="flex items-center gap-1.5 text-[#222222]">
                       <MapPin className="w-3.5 h-3.5 text-[#000000] shrink-0" />
-                      {evt.location}
+                      {getTimelineEventLocation(evt)}
                     </span>
                     <span className="text-[#DDDDDD]">•</span>
                     <span>

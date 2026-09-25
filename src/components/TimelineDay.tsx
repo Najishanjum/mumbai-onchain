@@ -11,6 +11,20 @@ interface TimelineDayProps {
   onSelectEvent: (eventId: string) => void;
 }
 
+// Timeline section rule: Keep Devcon 8 (Jio World Centre); update all other session locations to Mumbai, India
+const getTimelineEventLocation = (evt: EventItem): string => {
+  const isDevcon8 =
+    evt.id === 'devcon-8-india' ||
+    evt.id === 'eip-hub-devcon-8' ||
+    evt.title.toLowerCase().includes('devcon 8') ||
+    evt.location.toLowerCase().includes('jio');
+
+  if (isDevcon8) {
+    return 'Jio World Centre';
+  }
+  return 'Mumbai, India';
+};
+
 export const TimelineDay: React.FC<TimelineDayProps> = ({
   date,
   events,
@@ -84,7 +98,7 @@ export const TimelineDay: React.FC<TimelineDayProps> = ({
                 <div className="flex flex-wrap items-center gap-4 font-mono text-xs text-[#555555] mt-2">
                   <span className="flex items-center gap-1 text-[#222222]">
                     <MapPin className="w-3.5 h-3.5 text-[#000000]" />
-                    {evt.location}
+                    {getTimelineEventLocation(evt)}
                   </span>
                   <span>•</span>
                   <span>Organizer: <strong className="text-[#000000]">{evt.organizer}</strong></span>
