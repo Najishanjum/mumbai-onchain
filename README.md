@@ -1,7 +1,7 @@
 MUMBAI ONCHAIN 
 Devcon 8 
 IBW MUMBAI
-Lets meet everyone in the same platform lets meet yrr lets collab
+Lets meet everyone in the same platform lets meet yrr lets collab definitely we sjhould meet and buikd togethwer 
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
