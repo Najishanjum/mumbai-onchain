@@ -10,7 +10,8 @@ import {
   Minimize,
   Film,
   Zap,
-  Radio
+  Radio,
+  Scan
 } from 'lucide-react';
 
 interface OnchainIntroVideoProps {
@@ -32,6 +33,7 @@ export const OnchainIntroVideo: React.FC<OnchainIntroVideoProps> = ({
   const [volume, setVolume] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isFullCover, setIsFullCover] = useState<boolean>(true);
 
   // Synchronize playback speed
   useEffect(() => {
@@ -192,7 +194,7 @@ export const OnchainIntroVideo: React.FC<OnchainIntroVideoProps> = ({
         </div>
 
         {/* Video Screen Area */}
-        <div className="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden">
+        <div className="relative w-full aspect-video min-h-[360px] sm:min-h-[480px] md:min-h-[580px] lg:min-h-[640px] bg-black flex items-center justify-center overflow-hidden">
           <video
             ref={videoRef}
             src={videoSrc}
@@ -205,7 +207,9 @@ export const OnchainIntroVideo: React.FC<OnchainIntroVideoProps> = ({
               setCurrentTime(0);
             }}
             onClick={handleTogglePlayPause}
-            className="w-full h-full object-contain cursor-pointer"
+            className={`w-full h-full cursor-pointer transition-all duration-300 ${
+              isFullCover ? 'object-cover' : 'object-contain'
+            }`}
           />
 
           {/* Big Center Play Overlay Button when paused */}
@@ -408,6 +412,17 @@ export const OnchainIntroVideo: React.FC<OnchainIntroVideoProps> = ({
                   title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
                 />
               </div>
+
+              {/* View Ratio: Full Cover / Fit Toggle */}
+              <button
+                type="button"
+                onClick={() => setIsFullCover(!isFullCover)}
+                className="flex items-center gap-1 px-2 py-1 font-mono text-[11px] font-bold text-[#E5E5E5] hover:text-white bg-[#1A1A1A] hover:bg-[#262626] border border-[#333333] transition-all"
+                title={isFullCover ? "Switch to Fit Mode" : "Switch to Full Cover Mode"}
+              >
+                <Scan className="w-3.5 h-3.5 text-[#0052FF]" />
+                <span className="hidden sm:inline">{isFullCover ? 'FULL COVER' : 'FIT VIEW'}</span>
+              </button>
 
               {/* Fullscreen Button */}
               <button
