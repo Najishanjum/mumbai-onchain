@@ -6,6 +6,7 @@ import { PeopleMarquee } from './components/PeopleMarquee';
 import { MobileNav } from './components/MobileNav';
 import { Hero } from './components/Hero';
 import { PrimaryEvent } from './components/PrimaryEvent';
+import { OnchainIntroVideo } from './components/OnchainIntroVideo';
 import { NextEvent } from './components/NextEvent';
 import { TodayMode } from './components/TodayMode';
 import { Timeline } from './components/Timeline';
@@ -94,6 +95,12 @@ export function App() {
             <PeopleMarquee onSelectPerson={(id) => setSelectedPersonId(id)} />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+              {/* Mumbai Onchain Official Intro Video Player */}
+              <OnchainIntroVideo
+                videoSrc="/videos/onchain-intro.mp4"
+                title="MUMBAI ONCHAIN // OFFICIAL INTRO STREAM"
+              />
+
               {/* Next Event Indicator */}
               <NextEvent
                 events={events}
