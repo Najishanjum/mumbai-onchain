@@ -3,14 +3,23 @@ import type { EventItem, UserEventNote, EventStatus, FilterState } from '../type
 import { INITIAL_EVENTS } from '../data/events';
 import { supabase, isSupabaseConfigured } from './supabase';
 
-const EVENTS_STORAGE_KEY = 'mumbai_onchain_week_events_v2';
+const EVENTS_STORAGE_KEY = 'mumbai_onchain_week_events_v3';
 const NOTES_STORAGE_KEY = 'mumbai_onchain_week_notes_v1';
 
 export function useAppStore() {
   const [events, setEvents] = useState<EventItem[]>(() => {
-    const saved = localStorage.getItem(EVENTS_STORAGE_KEY);
+    const saved = localStorage.getItem(EVENTS_STORAGE_KEY) || localStorage.getItem('mumbai_onchain_week_events_v2');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+      try {
+        const parsed: EventItem[] = JSON.parse(saved);
+        const savedMap = new Map(parsed.map((e) => [e.id, e]));
+        return INITIAL_EVENTS.map((initEvt) => {
+          const existing = savedMap.get(initEvt.id);
+          return existing ? { ...initEvt, status: existing.status } : initEvt;
+        });
+      } catch (e) {
+        console.error(e);
+      }
     }
     return INITIAL_EVENTS;
   });

@@ -38,6 +38,10 @@ interface DaySlot {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DAY_DATES = [
+  '2026-10-18',
+  '2026-10-24',
+  '2026-10-26',
+  '2026-10-31',
   '2026-11-01',
   '2026-11-02',
   '2026-11-03',
@@ -46,7 +50,15 @@ const DAY_DATES = [
   '2026-11-06',
   '2026-11-07',
   '2026-11-08',
+  '2026-12-06',
 ];
+
+const getMonthLabel = (dateStr: string): string => {
+  const m = dateStr.slice(5, 7);
+  if (m === '10') return 'OCT';
+  if (m === '12') return 'DEC';
+  return 'NOV';
+};
 
 const SCROLL_PER_CARD_VH = 110;
 
@@ -289,7 +301,7 @@ const ScrollDayLabel: React.FC<{
   slots: DaySlot[];
   scrollProgress: MotionValue<number>;
 }> = ({ slots, scrollProgress }) => {
-  const [label, setLabel] = useState(`NOV ${slots[0].dayNumber} — ${slots[0].weekday}`);
+  const [label, setLabel] = useState(`${slots[0]?.monthLabel || 'NOV'} ${slots[0]?.dayNumber} — ${slots[0]?.weekday}`);
 
   useEffect(() => {
     const unsub = scrollProgress.on('change', (v) => {
@@ -298,7 +310,9 @@ const ScrollDayLabel: React.FC<{
         slots.length - 1
       );
       const s = slots[idx];
-      setLabel(`NOV ${s.dayNumber} — ${s.weekday}`);
+      if (s) {
+        setLabel(`${s.monthLabel} ${s.dayNumber} — ${s.weekday}`);
+      }
     });
     return unsub;
   }, [scrollProgress, slots]);
@@ -347,13 +361,13 @@ const TimelineHeader: React.FC<{
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#D8D8D8] pb-6">
         <div>
           <div className="font-mono text-xs text-[#666666] uppercase tracking-widest mb-1">
-            PROGRAMME // 01–08 NOVEMBER 2026
+            PROGRAMME // ROAD TO DEVCON &amp; MUMBAI ONCHAIN 2026
           </div>
           <h2 className="font-heading font-black text-3xl sm:text-5xl text-[#050505] tracking-tight uppercase">
             SCHEDULE MATRIX
           </h2>
           <p className="font-mono text-xs text-[#555555] mt-1 max-w-xl">
-            India Blockchain Week (Nov 1, Sun) → Devcon 8 India (Nov 3–6) → ETHGlobal Mumbai &amp; EIP Hub (Nov 7, Sat).
+            Road to Devcon (Oct 18–31) → India Blockchain Week (Nov 1–2) → Devcon 8 India (Nov 3–6) → ETHGlobal Mumbai (Nov 5–7) → Community Wrap (Dec 6).
             {selectedDayFilter === 'ALL' && (
               <span className="text-[#000000] font-bold"> ↓ Scroll the stacked cards to navigate day-by-day.</span>
             )}
@@ -390,7 +404,7 @@ const TimelineHeader: React.FC<{
                   : 'bg-[#FFFFFF] text-[#050505] border-[#D8D8D8] hover:border-[#000000]'
               }`}
             >
-              NOV {s.dayNumber}
+              {s.monthLabel} {s.dayNumber}
             </button>
           ))}
         </div>
@@ -430,12 +444,12 @@ export const Timeline: React.FC<TimelineProps> = ({ events, onSelectEvent }) => 
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedDayFilter, setSelectedDayFilter] = useState<string>('ALL');
 
-  // Build all 8 day slots
+  // Build all day slots dynamically
   const slots: DaySlot[] = DAY_DATES.map((date) => ({
     date,
     dayNumber: date.slice(8),
     weekday: formatDateDisplay(date, 'EEEE').toUpperCase(),
-    monthLabel: 'NOV',
+    monthLabel: getMonthLabel(date),
     events: events
       .filter((e) => {
         if (e.startDate === date) return true;

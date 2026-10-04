@@ -16,6 +16,16 @@ function doesOverlapWithDevcon(e: EventItem): boolean {
 
 function extractTargetDate(query: string): string | null {
   const q = query.toLowerCase();
+  // Oct 18
+  if (q.includes('oct 18') || q.includes('october 18')) return '2026-10-18';
+  // Oct 24
+  if (q.includes('oct 24') || q.includes('october 24')) return '2026-10-24';
+  // Oct 25
+  if (q.includes('oct 25') || q.includes('october 25')) return '2026-10-25';
+  // Oct 26
+  if (q.includes('oct 26') || q.includes('october 26')) return '2026-10-26';
+  // Oct 31
+  if (q.includes('oct 31') || q.includes('october 31')) return '2026-10-31';
   // Nov 1
   if (q.includes('nov 1') || q.includes('november 1') || q.includes('nov 01') || q.includes('noviembre 1') || q.includes('11月1日') || q.includes('1 नवंबर') || q.includes('1er nov')) return '2026-11-01';
   // Nov 2
@@ -32,6 +42,8 @@ function extractTargetDate(query: string): string | null {
   if (q.includes('nov 7') || q.includes('november 7') || q.includes('nov 07') || q.includes('noviembre 7') || q.includes('11月7日') || q.includes('7 नवंबर')) return '2026-11-07';
   // Nov 8
   if (q.includes('nov 8') || q.includes('november 8') || q.includes('nov 08') || q.includes('noviembre 8') || q.includes('11月8日') || q.includes('8 नवंबर')) return '2026-11-08';
+  // Dec 6
+  if (q.includes('dec 6') || q.includes('december 6') || q.includes('dec 06') || q.includes('6 दिसंबर') || q.includes('12月6日')) return '2026-12-06';
   return null;
 }
 

@@ -28,11 +28,20 @@ export const TodayMode: React.FC<TodayModeProps> = ({ events, onSelectEvent }) =
   const [selectedDate, setSelectedDate] = useState<string>('2026-11-04');
 
   const availableDates = [
+    '2026-10-18', '2026-10-24', '2026-10-26', '2026-10-31',
     '2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04',
-    '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08'
+    '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08',
+    '2026-12-06'
   ];
 
   const todayEvents = getEventsForDate(events, selectedDate);
+
+  const getMonthAbbr = (d: string) => {
+    const m = d.slice(5, 7);
+    if (m === '10') return 'OCT';
+    if (m === '12') return 'DEC';
+    return 'NOV';
+  };
 
   return (
     <div className="w-full bg-[#FFFFFF] border border-[#000000] p-6 sm:p-8 space-y-6 select-none">
@@ -56,6 +65,7 @@ export const TodayMode: React.FC<TodayModeProps> = ({ events, onSelectEvent }) =
           {availableDates.map(date => {
             const count = getEventsForDate(events, date).length;
             const isSelected = date === selectedDate;
+            const month = getMonthAbbr(date);
             return (
               <button
                 key={date}
@@ -66,7 +76,7 @@ export const TodayMode: React.FC<TodayModeProps> = ({ events, onSelectEvent }) =
                     : 'bg-[#FFFFFF] text-[#555555] hover:text-[#000000] border-[#D8D8D8] hover:border-[#000000]'
                 }`}
               >
-                <span>NOV {date.slice(8)}</span>
+                <span>{month} {date.slice(8)}</span>
                 <span className={`text-[10px] px-1 py-0.2 ${isSelected ? 'bg-white/20 text-white' : 'text-[#888888]'}`}>
                   [{count}]
                 </span>

@@ -25,10 +25,15 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
     'Hackathon',
     'Networking',
     'Governance',
+    'AI',
   ];
 
   const dates = [
     { label: 'ALL DAYS', value: 'ALL' },
+    { label: '18 OCT', value: '2026-10-18' },
+    { label: '24 OCT', value: '2026-10-24' },
+    { label: '26 OCT', value: '2026-10-26' },
+    { label: '31 OCT', value: '2026-10-31' },
     { label: '01 NOV', value: '2026-11-01' },
     { label: '02 NOV', value: '2026-11-02' },
     { label: '03 NOV', value: '2026-11-03' },
@@ -37,6 +42,7 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
     { label: '06 NOV', value: '2026-11-06' },
     { label: '07 NOV', value: '2026-11-07' },
     { label: '08 NOV', value: '2026-11-08' },
+    { label: '06 DEC', value: '2026-12-06' },
   ];
 
   const statuses = [
