@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { CardTemplate, CardTheme } from './cardRenderer';
-import { PRESET_CITIES, CityLocation } from './citiesData';
+import type { CardTemplate, CardTheme } from './cardRenderer';
+import { PRESET_CITIES } from './citiesData';
+import type { CityLocation } from './citiesData';
 import { useXProfile } from './useXProfile';
 import { useIdManager } from './useIdManager';
 import { IDHero } from './IDHero';
-import { CardCanvas, CardCanvasRef } from './CardCanvas';
+import { CardCanvas } from './CardCanvas';
+import type { CardCanvasRef } from './CardCanvas';
 import { GeneratorControls } from './GeneratorControls';
 import { LatestIDsBoard } from './LatestIDsBoard';
 import { CheckCircle2, AlertCircle } from 'lucide-react';

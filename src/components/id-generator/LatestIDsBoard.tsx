@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GeneratedIdRecord } from './useIdManager';
+import type { GeneratedIdRecord } from './useIdManager';
 import { Users, ExternalLink, Sparkles } from 'lucide-react';
 
 interface LatestIDsBoardProps {

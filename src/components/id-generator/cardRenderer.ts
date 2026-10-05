@@ -1,6 +1,7 @@
 // High-Resolution Canvas Renderer for MumbaiOnChain ID Cards
 
-import { MUMBAI_COORDS, getGreatCirclePoints, calculateDistanceKm, MAP_NODES, STATES_OUTLINES, CityLocation } from './citiesData';
+import { MUMBAI_COORDS, getGreatCirclePoints, calculateDistanceKm, MAP_NODES, STATES_OUTLINES } from './citiesData';
+import type { CityLocation } from './citiesData';
 
 export type CardTemplate = 'classic' | 'postcard' | 'journey';
 export type CardTheme = 'night' | 'marine' | 'gateway' | 'monsoon' | 'cyber';

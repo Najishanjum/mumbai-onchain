@@ -1,23 +1,30 @@
 import React, { useState } from 'react';
-import {
+import type {
   CardTemplate,
   CardTheme
 } from './cardRenderer';
-import { PRESET_CITIES, CityLocation, calculateDistanceKm, MUMBAI_COORDS } from './citiesData';
+import { PRESET_CITIES, calculateDistanceKm, MUMBAI_COORDS } from './citiesData';
+import type { CityLocation } from './citiesData';
 import {
   Download,
   Share2,
-  Twitter,
   Copy,
   Check,
   ZoomIn,
   MapPin,
   MessageSquare,
+  
   Sparkles,
   Layers,
   Palette,
   Loader2
 } from 'lucide-react';
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 interface GeneratorControlsProps {
   template: CardTemplate;
@@ -178,7 +185,7 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
       <div className="bg-[#12102E]/70 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 font-mono text-xs text-[#5FE3D6] uppercase tracking-wider font-bold">
-            <Twitter className="w-4 h-4 text-[#1DA1F2]" />
+            <XIcon className="w-4 h-4 text-[#1DA1F2]" />
             <span>2. X (Twitter) Profile</span>
           </div>
           {isLoadingProfile && (
@@ -190,17 +197,30 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
         </div>
 
         {/* Input box */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 font-mono text-base font-bold">
-            @
+        <div className="space-y-2">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 font-mono text-base font-bold">
+              @
+            </div>
+            <input
+              type="text"
+              value={handle}
+              onChange={(e) => setHandle(e.target.value.replace(/^@/, ''))}
+              placeholder="vitalik"
+              className="w-full pl-8 pr-4 py-3 bg-[#0A091E] border border-white/20 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-[#5FE3D6] focus:ring-1 focus:ring-[#5FE3D6] transition-all"
+            />
           </div>
-          <input
-            type="text"
-            value={handle}
-            onChange={(e) => setHandle(e.target.value.replace(/^@/, ''))}
-            placeholder="vitalik"
-            className="w-full pl-8 pr-4 py-3 bg-[#0A091E] border border-white/20 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-[#5FE3D6] focus:ring-1 focus:ring-[#5FE3D6] transition-all"
-          />
+
+          {/* Optional Display Name Input */}
+          <div className="relative">
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Custom display name (optional)"
+              className="w-full px-3 py-2 bg-[#0A091E]/80 border border-white/10 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-[#5FE3D6]/60 transition-all placeholder:text-gray-500"
+            />
+          </div>
         </div>
 
         {/* Live Profile preview & Zoom Slider */}
@@ -397,7 +417,7 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
             onClick={onPostX}
             className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-[#1DA1F2] hover:bg-[#1a94df] text-white font-heading font-black text-sm uppercase tracking-wide transition-all shadow-lg shadow-[#1DA1F2]/20 active:scale-95"
           >
-            <Twitter className="w-4 h-4 fill-white" />
+            <XIcon className="w-4 h-4 fill-white" />
             <span>Post to X</span>
           </button>
         </div>

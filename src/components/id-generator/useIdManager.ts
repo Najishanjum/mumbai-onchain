@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const STORAGE_KEY = 'mumbai_onchain_id_registry_v1';
 const BASE_COUNT = 1248;

@@ -1,13 +1,15 @@
-import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import {
+import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import type {
   CardTemplate,
   CardTheme,
-  CardRenderOptions,
+  CardRenderOptions
+} from './cardRenderer';
+import {
   renderMumbaiCard,
   renderPostcardCard,
   renderJourneyCard
 } from './cardRenderer';
-import { CityLocation } from './citiesData';
+import type { CityLocation } from './citiesData';
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 
 export interface CardCanvasRef {
