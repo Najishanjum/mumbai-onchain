@@ -10,6 +10,7 @@ import {
   renderJourneyCard
 } from './cardRenderer';
 import type { CityLocation } from './citiesData';
+import type { CityMetadata } from './geoEngine';
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 
 export interface CardCanvasRef {
@@ -29,6 +30,9 @@ interface CardCanvasProps {
   avatarImage: HTMLImageElement | null;
   photoZoom: number;
   city: CityLocation;
+  cityMetadata?: CityMetadata;
+  travelMode?: 'flight' | 'train';
+  customProgress?: number;
 }
 
 export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
@@ -43,13 +47,16 @@ export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
       idNumber,
       avatarImage,
       photoZoom,
-      city
+      city,
+      cityMetadata,
+      travelMode = 'flight',
+      customProgress
     },
     ref
   ) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const [artworkImg, setArtworkImg] = useState<HTMLImageElement | null>(null);
-    const [progress, setProgress] = useState(0.75);
+    const [progress, setProgress] = useState(0.72);
 
     // Preload artwork
     useEffect(() => {
@@ -58,45 +65,30 @@ export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
       img.onload = () => setArtworkImg(img);
     }, []);
 
-    // Animation loop for Journey flight path
+    // Animation Loop for Journey vehicle movement
     useEffect(() => {
-      if (template !== 'journey') return;
+      if (template !== 'journey' || customProgress !== undefined) return;
+      let frameId: number;
+      let current = 0;
 
-      let rafId: number;
-      let startTime = performance.now();
-      const FLY_DURATION = 2400; // ms
-      const HOLD_DURATION = 1200; // ms
-      const TOTAL_CYCLE = FLY_DURATION + HOLD_DURATION;
-
-      const animate = (time: number) => {
-        const elapsed = (time - startTime) % TOTAL_CYCLE;
-        if (elapsed < FLY_DURATION) {
-          const t = elapsed / FLY_DURATION;
-          // Ease-in-out quadratic
-          const p = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-          setProgress(Math.max(0.01, Math.min(1, p)));
-        } else {
-          setProgress(1); // Arrived in Mumbai
-        }
-        rafId = requestAnimationFrame(animate);
+      const loop = () => {
+        current = (current + 0.0035) % 1;
+        setProgress(current);
+        frameId = requestAnimationFrame(loop);
       };
 
-      rafId = requestAnimationFrame(animate);
-      return () => cancelAnimationFrame(rafId);
-    }, [template]);
+      frameId = requestAnimationFrame(loop);
+      return () => cancelAnimationFrame(frameId);
+    }, [template, customProgress]);
 
-    // Canvas Dimensions based on template
-    const canvasWidth = template === 'postcard' ? 1440 : 1080;
-    const canvasHeight = 1080;
-
-    // Redraw whenever parameters change
+    // Redraw Canvas
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const options: CardRenderOptions = {
+      const opts: CardRenderOptions = {
         template,
         theme,
         handle,
@@ -107,16 +99,18 @@ export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
         avatarImage,
         photoZoom,
         city,
-        progress,
+        cityMetadata,
+        travelMode,
+        progress: customProgress !== undefined ? customProgress : progress,
         artworkImage: artworkImg
       };
 
-      if (template === 'postcard') {
-        renderPostcardCard(ctx, options, canvasWidth, canvasHeight);
+      if (template === 'classic') {
+        renderMumbaiCard(ctx, opts, 1080, 1080);
+      } else if (template === 'postcard') {
+        renderPostcardCard(ctx, opts, 1080, 1080);
       } else if (template === 'journey') {
-        renderJourneyCard(ctx, options, canvasWidth, canvasHeight);
-      } else {
-        renderMumbaiCard(ctx, options, canvasWidth, canvasHeight);
+        renderJourneyCard(ctx, opts, 1080, 1080);
       }
     }, [
       template,
@@ -129,47 +123,42 @@ export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
       avatarImage,
       photoZoom,
       city,
+      cityMetadata,
+      travelMode,
       progress,
-      artworkImg,
-      canvasWidth,
-      canvasHeight
+      customProgress,
+      artworkImg
     ]);
 
-    // Expose export helpers
+    // Imperative Exporter API
     useImperativeHandle(ref, () => ({
       getCanvasElement: () => canvasRef.current,
+
       exportPngBlob: () => {
-        return new Promise<Blob | null>((resolve) => {
-          if (!canvasRef.current) return resolve(null);
-          canvasRef.current.toBlob(
-            (blob) => resolve(blob),
-            'image/png',
-            1.0
-          );
+        return new Promise((resolve) => {
+          const canvas = canvasRef.current;
+          if (!canvas) return resolve(null);
+          canvas.toBlob((blob) => resolve(blob), 'image/png');
         });
       },
+
       exportGifBlob: async (onProgress) => {
-        if (!canvasRef.current) return null;
+        const canvas = canvasRef.current;
+        if (!canvas) return null;
 
-        const gifSize = 640;
-        const totalFrames = 24;
+        const offscreen = document.createElement('canvas');
+        offscreen.width = 540;
+        offscreen.height = 540;
+        const ctx = offscreen.getContext('2d');
+        if (!ctx) return null;
+
         const gif = GIFEncoder();
-
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = canvasWidth;
-        offCanvas.height = canvasHeight;
-        const offCtx = offCanvas.getContext('2d');
-
-        const smallCanvas = document.createElement('canvas');
-        smallCanvas.width = gifSize;
-        smallCanvas.height = Math.round((gifSize * canvasHeight) / canvasWidth);
-        const smallCtx = smallCanvas.getContext('2d', { willReadFrequently: true });
-
-        if (!offCtx || !smallCtx) return null;
+        const totalFrames = 24;
+        const delayMs = 65;
 
         for (let i = 0; i < totalFrames; i++) {
-          const p = i / (totalFrames - 1);
-          const options: CardRenderOptions = {
+          const p = i / totalFrames;
+          const opts: CardRenderOptions = {
             template,
             theme,
             handle,
@@ -180,56 +169,52 @@ export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
             avatarImage,
             photoZoom,
             city,
+            cityMetadata,
+            travelMode,
             progress: p,
             artworkImage: artworkImg
           };
 
-          if (template === 'journey') {
-            renderJourneyCard(offCtx, options, canvasWidth, canvasHeight);
+          if (template === 'classic') {
+            renderMumbaiCard(ctx, opts, 540, 540);
           } else if (template === 'postcard') {
-            renderPostcardCard(offCtx, options, canvasWidth, canvasHeight);
+            renderPostcardCard(ctx, opts, 540, 540);
           } else {
-            renderMumbaiCard(offCtx, options, canvasWidth, canvasHeight);
+            renderJourneyCard(ctx, opts, 540, 540);
           }
 
-          // Scale down to small canvas
-          smallCtx.drawImage(offCanvas, 0, 0, smallCanvas.width, smallCanvas.height);
-          const { data } = smallCtx.getImageData(0, 0, smallCanvas.width, smallCanvas.height);
+          const imgData = ctx.getImageData(0, 0, 540, 540);
+          const palette = quantize(imgData.data, 128);
+          const index = applyPalette(imgData.data, palette);
 
-          const palette = quantize(data, 256);
-          const index = applyPalette(data, palette);
-
-          gif.writeFrame(index, smallCanvas.width, smallCanvas.height, {
+          gif.writeFrame(index, 540, 540, {
             palette,
-            delay: 100 // ms
+            delay: delayMs
           });
 
-          if (onProgress) onProgress(Math.round(((i + 1) / totalFrames) * 100));
+          if (onProgress) {
+            onProgress(Math.round(((i + 1) / totalFrames) * 100));
+          }
         }
 
         gif.finish();
-        const buffer = gif.bytes();
-        return new Blob([buffer], { type: 'image/gif' });
+        const bytes = gif.bytes();
+        return new Blob([bytes], { type: 'image/gif' });
       }
     }));
 
-    const aspectRatioClass = template === 'postcard' ? 'aspect-[4/3]' : 'aspect-square';
-
     return (
-      <div className="w-full flex items-center justify-center select-none">
-        <div
-          className={`relative w-full ${aspectRatioClass} max-w-[560px] rounded-2xl overflow-hidden shadow-2xl border-2 border-[#5FE3D6]/30 bg-[#0B0A22] transform transition-transform duration-300 hover:scale-[1.01]`}
-        >
+      <div className="relative group w-full max-w-[540px] mx-auto">
+        <div className="absolute -inset-1 bg-gradient-to-r from-[#5FE3D6] via-[#B59CF2] to-[#F6A067] rounded-3xl blur-xl opacity-35 group-hover:opacity-60 transition duration-1000 group-hover:duration-200" />
+        <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-[#0A091E] shadow-2xl aspect-square flex items-center justify-center">
           <canvas
             ref={canvasRef}
-            width={canvasWidth}
-            height={canvasHeight}
-            className="w-full h-full object-contain block"
+            width={1080}
+            height={1080}
+            className="w-full h-full object-contain cursor-pointer transition-transform duration-300 group-hover:scale-[1.01]"
           />
         </div>
       </div>
     );
   }
 );
-
-CardCanvas.displayName = 'CardCanvas';
