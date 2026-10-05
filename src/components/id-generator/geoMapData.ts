@@ -247,28 +247,32 @@ export const REAL_CITIES: MapCity[] = [
   { name: 'Mumbai', lat: 19.0760, lon: 72.8777, importance: 1 }
 ];
 
-// 6. Projection Engine Supporting Both Regional & World Topographic Projections
+// 6. Projection Engine: Dynamic 3D Spherical Orthographic Globe Projection & Regional Projection
 export interface GeoProjection {
-  project: (lat: number, lon: number) => [number, number];
+  project: (lat: number, lon: number, altitude?: number) => [number, number];
   isInside: (lat: number, lon: number, margin?: number) => boolean;
+  isVisible: (lat: number, lon: number) => boolean;
   minLat: number;
   maxLat: number;
   minLon: number;
   maxLon: number;
   scale: number;
   isWorldView: boolean;
+  isGlobe: boolean;
+  globeRadius: number;
+  globeCenter: [number, number];
   viewBox: { x: number; y: number; w: number; h: number };
 }
 
 export function createGeoProjection(
   origin: [number, number],
   mumbai: [number, number],
-  viewBox = { x: 30, y: 120, w: 1020, h: 620 }
+  viewBox = { x: 30, y: 110, w: 1020, h: 630 }
 ): GeoProjection {
   const [oLat, oLon] = origin;
   const [mLat, mLon] = mumbai;
 
-  // Calculate Great-Circle distance to determine Regional vs Full World Map
+  // Calculate Great-Circle distance to determine framing
   const dLat = ((mLat - oLat) * Math.PI) / 180;
   const dLon = ((mLon - oLon) * Math.PI) / 180;
   const a =
@@ -276,45 +280,75 @@ export function createGeoProjection(
     Math.cos((oLat * Math.PI) / 180) * Math.cos((mLat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   const distKm = Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 
-  // If distance > 2,600 km or longitude span > 35 degrees, switch to World Topographic Map
-  const isWorldView = distKm > 2600 || Math.abs(oLon - mLon) > 35;
+  // If distance > 2,200 km or longitude span > 25 degrees, use 3D Google Earth Globe View
+  const isWorldView = distKm > 2200 || Math.abs(oLon - mLon) > 25;
 
   if (isWorldView) {
-    // World View Projection (Framed with Americas on left, Atlantic in middle, India on right)
-    const worldCenterLat = 26.0;
-    const worldCenterLon = 10.0;
-    const worldScale = viewBox.w / 260; // scale factor
+    // 3D Orthographic Spherical Globe (Google Earth Style)
+    // Dynamic Center of Projection: Midpoint between Origin and Mumbai with slight northward tilt for optimal framing
+    let centerLon = (oLon + mLon) / 2;
+    // Handle wrap-around if span crosses 180°
+    if (Math.abs(oLon - mLon) > 180) {
+      centerLon = (centerLon + 180) % 360;
+    }
+    const centerLat = Math.max(12, Math.min(42, (oLat + mLat) / 2 + 6));
 
     const cx = viewBox.x + viewBox.w / 2;
-    const cy = viewBox.y + viewBox.h / 2 + 30;
+    const cy = viewBox.y + viewBox.h / 2 + 10;
+    const globeRadius = Math.min(viewBox.w, viewBox.h) * 0.48; // ~300px radius
 
-    const project = (lat: number, lon: number): [number, number] => {
-      let normLon = lon;
-      if (normLon < -160) normLon += 360;
-      const px = cx + (normLon - worldCenterLon) * worldScale * 1.02;
-      const py = cy - (lat - worldCenterLat) * worldScale * 1.22;
-      return [px, py];
+    const phi0 = (centerLat * Math.PI) / 180;
+    const lambda0 = (centerLon * Math.PI) / 180;
+
+    const project = (lat: number, lon: number, altitude = 0): [number, number] => {
+      const phi = (lat * Math.PI) / 180;
+      const lambda = (lon * Math.PI) / 180;
+
+      const dLambda = lambda - lambda0;
+      const cosC = Math.sin(phi0) * Math.sin(phi) + Math.cos(phi0) * Math.cos(phi) * Math.cos(dLambda);
+
+      const rEff = globeRadius * (1 + altitude);
+
+      if (cosC < -0.2) {
+        // Point is on backside of sphere
+        const x = rEff * Math.cos(phi) * Math.sin(dLambda);
+        const y = rEff * (Math.cos(phi0) * Math.sin(phi) - Math.sin(phi0) * Math.cos(phi) * Math.cos(dLambda));
+        return [cx + x, cy - y];
+      }
+
+      const x = rEff * Math.cos(phi) * Math.sin(dLambda);
+      const y = rEff * (Math.cos(phi0) * Math.sin(phi) - Math.sin(phi0) * Math.cos(phi) * Math.cos(dLambda));
+
+      return [cx + x, cy - y];
     };
 
-    const isInside = (lat: number, lon: number, margin = 60): boolean => {
+    const isVisible = (lat: number, lon: number): boolean => {
+      const phi = (lat * Math.PI) / 180;
+      const lambda = (lon * Math.PI) / 180;
+      const dLambda = lambda - lambda0;
+      const cosC = Math.sin(phi0) * Math.sin(phi) + Math.cos(phi0) * Math.cos(phi) * Math.cos(dLambda);
+      return cosC >= -0.05;
+    };
+
+    const isInside = (lat: number, lon: number, margin = 40): boolean => {
       const [px, py] = project(lat, lon);
-      return (
-        px >= viewBox.x - margin &&
-        px <= viewBox.x + viewBox.w + margin &&
-        py >= viewBox.y - margin &&
-        py <= viewBox.y + viewBox.h + margin
-      );
+      const distFromCenter = Math.hypot(px - cx, py - cy);
+      return distFromCenter <= globeRadius + margin;
     };
 
     return {
       project,
       isInside,
+      isVisible,
       minLat: -60,
       maxLat: 75,
       minLon: -140,
       maxLon: 160,
-      scale: worldScale,
+      scale: globeRadius,
       isWorldView: true,
+      isGlobe: true,
+      globeRadius,
+      globeCenter: [cx, cy],
       viewBox
     };
   }
@@ -361,6 +395,8 @@ export function createGeoProjection(
     return [px, py];
   };
 
+  const isVisible = (): boolean => true;
+
   const isInside = (lat: number, lon: number, margin = 30): boolean => {
     const [px, py] = project(lat, lon);
     return (
@@ -374,12 +410,16 @@ export function createGeoProjection(
   return {
     project,
     isInside,
+    isVisible,
     minLat,
     maxLat,
     minLon,
     maxLon,
     scale,
     isWorldView: false,
+    isGlobe: false,
+    globeRadius: 0,
+    globeCenter: [cx, cy],
     viewBox
   };
 }

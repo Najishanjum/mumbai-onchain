@@ -764,7 +764,7 @@ export function renderPostcardCard(
 }
 
 // ============================================================================
-// TEMPLATE 3: JOURNEY (Map & Animated Geodesic Flight Route to Mumbai)
+// TEMPLATE 3: JOURNEY (3D Google Earth Style Globe & Flight Route to Mumbai)
 // ============================================================================
 export function renderJourneyCard(
   ctx: CanvasRenderingContext2D,
@@ -779,15 +779,29 @@ export function renderJourneyCard(
   const fromCoord: [number, number] = [fromCity.lat, fromCity.lon];
   const distanceKm = calculateDistanceKm(fromCoord[0], fromCoord[1], MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
 
-  // 1. Base Layer: Deep Navy Ocean & Spotlight Glow
-  const ocean = ctx.createRadialGradient(w * 0.45, h * 0.45, 120, w / 2, h / 2, 850);
-  ocean.addColorStop(0, '#161c52');
-  ocean.addColorStop(0.6, '#0f1338');
-  ocean.addColorStop(1, '#070920');
-  ctx.fillStyle = ocean;
+  // 1. Base Layer: Deep Cosmic Space with Starfield & Nebula Haze
+  const spaceBg = ctx.createRadialGradient(w * 0.5, h * 0.45, 80, w / 2, h / 2, 850);
+  spaceBg.addColorStop(0, '#101438');
+  spaceBg.addColorStop(0.55, '#090c24');
+  spaceBg.addColorStop(1, '#040510');
+  ctx.fillStyle = spaceBg;
   ctx.fillRect(0, 0, w, h);
 
-  // 2. Real Dynamic Geographic Projection
+  // Deterministic Starfield across Deep Space
+  ctx.save();
+  for (let s = 1; s <= 65; s++) {
+    const sx = (s * 197 + (s * s) * 31) % (w - 60) + 30;
+    const sy = (s * 311 + s * 83) % (h - 60) + 30;
+    const sr = (s % 3 === 0 ? 1.6 : 0.9);
+    const sa = 0.25 + (s % 5) * 0.15;
+    ctx.fillStyle = `rgba(220, 235, 255, ${sa})`;
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 2. Real Dynamic Geographic Projection (3D Spherical Globe for Global, Regional for Domestic)
   const geo = createGeoProjection(fromCoord, MUMBAI_COORDS, {
     x: 40,
     y: 110,
@@ -795,22 +809,57 @@ export function renderJourneyCard(
     h: 630
   });
 
-  if (geo.isWorldView) {
+  if (geo.isGlobe) {
     // ========================================================================
-    // WORLD MAP VIEW (Global / International: USA, Europe, Asia, Americas)
+    // 3D GOOGLE EARTH GLOBE VIEW (Spherical Earth, Space Atmospheric Limb)
     // ========================================================================
+    const [gcx, gcy] = geo.globeCenter;
+    const gr = geo.globeRadius;
 
-    // 2a. Bathymetric Ripple Contours across Oceans
+    // 2a. Outer Atmospheric Corona / Limb Glow (Google Earth Atmosphere)
     ctx.save();
+    const atmoGlow = ctx.createRadialGradient(gcx, gcy, gr * 0.94, gcx, gcy, gr + 42);
+    atmoGlow.addColorStop(0, 'rgba(95, 227, 214, 0.45)');
+    atmoGlow.addColorStop(0.35, 'rgba(181, 156, 242, 0.25)');
+    atmoGlow.addColorStop(0.7, 'rgba(95, 227, 214, 0.1)');
+    atmoGlow.addColorStop(1, 'rgba(95, 227, 214, 0)');
+    ctx.fillStyle = atmoGlow;
+    ctx.beginPath();
+    ctx.arc(gcx, gcy, gr + 42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 2b. Clip rendering strictly inside the Earth Sphere
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(gcx, gcy, gr, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Spherical Ocean Shading (3D lighting)
+    const oceanGrad = ctx.createRadialGradient(
+      gcx - gr * 0.35,
+      gcy - gr * 0.35,
+      gr * 0.1,
+      gcx,
+      gcy,
+      gr
+    );
+    oceanGrad.addColorStop(0, '#1c2466');
+    oceanGrad.addColorStop(0.55, '#13184a');
+    oceanGrad.addColorStop(0.9, '#0c1032');
+    oceanGrad.addColorStop(1, '#06081c');
+    ctx.fillStyle = oceanGrad;
+    ctx.fillRect(gcx - gr, gcy - gr, gr * 2, gr * 2);
+
+    // Oceanic Bathymetric Ripple Waves on Globe
     WORLD_CONTINENT_POLYGONS.forEach((poly) => {
       const projCoords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
-      for (let r = 4; r >= 1; r--) {
-        const offset = r * 14;
-        ctx.strokeStyle = `rgba(95, 227, 214, ${0.18 - r * 0.035})`;
+      for (let r = 3; r >= 1; r--) {
+        const offset = r * 10;
+        ctx.strokeStyle = `rgba(95, 227, 214, ${0.2 - r * 0.045})`;
         ctx.lineWidth = 1.2;
         ctx.beginPath();
         projCoords.forEach(([px, py], idx) => {
-          // Slight outward normal expansion
           const ox = px + (idx % 2 === 0 ? offset : -offset * 0.5);
           const oy = py + (idx % 2 === 1 ? offset : -offset * 0.5);
           if (idx === 0) ctx.moveTo(ox, oy);
@@ -820,10 +869,8 @@ export function renderJourneyCard(
         ctx.stroke();
       }
     });
-    ctx.restore();
 
-    // 2b. World Continents Base Polygons
-    ctx.save();
+    // World Continents on 3D Globe
     WORLD_CONTINENT_POLYGONS.forEach((poly) => {
       const projCoords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
       ctx.beginPath();
@@ -833,23 +880,21 @@ export function renderJourneyCard(
       });
       ctx.closePath();
 
-      // Continent Landmass fill & border
-      ctx.fillStyle = 'rgba(23, 27, 72, 0.95)';
+      // Landmass 3D fill
+      ctx.fillStyle = 'rgba(26, 32, 88, 0.94)';
       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(181, 156, 242, 0.35)';
-      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = 'rgba(181, 156, 242, 0.38)';
+      ctx.lineWidth = 1.5;
       ctx.stroke();
     });
-    ctx.restore();
 
-    // 2c. Landmass Dot-Matrix Texture inside Continents
-    ctx.save();
-    ctx.fillStyle = 'rgba(195, 215, 255, 0.18)';
-    const dotStep = 18;
-    for (let dy = 120; dy < 740; dy += dotStep) {
-      for (let dx = 40; dx < w - 40; dx += dotStep) {
-        // Sample test inside world landmasses
+    // Landmass Dot-Matrix Texture on Globe
+    ctx.fillStyle = 'rgba(195, 215, 255, 0.2)';
+    const dotStep = 16;
+    for (let dy = gcy - gr + 10; dy < gcy + gr - 10; dy += dotStep) {
+      for (let dx = gcx - gr + 10; dx < gcx + gr - 10; dx += dotStep) {
+        if (Math.hypot(dx - gcx, dy - gcy) > gr - 4) continue;
         let inContinent = false;
         for (const poly of WORLD_CONTINENT_POLYGONS) {
           const coords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
@@ -872,11 +917,10 @@ export function renderJourneyCard(
         }
       }
     }
-    ctx.restore();
 
-    // 2d. Highlighted Glowing India Outline on World Map
-    ctx.save();
+    // 2c. SHINE ON INDIA (Glowing Neon Subcontinent on the Globe)
     const projIndia = INDIA_OUTLINE_COORDS.map(([lat, lon]) => geo.project(lat, lon));
+    ctx.save();
     ctx.beginPath();
     projIndia.forEach(([px, py], idx) => {
       if (idx === 0) ctx.moveTo(px, py);
@@ -884,22 +928,36 @@ export function renderJourneyCard(
     });
     ctx.closePath();
 
-    ctx.fillStyle = 'rgba(95, 227, 214, 0.14)';
+    // Vibrant glowing wash over India
+    ctx.fillStyle = 'rgba(95, 227, 214, 0.24)';
     ctx.fill();
 
+    // Bright neon cyan boundary
     ctx.strokeStyle = '#5FE3D6';
+    ctx.lineWidth = 3.2;
+    ctx.shadowColor = '#5FE3D6';
+    ctx.shadowBlur = 24;
+    ctx.stroke();
+    ctx.restore();
+
+    // End Earth Sphere Clip
+    ctx.restore();
+
+    // 2d. Globe Edge Rim Ring (3D Glassmorphic atmospheric edge)
+    ctx.save();
+    ctx.strokeStyle = 'rgba(95, 227, 214, 0.85)';
     ctx.lineWidth = 2.4;
     ctx.shadowColor = '#5FE3D6';
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.arc(gcx, gcy, gr, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
 
   } else {
     // ========================================================================
-    // REGIONAL INDIA VIEW (Central / Western India, Jabalpur, Mumbai, etc.)
+    // REGIONAL INDIA VIEW (Central / Western India: Jabalpur, Mumbai, etc.)
     // ========================================================================
-
-    // Coastline & Topographic Bathymetric Contour Waves
     const projectedCoast = WEST_COASTLINE_COORDS.map(([cLat, cLon]) => geo.project(cLat, cLon));
 
     ctx.save();
@@ -1040,19 +1098,23 @@ export function renderJourneyCard(
   }
 
   // ==========================================================================
-  // SHARED FLIGHT TRAJECTORY, BEACONS & BADGES
+  // SHARED 3D ELEVATED FLIGHT TRAJECTORY, BEACONS & SHINING NODES
   // ==========================================================================
 
-  // 3. Flight Trajectory (Glowing Great-Circle Geodesic Arc)
+  // 3. 3D Elevated Flight Trajectory (Great-Circle Orbital Arc over the Globe)
   const rawRoutePoints = getGreatCirclePoints(fromCoord, MUMBAI_COORDS, 100);
-  const projectedRoute = rawRoutePoints.map(([rLat, rLon]) => geo.project(rLat, rLon));
+  const projectedRoute = rawRoutePoints.map(([rLat, rLon], idx) => {
+    // Parabolic orbital altitude peaking in the middle of flight
+    const alt = geo.isGlobe ? Math.sin((idx / (rawRoutePoints.length - 1)) * Math.PI) * 0.16 : 0;
+    return geo.project(rLat, rLon, alt);
+  });
 
   // Glowing Outer Trajectory
   ctx.save();
   ctx.shadowColor = '#5FE3D6';
-  ctx.shadowBlur = 18;
-  ctx.strokeStyle = 'rgba(95, 227, 214, 0.65)';
-  ctx.lineWidth = 4.5;
+  ctx.shadowBlur = 20;
+  ctx.strokeStyle = 'rgba(95, 227, 214, 0.75)';
+  ctx.lineWidth = 4.8;
   ctx.setLineDash([7, 7]);
   ctx.beginPath();
   projectedRoute.forEach(([rx, ry], idx) => {
@@ -1065,7 +1127,7 @@ export function renderJourneyCard(
   // Solid Inner Dashed Line
   ctx.save();
   ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 2.2;
+  ctx.lineWidth = 2.4;
   ctx.setLineDash([6, 6]);
   ctx.beginPath();
   projectedRoute.forEach(([rx, ry], idx) => {
@@ -1075,7 +1137,7 @@ export function renderJourneyCard(
   ctx.stroke();
   ctx.restore();
 
-  // 4. On-Arc Distance Badge Pill (Matching reference: centered directly on arc peak)
+  // 4. On-Arc Distance Badge Pill (Mounted directly on apex of elevated arc)
   ctx.save();
   let peakIdx = 0;
   let minY = Infinity;
@@ -1093,40 +1155,46 @@ export function renderJourneyCard(
   const adw = ctx.measureText(arcDistText).width + 30;
   const adh = 32;
 
-  roundRect(ctx, peakX - adw / 2, peakY - adh - 8, adw, adh, 16);
-  ctx.fillStyle = 'rgba(15, 18, 52, 0.92)';
+  roundRect(ctx, peakX - adw / 2, peakY - adh - 10, adw, adh, 16);
+  ctx.fillStyle = 'rgba(12, 15, 48, 0.94)';
   ctx.fill();
   ctx.lineWidth = 1.5;
-  ctx.strokeStyle = 'rgba(95, 227, 214, 0.5)';
+  ctx.strokeStyle = 'rgba(95, 227, 214, 0.6)';
+  ctx.shadowColor = '#5FE3D6';
+  ctx.shadowBlur = 10;
   ctx.stroke();
 
+  ctx.shadowBlur = 0;
   ctx.fillStyle = '#FFFFFF';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(arcDistText, peakX, peakY - adh / 2 - 7);
+  ctx.fillText(arcDistText, peakX, peakY - adh / 2 - 9);
   ctx.restore();
 
-  // 5. Destination Beacon (Mumbai)
+  // 5. SHINE ON MUMBAI (Destination Beacon)
   const [mumX, mumY] = geo.project(MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
 
   // Glowing peach halo rings
   for (let r = 1; r <= 3; r++) {
-    ctx.strokeStyle = `rgba(246, 160, 103, ${0.75 - r * 0.2})`;
-    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = `rgba(246, 160, 103, ${0.85 - r * 0.22})`;
+    ctx.lineWidth = 2.4;
     ctx.beginPath();
-    ctx.arc(mumX, mumY, r * 14, 0, Math.PI * 2);
+    ctx.arc(mumX, mumY, r * 15, 0, Math.PI * 2);
     ctx.stroke();
   }
 
   ctx.fillStyle = PEACH;
+  ctx.shadowColor = PEACH;
+  ctx.shadowBlur = 18;
   ctx.beginPath();
-  ctx.arc(mumX, mumY, 7.5, 0, Math.PI * 2);
+  ctx.arc(mumX, mumY, 8, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
-  ctx.arc(mumX, mumY, 3.5, 0, Math.PI * 2);
+  ctx.arc(mumX, mumY, 3.8, 0, Math.PI * 2);
   ctx.fill();
+  ctx.shadowBlur = 0;
 
   // Mumbai Label Pill
   ctx.save();
@@ -1142,8 +1210,17 @@ export function renderJourneyCard(
   ctx.fillText(mLabel, mumX, mumY + 40);
   ctx.restore();
 
-  // 6. Origin Beacon & Avatar (Departure Location)
+  // 6. SHINE ON STARTING POINT (Where They Start: Origin Beacon & Avatar)
   const [srcX, srcY] = geo.project(fromCoord[0], fromCoord[1]);
+
+  // Shining radiant pulse rings on start location
+  for (let r = 1; r <= 3; r++) {
+    ctx.strokeStyle = `rgba(95, 227, 214, ${0.8 - r * 0.22})`;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.arc(srcX, srcY - 22, 48 + r * 14, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
   drawGlowingAvatar(
     ctx,
@@ -1170,7 +1247,7 @@ export function renderJourneyCard(
   ctx.fillText(cName, srcX, srcY + 52);
   ctx.restore();
 
-  // 7. Airplane Sprite along the Flight Path
+  // 7. Airplane Sprite flying towards Mumbai
   const progress = options.progress !== undefined ? options.progress : 0.78;
   const pIdx = Math.min(
     projectedRoute.length - 1,
