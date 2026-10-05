@@ -2,7 +2,7 @@
 
 import { MUMBAI_COORDS, getGreatCirclePoints, calculateDistanceKm } from './citiesData';
 import type { CityLocation } from './citiesData';
-import { STATE_POLYGONS, REAL_CITIES, createGeoProjection } from './geoMapData';
+import { STATE_POLYGONS, REAL_CITIES, WEST_COASTLINE_COORDS, createGeoProjection } from './geoMapData';
 
 export type CardTemplate = 'classic' | 'postcard' | 'journey';
 export type CardTheme = 'night' | 'marine' | 'gateway' | 'monsoon' | 'cyber';
@@ -772,47 +772,96 @@ export function renderJourneyCard(
   const fromCoord: [number, number] = [fromCity.lat, fromCity.lon];
   const distanceKm = calculateDistanceKm(fromCoord[0], fromCoord[1], MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
 
-  // 1. Base Layer: Navy Ocean & Ambient Glow
-  const ocean = ctx.createRadialGradient(w / 2, h * 0.45, 100, w / 2, h / 2, 820);
-  ocean.addColorStop(0, '#141748');
+  // 1. Base Layer: Deep Navy Ocean & Spotlight Glow
+  const ocean = ctx.createRadialGradient(w * 0.45, h * 0.45, 120, w / 2, h / 2, 850);
+  ocean.addColorStop(0, '#161c52');
+  ocean.addColorStop(0.6, '#0f1338');
   ocean.addColorStop(1, '#070920');
   ctx.fillStyle = ocean;
   ctx.fillRect(0, 0, w, h);
 
-  // 2. Real Dynamic Geographic Projection (fitBounds to Origin -> Mumbai)
+  // Spotlight Aura behind Brand Header (Top Left)
+  const spotlight = ctx.createRadialGradient(200, 160, 20, 200, 160, 280);
+  spotlight.addColorStop(0, 'rgba(181, 156, 242, 0.22)');
+  spotlight.addColorStop(0.5, 'rgba(95, 227, 214, 0.12)');
+  spotlight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = spotlight;
+  ctx.fillRect(0, 0, w, h);
+
+  // 2. Real Dynamic Geographic Projection
   const geo = createGeoProjection(fromCoord, MUMBAI_COORDS, {
-    x: 50,
-    y: 130,
-    w: w - 100,
-    h: 600
+    x: 40,
+    y: 120,
+    w: w - 80,
+    h: 620
   });
 
-  // 3. Latitude / Longitude Graticule Grid (Subtle)
+  // 3. Coastline & Topographic Bathymetric Contour Waves
+  const projectedCoast = WEST_COASTLINE_COORDS.map(([cLat, cLon]) => geo.project(cLat, cLon));
+
   ctx.save();
-  ctx.strokeStyle = 'rgba(95, 227, 214, 0.05)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 6]);
-  for (let lo = Math.floor(geo.minLon / 5) * 5; lo <= Math.ceil(geo.maxLon / 5) * 5; lo += 5) {
-    const [px] = geo.project(geo.minLat, lo);
-    if (px > 20 && px < w - 20) {
-      ctx.beginPath();
-      ctx.moveTo(px, 120);
-      ctx.lineTo(px, 730);
-      ctx.stroke();
-    }
+  // Draw 7 bathymetric ripple contour lines extending into the Arabian Sea
+  for (let i = 7; i >= 1; i--) {
+    const offsetPx = i * 9;
+    ctx.strokeStyle = `rgba(95, 227, 214, ${0.42 - i * 0.045})`;
+    ctx.lineWidth = i === 1 ? 2.2 : 1.2;
+    ctx.beginPath();
+    projectedCoast.forEach(([px, py], idx) => {
+      // Offset perpendicular/westward into ocean
+      const ox = px - offsetPx * (1 + (idx % 2) * 0.1);
+      const oy = py;
+      if (idx === 0) ctx.moveTo(ox, oy);
+      else ctx.lineTo(ox, oy);
+    });
+    ctx.stroke();
   }
-  for (let la = Math.floor(geo.minLat / 5) * 5; la <= Math.ceil(geo.maxLat / 5) * 5; la += 5) {
-    const [, py] = geo.project(la, geo.minLon);
-    if (py > 120 && py < 730) {
-      ctx.beginPath();
-      ctx.moveTo(30, py);
-      ctx.lineTo(w - 30, py);
-      ctx.stroke();
+
+  // Primary Western Coastline Line
+  ctx.strokeStyle = '#5FE3D6';
+  ctx.lineWidth = 2.4;
+  ctx.shadowColor = '#5FE3D6';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  projectedCoast.forEach(([px, py], idx) => {
+    if (idx === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+  ctx.restore();
+
+  // 4. Landmass Area & Halftone Dot-Matrix Texture
+  ctx.save();
+  // Render high-density matrix dots over the land region
+  ctx.fillStyle = 'rgba(195, 215, 255, 0.15)';
+  const dotStep = 15;
+  for (let dy = 130; dy < 740; dy += dotStep) {
+    for (let dx = 60; dx < w - 50; dx += dotStep) {
+      // Check if coordinate is to the east of the coastline
+      let isLand = true;
+      for (let cIdx = 0; cIdx < projectedCoast.length - 1; cIdx++) {
+        const [, py1] = projectedCoast[cIdx];
+        const [, py2] = projectedCoast[cIdx + 1];
+        if (dy >= Math.min(py1, py2) && dy <= Math.max(py1, py2)) {
+          const [px1] = projectedCoast[cIdx];
+          const [px2] = projectedCoast[cIdx + 1];
+          const t = (dy - py1) / (py2 - py1 || 1);
+          const coastX = px1 + t * (px2 - px1);
+          if (dx < coastX - 6) {
+            isLand = false;
+            break;
+          }
+        }
+      }
+      if (isLand) {
+        ctx.beginPath();
+        ctx.arc(dx, dy, 1.25, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
   ctx.restore();
 
-  // 4. Render Real Geographic State Boundary Polygons
+  // 5. State Boundaries
   ctx.save();
   STATE_POLYGONS.forEach((poly) => {
     const coords = poly.coordinates;
@@ -832,72 +881,77 @@ export function renderJourneyCard(
       else ctx.lineTo(px, py);
     });
     ctx.closePath();
-
-    // Subtle Landmass Fill
-    ctx.fillStyle = 'rgba(20, 24, 68, 0.72)';
-    ctx.fill();
-
-    // State Border Line
-    ctx.strokeStyle = 'rgba(95, 227, 214, 0.32)';
-    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = 'rgba(181, 156, 242, 0.18)';
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([4, 6]);
     ctx.stroke();
   });
   ctx.restore();
 
-  // 5. Render State Names on Centroids (Clearly visible, dynamically framed)
+  // 6. State Names in Stylized Matrix Lettering
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = '800 15px "IBM Plex Mono", "Bricolage Grotesque", monospace';
-  ctx.fillStyle = 'rgba(181, 156, 242, 0.42)';
+  ctx.fillStyle = 'rgba(195, 205, 245, 0.24)';
+  ctx.letterSpacing = '4px';
 
   STATE_POLYGONS.forEach((poly) => {
     const [cLat, cLon] = poly.centroid;
     if (geo.isInside(cLat, cLon, 20)) {
       const [sx, sy] = geo.project(cLat, cLon);
-      ctx.shadowColor = 'rgba(7, 9, 32, 0.9)';
-      ctx.shadowBlur = 8;
-      ctx.fillText(poly.name, sx, sy);
+      const spacedName = poly.name.split('').join(' ');
+      ctx.fillText(spacedName, sx, sy);
     }
   });
+  ctx.letterSpacing = '0px';
   ctx.restore();
 
-  // 6. Geographic Major City Labels (Intermediate hubs within viewport)
+  // 7. Geographic Transit City Nodes & Labels
   ctx.save();
   REAL_CITIES.forEach((city) => {
-    const isOrigin = Math.abs(city.lat - fromCoord[0]) < 0.2 && Math.abs(city.lon - fromCoord[1]) < 0.2;
-    const isMumbai = Math.abs(city.lat - MUMBAI_COORDS[0]) < 0.2 && Math.abs(city.lon - MUMBAI_COORDS[1]) < 0.2;
+    const isOrigin = Math.abs(city.lat - fromCoord[0]) < 0.25 && Math.abs(city.lon - fromCoord[1]) < 0.25;
+    const isMumbai = Math.abs(city.lat - MUMBAI_COORDS[0]) < 0.25 && Math.abs(city.lon - MUMBAI_COORDS[1]) < 0.25;
 
     if (isOrigin || isMumbai) return;
 
-    if (geo.isInside(city.lat, city.lon, 10)) {
+    if (geo.isInside(city.lat, city.lon, 20)) {
       const [nx, ny] = geo.project(city.lat, city.lon);
 
-      ctx.fillStyle = 'rgba(95, 227, 214, 0.75)';
+      // Hollow Node Dot with dark inner
+      ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.arc(nx, ny, 3.5, 0, Math.PI * 2);
+      ctx.arc(nx, ny, 3.2, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-      ctx.font = '600 12px "IBM Plex Mono", monospace';
+      ctx.fillStyle = '#101338';
+      ctx.beginPath();
+      ctx.arc(nx, ny, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // City Label
+      ctx.fillStyle = 'rgba(235, 242, 255, 0.82)';
+      ctx.font = '600 13px "IBM Plex Mono", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 6;
       ctx.fillText(city.name, nx + 7, ny);
     }
   });
   ctx.restore();
 
-  // 7. Geodesic Flight Route (True Great-Circle Arc on Real Geography)
-  const routePoints = getGreatCirclePoints(fromCoord, MUMBAI_COORDS, 80);
+  // 8. Flight Trajectory (Glowing Geodesic Arc)
+  const routePoints = getGreatCirclePoints(fromCoord, MUMBAI_COORDS, 90);
   const projectedRoute = routePoints.map(([rLat, rLon]) => geo.project(rLat, rLon));
 
-  // Glowing Outer Route Arc
+  // Glowing Outer Trajectory
   ctx.save();
-  ctx.shadowColor = TEAL;
+  ctx.shadowColor = '#5FE3D6';
   ctx.shadowBlur = 18;
-  ctx.strokeStyle = 'rgba(95, 227, 214, 0.5)';
-  ctx.lineWidth = 4;
-  ctx.setLineDash([8, 8]);
+  ctx.strokeStyle = 'rgba(95, 227, 214, 0.6)';
+  ctx.lineWidth = 4.5;
+  ctx.setLineDash([7, 7]);
   ctx.beginPath();
   projectedRoute.forEach(([rx, ry], idx) => {
     if (idx === 0) ctx.moveTo(rx, ry);
@@ -906,9 +960,9 @@ export function renderJourneyCard(
   ctx.stroke();
   ctx.restore();
 
-  // Solid Inner Route Arc
-  ctx.strokeStyle = TEAL;
-  ctx.lineWidth = 2.5;
+  // Solid Inner Dashed Line
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2.2;
   ctx.setLineDash([6, 6]);
   ctx.beginPath();
   projectedRoute.forEach(([rx, ry], idx) => {
@@ -918,44 +972,51 @@ export function renderJourneyCard(
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // 8. Mumbai Destination Beacon (Radiating concentric rings at real coordinates)
+  // 9. Destination Beacon (Mumbai)
   const [mumX, mumY] = geo.project(MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
 
+  // Peach halo rings
   for (let r = 1; r <= 3; r++) {
-    ctx.strokeStyle = `rgba(246, 160, 103, ${0.7 - r * 0.18})`;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = `rgba(246, 160, 103, ${0.75 - r * 0.2})`;
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.arc(mumX, mumY, r * 16, 0, Math.PI * 2);
+    ctx.arc(mumX, mumY, r * 15, 0, Math.PI * 2);
     ctx.stroke();
   }
 
   ctx.fillStyle = PEACH;
   ctx.beginPath();
-  ctx.arc(mumX, mumY, 7, 0, Math.PI * 2);
+  ctx.arc(mumX, mumY, 7.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(mumX, mumY, 3.5, 0, Math.PI * 2);
   ctx.fill();
 
   // Mumbai Label Pill
   ctx.save();
   const mLabel = 'MUMBAI • DEVCON 8';
   ctx.font = '700 16px "Pixelify Sans", monospace';
-  const mlw = ctx.measureText(mLabel).width + 30;
-  roundRect(ctx, mumX - mlw / 2, mumY + 24, mlw, 36, 18);
+  const mlw = ctx.measureText(mLabel).width + 32;
+  roundRect(ctx, mumX - mlw / 2, mumY + 22, mlw, 36, 18);
   ctx.fillStyle = PEACH;
   ctx.fill();
   ctx.fillStyle = '#17131F';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(mLabel, mumX, mumY + 42);
+  ctx.fillText(mLabel, mumX, mumY + 40);
   ctx.restore();
 
-  // 9. Source City Origin Marker with Avatar Badge at real origin coordinates
+  // 10. Origin Beacon (Jabalpur / Selected City)
   const [srcX, srcY] = geo.project(fromCoord[0], fromCoord[1]);
 
+  // Glowing departure marker with avatar
   drawGlowingAvatar(
     ctx,
     srcX,
-    srcY - 20,
-    44,
+    srcY - 22,
+    48,
     options.avatarImage,
     options.handle,
     options.photoZoom,
@@ -976,7 +1037,7 @@ export function renderJourneyCard(
   ctx.fillText(cName, srcX, srcY + 52);
   ctx.restore();
 
-  // 10. Airplane Sprite along the Flight Path
+  // 11. Airplane Sprite along the Flight Path
   const progress = options.progress !== undefined ? options.progress : 0.72;
   const pIdx = Math.min(
     projectedRoute.length - 1,
