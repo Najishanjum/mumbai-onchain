@@ -1,7 +1,8 @@
 // High-Resolution Canvas Renderer for MumbaiOnChain ID Cards
 
-import { MUMBAI_COORDS, getGreatCirclePoints, calculateDistanceKm, MAP_NODES, STATES_OUTLINES } from './citiesData';
+import { MUMBAI_COORDS, getGreatCirclePoints, calculateDistanceKm } from './citiesData';
 import type { CityLocation } from './citiesData';
+import { STATE_POLYGONS, REAL_CITIES, createGeoProjection } from './geoMapData';
 
 export type CardTemplate = 'classic' | 'postcard' | 'journey';
 export type CardTheme = 'night' | 'marine' | 'gateway' | 'monsoon' | 'cyber';
@@ -770,7 +771,6 @@ export function renderJourneyCard(
   const fromCity = options.city || { name: 'Jabalpur', lat: 23.18, lon: 79.99, country: 'IN', isDomestic: true };
   const fromCoord: [number, number] = [fromCity.lat, fromCity.lon];
   const distanceKm = calculateDistanceKm(fromCoord[0], fromCoord[1], MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
-  const isDomestic = fromCity.country === 'IN';
 
   // 1. Base Layer: Navy Ocean & Ambient Glow
   const ocean = ctx.createRadialGradient(w / 2, h * 0.45, 100, w / 2, h / 2, 820);
@@ -779,81 +779,123 @@ export function renderJourneyCard(
   ctx.fillStyle = ocean;
   ctx.fillRect(0, 0, w, h);
 
-  // Map projection coordinates:
-  // Center roughly between origin and Mumbai
-  const lat0 = (fromCoord[0] + MUMBAI_COORDS[0]) / 2;
-  const lon0 = (fromCoord[1] + MUMBAI_COORDS[1]) / 2;
-  const cl = Math.cos((lat0 * Math.PI) / 180);
-
-  const spanX = Math.max(1.2, Math.abs(fromCoord[1] - MUMBAI_COORDS[1]) * cl);
-  const spanY = Math.max(1.2, Math.abs(fromCoord[0] - MUMBAI_COORDS[0]));
-
-  const scale = Math.max(22, Math.min(560 / spanX, 360 / spanY, isDomestic ? 110 : 45));
-  const cx0 = w / 2;
-  const cy0 = 460;
-
-  const project = (lat: number, lon: number): [number, number] => {
-    return [cx0 + (lon - lon0) * cl * scale, cy0 - (lat - lat0) * scale];
-  };
-
-  // 2. Latitude / Longitude Grids
-  ctx.strokeStyle = 'rgba(181,156,242,0.1)';
-  ctx.lineWidth = 1.5;
-  for (let lo = -180; lo <= 180; lo += 5) {
-    const [px] = project(lat0, lo);
-    if (px > 0 && px < w) {
-      ctx.beginPath();
-      ctx.moveTo(px, 0);
-      ctx.lineTo(px, h);
-      ctx.stroke();
-    }
-  }
-  for (let la = -80; la <= 80; la += 5) {
-    const [, py] = project(la, lon0);
-    if (py > 0 && py < h) {
-      ctx.beginPath();
-      ctx.moveTo(0, py);
-      ctx.lineTo(w, py);
-      ctx.stroke();
-    }
-  }
-
-  // 3. Indian State / Region Map Outlines
-  STATES_OUTLINES.forEach(([stateName, sLat, sLon]) => {
-    const [sx, sy] = project(sLat, sLon);
-    if (sx > 40 && sx < w - 40 && sy > 40 && sy < h - 40) {
-      ctx.fillStyle = 'rgba(181, 156, 242, 0.16)';
-      ctx.font = '700 16px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(stateName, sx, sy);
-    }
+  // 2. Real Dynamic Geographic Projection (fitBounds to Origin -> Mumbai)
+  const geo = createGeoProjection(fromCoord, MUMBAI_COORDS, {
+    x: 50,
+    y: 130,
+    w: w - 100,
+    h: 600
   });
 
-  // Map Waypoint Nodes
-  MAP_NODES.forEach(([nodeName, nLat, nLon]) => {
-    const [nx, ny] = project(nLat, nLon);
-    if (nx > 60 && nx < w - 60 && ny > 60 && ny < h - 60) {
-      ctx.fillStyle = 'rgba(95, 227, 214, 0.7)';
+  // 3. Latitude / Longitude Graticule Grid (Subtle)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(95, 227, 214, 0.05)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]);
+  for (let lo = Math.floor(geo.minLon / 5) * 5; lo <= Math.ceil(geo.maxLon / 5) * 5; lo += 5) {
+    const [px] = geo.project(geo.minLat, lo);
+    if (px > 20 && px < w - 20) {
+      ctx.beginPath();
+      ctx.moveTo(px, 120);
+      ctx.lineTo(px, 730);
+      ctx.stroke();
+    }
+  }
+  for (let la = Math.floor(geo.minLat / 5) * 5; la <= Math.ceil(geo.maxLat / 5) * 5; la += 5) {
+    const [, py] = geo.project(la, geo.minLon);
+    if (py > 120 && py < 730) {
+      ctx.beginPath();
+      ctx.moveTo(30, py);
+      ctx.lineTo(w - 30, py);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // 4. Render Real Geographic State Boundary Polygons
+  ctx.save();
+  STATE_POLYGONS.forEach((poly) => {
+    const coords = poly.coordinates;
+    let anyVisible = false;
+    for (const [lat, lon] of coords) {
+      if (geo.isInside(lat, lon, 100)) {
+        anyVisible = true;
+        break;
+      }
+    }
+    if (!anyVisible) return;
+
+    ctx.beginPath();
+    coords.forEach(([pLat, pLon], idx) => {
+      const [px, py] = geo.project(pLat, pLon);
+      if (idx === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.closePath();
+
+    // Subtle Landmass Fill
+    ctx.fillStyle = 'rgba(20, 24, 68, 0.72)';
+    ctx.fill();
+
+    // State Border Line
+    ctx.strokeStyle = 'rgba(95, 227, 214, 0.32)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // 5. Render State Names on Centroids (Clearly visible, dynamically framed)
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '800 15px "IBM Plex Mono", "Bricolage Grotesque", monospace';
+  ctx.fillStyle = 'rgba(181, 156, 242, 0.42)';
+
+  STATE_POLYGONS.forEach((poly) => {
+    const [cLat, cLon] = poly.centroid;
+    if (geo.isInside(cLat, cLon, 20)) {
+      const [sx, sy] = geo.project(cLat, cLon);
+      ctx.shadowColor = 'rgba(7, 9, 32, 0.9)';
+      ctx.shadowBlur = 8;
+      ctx.fillText(poly.name, sx, sy);
+    }
+  });
+  ctx.restore();
+
+  // 6. Geographic Major City Labels (Intermediate hubs within viewport)
+  ctx.save();
+  REAL_CITIES.forEach((city) => {
+    const isOrigin = Math.abs(city.lat - fromCoord[0]) < 0.2 && Math.abs(city.lon - fromCoord[1]) < 0.2;
+    const isMumbai = Math.abs(city.lat - MUMBAI_COORDS[0]) < 0.2 && Math.abs(city.lon - MUMBAI_COORDS[1]) < 0.2;
+
+    if (isOrigin || isMumbai) return;
+
+    if (geo.isInside(city.lat, city.lon, 10)) {
+      const [nx, ny] = geo.project(city.lat, city.lon);
+
+      ctx.fillStyle = 'rgba(95, 227, 214, 0.75)';
       ctx.beginPath();
       ctx.arc(nx, ny, 3.5, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-      ctx.font = '600 13px "IBM Plex Mono", monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+      ctx.font = '600 12px "IBM Plex Mono", monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(nodeName, nx + 7, ny + 4);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(city.name, nx + 7, ny);
     }
   });
+  ctx.restore();
 
-  // 4. Geodesic Flight Route
+  // 7. Geodesic Flight Route (True Great-Circle Arc on Real Geography)
   const routePoints = getGreatCirclePoints(fromCoord, MUMBAI_COORDS, 80);
-  const projectedRoute = routePoints.map(([rLat, rLon]) => project(rLat, rLon));
+  const projectedRoute = routePoints.map(([rLat, rLon]) => geo.project(rLat, rLon));
 
   // Glowing Outer Route Arc
   ctx.save();
   ctx.shadowColor = TEAL;
-  ctx.shadowBlur = 16;
-  ctx.strokeStyle = 'rgba(95, 227, 214, 0.45)';
+  ctx.shadowBlur = 18;
+  ctx.strokeStyle = 'rgba(95, 227, 214, 0.5)';
   ctx.lineWidth = 4;
   ctx.setLineDash([8, 8]);
   ctx.beginPath();
@@ -876,8 +918,8 @@ export function renderJourneyCard(
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // 5. Mumbai Destination Beacon (Radiating concentric rings)
-  const [mumX, mumY] = project(MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
+  // 8. Mumbai Destination Beacon (Radiating concentric rings at real coordinates)
+  const [mumX, mumY] = geo.project(MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
 
   for (let r = 1; r <= 3; r++) {
     ctx.strokeStyle = `rgba(246, 160, 103, ${0.7 - r * 0.18})`;
@@ -906,10 +948,9 @@ export function renderJourneyCard(
   ctx.fillText(mLabel, mumX, mumY + 42);
   ctx.restore();
 
-  // 6. Source City Origin Marker with Avatar Badge
-  const [srcX, srcY] = project(fromCoord[0], fromCoord[1]);
+  // 9. Source City Origin Marker with Avatar Badge at real origin coordinates
+  const [srcX, srcY] = geo.project(fromCoord[0], fromCoord[1]);
 
-  // Glowing departure marker with avatar
   drawGlowingAvatar(
     ctx,
     srcX,
@@ -935,7 +976,7 @@ export function renderJourneyCard(
   ctx.fillText(cName, srcX, srcY + 52);
   ctx.restore();
 
-  // 7. Airplane Sprite along the Flight Path
+  // 10. Airplane Sprite along the Flight Path
   const progress = options.progress !== undefined ? options.progress : 0.72;
   const pIdx = Math.min(
     projectedRoute.length - 1,
