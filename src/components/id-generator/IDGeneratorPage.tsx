@@ -36,13 +36,19 @@ export const IDGeneratorPage: React.FC = () => {
     setHandle,
     displayName,
     setDisplayName,
+    xUserId,
+    bio,
+    location,
     avatarImage,
     avatarUrl,
-    isLoading: isLoadingProfile
+    isLoading: isLoadingProfile,
+    isSuccess: isProfileSuccess,
+    errorMessage: profileErrorMessage,
+    fetchProfile
   } = useXProfile('vitalik');
 
-  const { getIdForHandle, registerGeneratedCard, totalIds, recentRecords } = useIdManager();
-  const idNumber = getIdForHandle(handle);
+  const { getIdForProfile, registerGeneratedCard, totalIds, recentRecords } = useIdManager();
+  const idNumber = getIdForProfile(xUserId, handle);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToastMessage(msg);
@@ -158,7 +164,7 @@ export const IDGeneratorPage: React.FC = () => {
   // 4. Post to X
   const handlePostX = () => {
     const idFormatted = idNumber ? String(idNumber).padStart(4, '0') : '0000';
-    const tweetText = `I just generated my official MumbaiOnChain ID! 👀\n\nMOC ID NO. ${idFormatted}\n"${tagline}"\n\nMake yours at https://mumbai-onchain.vercel.app/\n\n#mumbaionchain #devcon8 #ethereum`;
+    const tweetText = `I just generated my official MumbaiOnChain ID! 👀\n\nMOC ID NO. ${idFormatted}\n"${tagline}"\n\nMake yours at https://mumbaionchain.xyz\n\n#mumbaionchain #devcon8 #ethereum`;
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
     window.open(intentUrl, '_blank', 'noopener,noreferrer');
   };
@@ -232,8 +238,13 @@ export const IDGeneratorPage: React.FC = () => {
               setHandle={setHandle}
               displayName={displayName}
               setDisplayName={setDisplayName}
+              bio={bio}
+              location={location}
               avatarUrl={avatarUrl}
               isLoadingProfile={isLoadingProfile}
+              isProfileSuccess={isProfileSuccess}
+              profileErrorMessage={profileErrorMessage}
+              onFetchProfile={() => fetchProfile()}
               photoZoom={photoZoom}
               setPhotoZoom={setPhotoZoom}
               tagline={tagline}

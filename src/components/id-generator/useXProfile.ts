@@ -1,33 +1,36 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { cleanUsername, isValidXUsername, type NormalizedXProfile } from '../../lib/xProfileUtils';
 
-
-
-
-
-
-import { useState, useEffect, useRef } from 'react';
-
-export interface XProfile {
+export interface XProfileState {
   handle: string;
+  setHandle: (h: string) => void;
   displayName: string;
+  setDisplayName: (n: string) => void;
+  xUserId: string;
+  bio: string;
+  location: string;
+  profileUrl: string;
   avatarUrl: string;
   avatarImage: HTMLImageElement | null;
   isLoading: boolean;
-  isError: boolean;
+  isSuccess: boolean;
+  errorMessage: string | null;
+  fetchProfile: (overrideHandle?: string) => Promise<void>;
   fallbackInitials: string;
 }
 
-// Generate fallback geometric avatar on offscreen canvas
-export function generateFallbackAvatar(handle: string, size = 400): HTMLCanvasElement {
+// Generate high-resolution procedural geometric fallback avatar
+export function generateFallbackAvatar(seedText: string, size = 400): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
 
-  // Pseudo-random seed from handle
   let hash = 2166136261;
-  for (let i = 0; i < handle.length; i++) {
-    hash ^= handle.charCodeAt(i);
+  const clean = seedText.toLowerCase().replace(/[^a-z0-9]/g, '') || 'moc';
+  for (let i = 0; i < clean.length; i++) {
+    hash ^= clean.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
   const seed = hash >>> 0;
@@ -37,7 +40,7 @@ export function generateFallbackAvatar(handle: string, size = 400): HTMLCanvasEl
     return x - Math.floor(x);
   };
 
-  // Background gradient
+  // Cyberpunk dark gradient
   const grad = ctx.createLinearGradient(0, 0, size, size);
   grad.addColorStop(0, '#2D2875');
   grad.addColorStop(0.5, '#16194A');
@@ -45,10 +48,10 @@ export function generateFallbackAvatar(handle: string, size = 400): HTMLCanvasEl
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
 
-  // Geometric abstract shapes
-  const colors = ['rgba(95,227,214,0.4)', 'rgba(181,156,242,0.45)', 'rgba(246,160,103,0.35)'];
-  for (let i = 0; i < 7; i++) {
-    ctx.fillStyle = colors[i % 3];
+  // Decorative geometric polygons
+  const colors = ['rgba(95,227,214,0.35)', 'rgba(181,156,242,0.4)', 'rgba(246,160,103,0.3)'];
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = colors[i % colors.length];
     ctx.beginPath();
     for (let k = 0; k < 3; k++) {
       const px = rand(i * 3 + k) * size;
@@ -60,112 +63,181 @@ export function generateFallbackAvatar(handle: string, size = 400): HTMLCanvasEl
     ctx.fill();
   }
 
-  // Initial letter
-  const char = (handle.replace(/[^a-zA-Z0-9]/g, '')[0] || 'M').toUpperCase();
-  ctx.font = `800 ${size * 0.45}px "Bricolage Grotesque", "Inter", sans-serif`;
+  // Initials (e.g. Vitalik Buterin -> VB, or Vitalik -> V)
+  const words = seedText.trim().split(/\s+/).filter(Boolean);
+  let initials = 'M';
+  if (words.length >= 2) {
+    initials = (words[0][0] + words[1][0]).toUpperCase();
+  } else if (words.length === 1 && words[0].length > 0) {
+    initials = words[0].slice(0, Math.min(2, words[0].length)).toUpperCase();
+  }
+
+  ctx.font = `800 ${size * 0.38}px "Bricolage Grotesque", "Inter", sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#FFF8F0';
-  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
   ctx.shadowBlur = 16;
-  ctx.fillText(char, size / 2, size * 0.52);
+  ctx.fillText(initials, size / 2, size * 0.52);
 
   return canvas;
 }
 
-export function useXProfile(initialHandle = 'vitalik') {
+export function useXProfile(initialHandle = 'vitalik'): XProfileState {
   const [handle, setHandle] = useState(initialHandle);
   const [displayName, setDisplayName] = useState('');
-  const [avatarImage, setAvatarImage] = useState<HTMLImageElement | null>(null);
+  const [xUserId, setXUserId] = useState('');
+  const [bio, setBio] = useState('');
+  const [location, setLocation] = useState('');
+  const [profileUrl, setProfileUrl] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarImage, setAvatarImage] = useState<HTMLImageElement | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const cleanHandle = handle.replace(/^@/, '').trim();
-  const cacheRef = useRef<Map<string, { img: HTMLImageElement; url: string; name: string }>>(new Map());
+  const clientCacheRef = useRef<Map<string, NormalizedXProfile>>(new Map());
 
-  useEffect(() => {
-    if (!cleanHandle) {
-      setDisplayName('');
-      setAvatarImage(null);
-      setAvatarUrl('');
-      setIsLoading(false);
+  // Helper to load image onto an Image element
+  const loadImageElement = useCallback((url: string | null, fallbackSeed: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve) => {
+      if (!url) {
+        const canvas = generateFallbackAvatar(fallbackSeed, 400);
+        const fallbackImg = new Image();
+        fallbackImg.src = canvas.toDataURL();
+        fallbackImg.onload = () => resolve(fallbackImg);
+        fallbackImg.onerror = () => resolve(fallbackImg);
+        return;
+      }
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        // In case CORS or image loading fails, render fallback avatar
+        const canvas = generateFallbackAvatar(fallbackSeed, 400);
+        const fallbackImg = new Image();
+        fallbackImg.src = canvas.toDataURL();
+        fallbackImg.onload = () => resolve(fallbackImg);
+        fallbackImg.onerror = () => resolve(fallbackImg);
+      };
+      img.src = url;
+    });
+  }, []);
+
+  const fetchProfile = useCallback(async (overrideHandle?: string) => {
+    const raw = overrideHandle !== undefined ? overrideHandle : handle;
+    const clean = cleanUsername(raw);
+
+    if (!clean) {
+      setErrorMessage('Please enter an X username.');
+      setIsSuccess(false);
       return;
     }
 
-    // Check memory cache
-    if (cacheRef.current.has(cleanHandle.toLowerCase())) {
-      const cached = cacheRef.current.get(cleanHandle.toLowerCase())!;
-      setAvatarImage(cached.img);
-      setAvatarUrl(cached.url);
-      setDisplayName(cached.name);
-      setIsLoading(false);
-      setIsError(false);
+    if (!isValidXUsername(clean)) {
+      setErrorMessage('Please enter a valid X username (1-15 letters, numbers, or underscores).');
+      setIsSuccess(false);
       return;
     }
 
     setIsLoading(true);
-    setIsError(false);
+    setErrorMessage(null);
 
-    // Humanize handle for fallback display name
-    const defaultDisplayName = cleanHandle
-      .replace(/[_-]/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const cacheKey = clean.toLowerCase();
 
-    // Try reliable unavatar / avatar endpoints
-    const url = `https://unavatar.io/twitter/${encodeURIComponent(cleanHandle)}?fallback=https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(cleanHandle)}`;
+    // Check client-side memory cache
+    if (clientCacheRef.current.has(cacheKey)) {
+      const cached = clientCacheRef.current.get(cacheKey)!;
+      setDisplayName(cached.name);
+      setXUserId(cached.id);
+      setBio(cached.bio);
+      setLocation(cached.location);
+      setProfileUrl(cached.url);
+      setAvatarUrl(cached.avatar || '');
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-
-    let isMounted = true;
-
-    img.onload = () => {
-      if (!isMounted) return;
-      cacheRef.current.set(cleanHandle.toLowerCase(), {
-        img,
-        url,
-        name: defaultDisplayName
-      });
+      const img = await loadImageElement(cached.avatar, cached.name || cached.username);
       setAvatarImage(img);
-      setAvatarUrl(url);
-      setDisplayName(defaultDisplayName);
       setIsLoading(false);
-      setIsError(false);
-    };
+      setIsSuccess(true);
+      return;
+    }
 
-    img.onerror = () => {
-      if (!isMounted) return;
-      // Graceful fallback: generate procedural image element from canvas
-      const fallbackCanvas = generateFallbackAvatar(cleanHandle, 400);
-      const fallbackImg = new Image();
-      fallbackImg.src = fallbackCanvas.toDataURL();
-      fallbackImg.onload = () => {
-        if (!isMounted) return;
+    try {
+      const res = await fetch(`/api/x/profile?username=${encodeURIComponent(clean)}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.success || !data.profile) {
+        const errorText = data?.error || 'X profile not found.';
+        setErrorMessage(errorText);
+        setIsSuccess(false);
+
+        // Fallback for visual display so card continues rendering
+        const humanName = clean.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        const fallbackImg = await loadImageElement(null, humanName);
         setAvatarImage(fallbackImg);
-        setAvatarUrl(fallbackImg.src);
-        setDisplayName(defaultDisplayName);
+        setDisplayName(humanName);
+        setXUserId(`fallback_${clean}`);
         setIsLoading(false);
-        setIsError(false);
-      };
-    };
+        return;
+      }
 
-    img.src = url;
+      const p: NormalizedXProfile = data.profile;
+      clientCacheRef.current.set(cacheKey, p);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [cleanHandle]);
+      setDisplayName(p.name);
+      setXUserId(p.id);
+      setBio(p.bio);
+      setLocation(p.location);
+      setProfileUrl(p.url);
+      setAvatarUrl(p.avatar || '');
+
+      const img = await loadImageElement(p.avatar, p.name || p.username);
+      setAvatarImage(img);
+      setIsLoading(false);
+      setIsSuccess(true);
+      setErrorMessage(null);
+    } catch (err: any) {
+      setErrorMessage('Unable to connect to profile lookup right now. Please try again.');
+      setIsSuccess(false);
+
+      // Fallback
+      const humanName = clean.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      const fallbackImg = await loadImageElement(null, humanName);
+      setAvatarImage(fallbackImg);
+      setDisplayName(humanName);
+      setXUserId(`fallback_${clean}`);
+      setIsLoading(false);
+    }
+  }, [handle, loadImageElement]);
+
+  // Initial fetch on mount for default handle
+  const hasMountedRef = useRef(false);
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      fetchProfile(initialHandle);
+    }
+  }, [initialHandle, fetchProfile]);
+
+  const initials = (displayName || handle).trim().slice(0, 2).toUpperCase() || 'M';
 
   return {
-    handle: cleanHandle,
+    handle: cleanUsername(handle),
     setHandle,
     displayName,
     setDisplayName,
-    avatarImage,
+    xUserId,
+    bio,
+    location,
+    profileUrl,
     avatarUrl,
+    avatarImage,
     isLoading,
-    isError,
-    fallbackInitials: (cleanHandle[0] || 'M').toUpperCase()
+    isSuccess,
+    errorMessage,
+    fetchProfile,
+    fallbackInitials: initials
   };
 }

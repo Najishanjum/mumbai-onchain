@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { calculateMocId, cleanUsername } from '../../lib/xProfileUtils';
 
-const STORAGE_KEY = 'mumbai_onchain_id_registry_v1';
+const STORAGE_USER_ID_KEY = 'mumbai_onchain_moc_user_id_registry_v2';
+const STORAGE_HANDLE_KEY = 'mumbai_onchain_id_registry_v1';
 const BASE_COUNT = 1248;
 
 export interface GeneratedIdRecord {
@@ -19,7 +21,7 @@ const INITIAL_COMMUNITY_IDS: GeneratedIdRecord[] = [
     id: 42,
     handle: 'vitalik',
     displayName: 'Vitalik Buterin',
-    avatarUrl: 'https://unavatar.io/twitter/vitalik',
+    avatarUrl: 'https://pbs.twimg.com/profile_images/1799793144837586944/0g8z61P-_400x400.jpg',
     template: 'classic',
     tagline: "I'm building onchain in Mumbai",
     timestamp: Date.now() - 1000 * 60 * 4
@@ -28,7 +30,7 @@ const INITIAL_COMMUNITY_IDS: GeneratedIdRecord[] = [
     id: 88,
     handle: 'sandeepnailwal',
     displayName: 'Sandeep Nailwal',
-    avatarUrl: 'https://unavatar.io/twitter/sandeepnailwal',
+    avatarUrl: 'https://pbs.twimg.com/profile_images/1684534720177340416/8h4u4o7g_400x400.jpg',
     template: 'journey',
     city: 'Delhi NCR',
     tagline: 'Building the future from Mumbai',
@@ -38,7 +40,7 @@ const INITIAL_COMMUNITY_IDS: GeneratedIdRecord[] = [
     id: 104,
     handle: 'aeyakovenko',
     displayName: 'Anatoly Yakovenko',
-    avatarUrl: 'https://unavatar.io/twitter/aeyakovenko',
+    avatarUrl: 'https://pbs.twimg.com/profile_images/1715428987116490752/0WqH0v_4_400x400.jpg',
     template: 'postcard',
     tagline: 'Onchain Mumbai',
     timestamp: Date.now() - 1000 * 60 * 45
@@ -47,7 +49,7 @@ const INITIAL_COMMUNITY_IDS: GeneratedIdRecord[] = [
     id: 219,
     handle: 'dabit3',
     displayName: 'Nader Dabit',
-    avatarUrl: 'https://unavatar.io/twitter/dabit3',
+    avatarUrl: 'https://pbs.twimg.com/profile_images/1758620247654060032/KzB3OQxG_400x400.jpg',
     template: 'classic',
     tagline: 'Connecting Mumbai onchain',
     timestamp: Date.now() - 1000 * 60 * 110
@@ -56,7 +58,7 @@ const INITIAL_COMMUNITY_IDS: GeneratedIdRecord[] = [
     id: 312,
     handle: 'kashdhanda',
     displayName: 'Kash Dhanda',
-    avatarUrl: 'https://unavatar.io/twitter/kashdhanda',
+    avatarUrl: 'https://pbs.twimg.com/profile_images/1749871407355449344/vWzB0n0j_400x400.jpg',
     template: 'journey',
     city: 'San Francisco',
     tagline: 'Shipping from Mumbai',
@@ -66,28 +68,32 @@ const INITIAL_COMMUNITY_IDS: GeneratedIdRecord[] = [
     id: 405,
     handle: 'rahul_eth',
     displayName: 'Rahul Sharma',
-    avatarUrl: 'https://unavatar.io/twitter/rahul_eth',
+    avatarUrl: '',
     template: 'postcard',
     tagline: 'Building at MumbaiOnChain',
     timestamp: Date.now() - 1000 * 60 * 240
   }
 ];
 
-export function hashHandleToId(handle: string): number {
-  if (!handle) return 1;
-  const clean = handle.toLowerCase().replace(/[^a-z0-9]/g, '');
-  let hash = 0;
-  for (let i = 0; i < clean.length; i++) {
-    hash = (hash << 5) - hash + clean.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash % 9000) + 100;
-}
-
 export function useIdManager() {
-  const [registry, setRegistry] = useState<Record<string, number>>(() => {
+  // Map of X User ID -> MOC ID
+  const [userIdRegistry, setUserIdRegistry] = useState<Record<string, number>>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_USER_ID_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return {
+      '783214': 42, // Vitalik's X User ID
+      '1102914175323537408': 88 // Sandeep
+    };
+  });
+
+  // Map of handle -> MOC ID (legacy / fallback)
+  const [handleRegistry, setHandleRegistry] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_HANDLE_KEY);
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error(e);
@@ -112,26 +118,62 @@ export function useIdManager() {
     return INITIAL_COMMUNITY_IDS;
   });
 
-  const totalIds = BASE_COUNT + Object.keys(registry).length - 6;
+  const totalIds = BASE_COUNT + Object.keys(handleRegistry).length - 6;
 
-  // Retrieve existing ID or create permanent deterministic ID for user
-  const getIdForHandle = (handle: string): number => {
-    const key = handle.toLowerCase().replace(/^@/, '').trim();
-    if (!key) return 0;
+  // Retrieve existing ID or create permanent deterministic ID for user (X User ID primary, handle fallback)
+  const getIdForProfile = (xUserId?: string, handle?: string): number => {
+    const cleanHandle = cleanUsername(handle || '').toLowerCase();
+    const cleanUserId = (xUserId || '').trim();
 
-    if (registry[key]) {
-      return registry[key];
+    // 1. Check by stable X User ID first
+    if (cleanUserId && userIdRegistry[cleanUserId]) {
+      return userIdRegistry[cleanUserId];
     }
 
-    const assigned = hashHandleToId(key);
-    const updated = { ...registry, [key]: assigned };
-    setRegistry(updated);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
+    // 2. Check by handle
+    if (cleanHandle && handleRegistry[cleanHandle]) {
+      const assigned = handleRegistry[cleanHandle];
+      if (cleanUserId && !userIdRegistry[cleanUserId]) {
+        const updatedUserIds = { ...userIdRegistry, [cleanUserId]: assigned };
+        setUserIdRegistry(updatedUserIds);
+        try {
+          localStorage.setItem(STORAGE_USER_ID_KEY, JSON.stringify(updatedUserIds));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return assigned;
     }
+
+    // 3. Create permanent deterministic MOC ID
+    const seed = cleanUserId || cleanHandle || 'moc_user';
+    const assigned = calculateMocId(seed);
+
+    if (cleanUserId) {
+      const updatedUserIds = { ...userIdRegistry, [cleanUserId]: assigned };
+      setUserIdRegistry(updatedUserIds);
+      try {
+        localStorage.setItem(STORAGE_USER_ID_KEY, JSON.stringify(updatedUserIds));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (cleanHandle) {
+      const updatedHandles = { ...handleRegistry, [cleanHandle]: assigned };
+      setHandleRegistry(updatedHandles);
+      try {
+        localStorage.setItem(STORAGE_HANDLE_KEY, JSON.stringify(updatedHandles));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     return assigned;
+  };
+
+  const getIdForHandle = (handle: string): number => {
+    return getIdForProfile(undefined, handle);
   };
 
   const registerGeneratedCard = (record: GeneratedIdRecord) => {
@@ -145,6 +187,7 @@ export function useIdManager() {
   };
 
   return {
+    getIdForProfile,
     getIdForHandle,
     registerGeneratedCard,
     totalIds,

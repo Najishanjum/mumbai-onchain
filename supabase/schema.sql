@@ -139,3 +139,30 @@ EXCEPTION WHEN OTHERS THEN
   NULL;
 END $$;
 
+-- 6. Create MumbaiOnChain ID Profiles Table (Permanent MOC ID Registry)
+CREATE TABLE IF NOT EXISTS mumbai_onchain_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  x_user_id TEXT NOT NULL UNIQUE,
+  x_username TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  avatar_url TEXT,
+  bio TEXT DEFAULT '',
+  location TEXT DEFAULT '',
+  moc_id INTEGER NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_moc_profiles_x_user_id ON mumbai_onchain_profiles(x_user_id);
+CREATE INDEX IF NOT EXISTS idx_moc_profiles_x_username ON mumbai_onchain_profiles(x_username);
+CREATE INDEX IF NOT EXISTS idx_moc_profiles_moc_id ON mumbai_onchain_profiles(moc_id);
+
+ALTER TABLE mumbai_onchain_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "MOC ID profiles are viewable by everyone" 
+  ON mumbai_onchain_profiles FOR SELECT USING (true);
+
+CREATE POLICY "Anyone can register or update their MOC ID profile" 
+  ON mumbai_onchain_profiles FOR INSERT WITH CHECK (true);
+
+
