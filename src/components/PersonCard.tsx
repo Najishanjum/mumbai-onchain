@@ -1,7 +1,7 @@
 import React from 'react';
 import type { PersonProfile, ConnectionStatus } from '../types/person';
 import { PersonAvatar } from './PersonAvatar';
-import { MapPin, ArrowUpRight, UserCheck, Clock, Plus, Edit3 } from 'lucide-react';
+import { MapPin, ArrowUpRight, UserCheck, Clock, Plus, Edit3, QrCode } from 'lucide-react';
 
 interface PersonCardProps {
   person: PersonProfile;
@@ -11,6 +11,7 @@ interface PersonCardProps {
   onViewProfile: (personId: string) => void;
   onCycleConnection: (personId: string) => void;
   onEditProfile: () => void;
+  onOpenQr?: (person: PersonProfile) => void;
   getEventTitleById: (id: string) => string;
 }
 
@@ -22,6 +23,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({
   onViewProfile,
   onCycleConnection,
   onEditProfile,
+  onOpenQr,
   getEventTitleById,
 }) => {
   const displayNumber = String(index + 1).padStart(2, '0');
@@ -71,6 +73,20 @@ export const PersonCard: React.FC<PersonCardProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
+            {onOpenQr && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenQr(person);
+                }}
+                className="p-1 px-1.5 border border-[#000000] bg-[#FAFAFA] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] transition-colors flex items-center gap-1 font-mono text-[10px] font-bold"
+                title={`Open QR Pass for ${person.name}`}
+              >
+                <QrCode className="w-3 h-3" />
+                <span>QR PASS</span>
+              </button>
+            )}
             <span
               className={`font-mono text-[10px] font-bold uppercase px-2 py-0.5 border ${badgeStyle}`}
             >
@@ -109,7 +125,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({
             </div>
 
             {/* Social handles snippet */}
-            <div className="flex items-center gap-2 mt-1.5 font-mono text-[11px] text-[#666666]">
+            <div className="flex items-center flex-wrap gap-2 mt-1.5 font-mono text-[11px] text-[#666666]">
               {cleanXHandle && (
                 <a
                   href={`https://x.com/${cleanXHandle}`}
@@ -120,6 +136,18 @@ export const PersonCard: React.FC<PersonCardProps> = ({
                   title="X Profile"
                 >
                   <span className="font-bold">𝕏</span> @{cleanXHandle}
+                </a>
+              )}
+              {person.telegramHandle && (
+                <a
+                  href={`https://t.me/${person.telegramHandle.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="hover:text-[#229ED9] hover:underline flex items-center gap-0.5"
+                  title="Telegram"
+                >
+                  <span className="font-bold text-[#229ED9]">TG:</span> @{person.telegramHandle.replace('@', '')}
                 </a>
               )}
             </div>
@@ -166,16 +194,30 @@ export const PersonCard: React.FC<PersonCardProps> = ({
           <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
         </button>
 
-        {/* Connect Action Button */}
-        {isCurrentUser ? (
-          <button
-            onClick={onEditProfile}
-            className="inline-flex items-center gap-1 bg-[#F5F5F5] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] border border-[#000000] px-3 py-1 font-mono text-xs font-bold transition-colors"
-          >
-            <Edit3 className="w-3 h-3" />
-            <span>EDIT</span>
-          </button>
-        ) : (
+        {/* Right side: QR Pass & Connect Button */}
+        <div className="flex items-center gap-1.5">
+          {onOpenQr && (
+            <button
+              type="button"
+              onClick={() => onOpenQr(person)}
+              className="inline-flex items-center gap-1 bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] border border-[#000000] px-2.5 py-1 font-mono text-xs font-bold transition-colors shadow-sm"
+              title="Open Onchain Connect QR Scanner Pass"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>QR PASS</span>
+            </button>
+          )}
+
+          {/* Connect Action Button */}
+          {isCurrentUser ? (
+            <button
+              onClick={onEditProfile}
+              className="inline-flex items-center gap-1 bg-[#F5F5F5] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] border border-[#000000] px-3 py-1 font-mono text-xs font-bold transition-colors"
+            >
+              <Edit3 className="w-3 h-3" />
+              <span>EDIT</span>
+            </button>
+          ) : (
           <button
             onClick={() => onCycleConnection(person.id)}
             title="Click to toggle status: CONNECT → REQUESTED → CONNECTED"
@@ -205,6 +247,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({
             )}
           </button>
         )}
+        </div>
       </div>
     </div>
   );

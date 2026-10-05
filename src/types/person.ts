@@ -18,6 +18,10 @@ export interface PersonProfile {
   xHandle?: string;
   githubUrl?: string;
   linkedinUrl?: string;
+  telegramHandle?: string;
+  farcasterHandle?: string;
+  websiteUrl?: string;
+  walletAddress?: string;
   attendingEvents: string[]; // event IDs matching EventItem.id
   isCurrentUser?: boolean;
   createdAt: string;

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import type { EventItem } from '../types/event';
-import type { PersonCategory } from '../types/person';
+import type { PersonCategory, PersonProfile } from '../types/person';
 import { PersonCard } from './PersonCard';
 import { PersonAvatar } from './PersonAvatar';
+import { ProfileQrModal } from './ProfileQrModal';
+import { ProfileScannerModal } from './ProfileScannerModal';
 import {
   Search,
   UserPlus,
@@ -14,6 +16,8 @@ import {
   Sparkles,
   AlertCircle,
   RefreshCw,
+  Camera,
+  QrCode,
 } from 'lucide-react';
 
 interface PeopleDirectoryProps {
@@ -35,6 +39,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
   events,
 }) => {
   const {
+    people,
     myProfile,
     filters,
     filteredPeople,
@@ -47,6 +52,9 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
     cycleConnection,
     getConnectionStatus,
   } = usePeopleStore();
+
+  const [qrTargetPerson, setQrTargetPerson] = useState<PersonProfile | null>(null);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState<boolean>(false);
 
   // Helper to resolve event name
   const getEventTitleById = (id: string): string => {
@@ -74,38 +82,62 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
               PEOPLE & CONNECT
             </h1>
             <p className="font-mono text-xs text-[#555555] max-w-2xl">
-              Connect with developers, founders, volunteers, and researchers across Devcon 8, India Blockchain Week, and side events. Create your profile to share it with everyone worldwide.
+              Connect with developers, founders, volunteers, and researchers across Devcon 8, India Blockchain Week, and side events. Scan QR passes to immediately connect and explore social profiles.
             </p>
           </div>
 
-          {/* Create or Edit Profile Action Button */}
-          <div className="shrink-0 flex items-center gap-3">
+          {/* Action Buttons: Camera Scanner + Create/Edit/QR Pass */}
+          <div className="shrink-0 flex items-center flex-wrap gap-2.5">
+            {/* Open Camera Scanner Button */}
+            <button
+              type="button"
+              onClick={() => setIsScannerModalOpen(true)}
+              className="inline-flex items-center gap-2 bg-[#22C55E] hover:bg-[#16a34a] text-[#000000] hover:text-[#FFFFFF] border-2 border-[#000000] px-4 py-3 font-heading font-black text-xs sm:text-sm tracking-wide transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] group"
+              title="Open camera scanner to scan any attendee's QR Pass"
+            >
+              <Camera className="w-4 h-4 text-[#000000] group-hover:text-[#FFFFFF] animate-pulse" />
+              <span>SCAN QR PROFILE</span>
+            </button>
+
             {myProfile ? (
-              <div
-                onClick={() => setIsEditModalOpen(true)}
-                className="cursor-pointer border-2 border-[#000000] p-2 bg-[#FAFAFA] hover:bg-[#F0F0F0] flex items-center gap-3 transition-colors shadow-sm"
-                title="Edit your profile"
-              >
-                <PersonAvatar
-                  name={myProfile.name}
-                  avatarUrl={myProfile.avatar}
-                  size="sm"
-                />
-                <div className="font-mono text-xs pr-2">
-                  <div className="font-black text-[#000000] truncate max-w-[120px] sm:max-w-[150px]">
-                    {myProfile.name}
-                  </div>
-                  <div className="text-[10px] text-[#666666] flex items-center gap-1">
-                    <span>{myProfile.category}</span>
-                    <span>•</span>
-                    <span className="font-bold underline">EDIT</span>
+              <div className="flex items-center gap-2">
+                {/* My QR Pass Quick Button */}
+                <button
+                  type="button"
+                  onClick={() => setQrTargetPerson(myProfile)}
+                  className="inline-flex items-center gap-1.5 bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] border-2 border-[#000000] px-3.5 py-3 font-mono text-xs font-black transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:scale-95"
+                  title="Show your QR Connect Pass"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>MY QR PASS</span>
+                </button>
+
+                <div
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="cursor-pointer border-2 border-[#000000] p-2 bg-[#FAFAFA] hover:bg-[#F0F0F0] flex items-center gap-3 transition-colors shadow-sm"
+                  title="Edit your profile"
+                >
+                  <PersonAvatar
+                    name={myProfile.name}
+                    avatarUrl={myProfile.avatar}
+                    size="sm"
+                  />
+                  <div className="font-mono text-xs pr-2">
+                    <div className="font-black text-[#000000] truncate max-w-[100px] sm:max-w-[130px]">
+                      {myProfile.name}
+                    </div>
+                    <div className="text-[10px] text-[#666666] flex items-center gap-1">
+                      <span>{myProfile.category}</span>
+                      <span>•</span>
+                      <span className="font-bold underline">EDIT</span>
+                    </div>
                   </div>
                 </div>
               </div>
             ) : (
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] px-5 py-3 font-heading font-black text-xs sm:text-sm tracking-wide transition-all active:scale-95 shadow-md group"
+                className="inline-flex items-center gap-2 bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] px-5 py-3 font-heading font-black text-xs sm:text-sm tracking-wide transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] group"
               >
                 <UserPlus className="w-4 h-4 text-[#FFFFFF]" />
                 <span>CREATE YOUR PROFILE</span>
@@ -341,11 +373,32 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
               onViewProfile={(id) => setSelectedPersonId(id)}
               onCycleConnection={cycleConnection}
               onEditProfile={() => setIsEditModalOpen(true)}
+              onOpenQr={(p) => setQrTargetPerson(p)}
               getEventTitleById={getEventTitleById}
             />
           ))}
         </div>
       )}
+
+      {/* Profile QR Connect Pass Modal */}
+      <ProfileQrModal
+        person={qrTargetPerson}
+        isOpen={Boolean(qrTargetPerson)}
+        onClose={() => setQrTargetPerson(null)}
+        connectionStatus={qrTargetPerson ? getConnectionStatus(qrTargetPerson.id) : 'NOT_CONNECTED'}
+        onCycleConnection={cycleConnection}
+        isCurrentUser={Boolean(qrTargetPerson && (qrTargetPerson.isCurrentUser || (myProfile && myProfile.id === qrTargetPerson.id)))}
+      />
+
+      {/* Live Camera & Image Profile QR Scanner Modal */}
+      <ProfileScannerModal
+        isOpen={isScannerModalOpen}
+        onClose={() => setIsScannerModalOpen(false)}
+        people={people}
+        onSelectPerson={(id) => setSelectedPersonId(id)}
+        onCycleConnection={cycleConnection}
+        getConnectionStatus={getConnectionStatus}
+      />
 
     </div>
   );

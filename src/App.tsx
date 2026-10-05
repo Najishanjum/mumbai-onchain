@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAppStore } from './lib/store';
 import { usePeopleStore } from './lib/usePeopleStore';
 import { Navbar } from './components/Navbar';
@@ -52,6 +53,26 @@ export function App() {
     cycleConnection,
     getConnectionStatus,
   } = usePeopleStore();
+
+  // Handle URL deep-linking for scanned QR codes and shared profile links
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const personId = params.get('person');
+      const tabParam = params.get('tab');
+
+      if (personId) {
+        setSelectedPersonId(personId);
+        setActiveTab('people');
+      } else if (tabParam) {
+        if (['home', 'timeline', 'events', 'people', 'map', 'mymumbai', 'id-generator'].includes(tabParam)) {
+          setActiveTab(tabParam as any);
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing URL parameters:', e);
+    }
+  }, [setSelectedPersonId, setActiveTab]);
 
   // Devcon 8 Primary Event item
   const primaryDevconEvent = events.find(e => e.isPrimary || e.id === 'devcon-8-india') || events[0];

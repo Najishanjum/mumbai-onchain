@@ -47,6 +47,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [xHandle, setXHandle] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [telegramHandle, setTelegramHandle] = useState('');
+  const [farcasterHandle, setFarcasterHandle] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
   const [attendingEvents, setAttendingEvents] = useState<string[]>(['devcon-8-india']);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +66,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setXHandle(currentProfile.xHandle || '');
       setGithubUrl(currentProfile.githubUrl || '');
       setLinkedinUrl(currentProfile.linkedinUrl || '');
+      setTelegramHandle(currentProfile.telegramHandle || '');
+      setFarcasterHandle(currentProfile.farcasterHandle || '');
+      setWebsiteUrl(currentProfile.websiteUrl || '');
       setAttendingEvents(currentProfile.attendingEvents || ['devcon-8-india']);
     } else {
       setName('');
@@ -73,6 +79,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setXHandle('');
       setGithubUrl('');
       setLinkedinUrl('');
+      setTelegramHandle('');
+      setFarcasterHandle('');
+      setWebsiteUrl('');
       setAttendingEvents(['devcon-8-india']);
     }
     setError(null);
@@ -136,6 +145,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       xHandle: xHandle.trim(),
       githubUrl: githubUrl.trim(),
       linkedinUrl: linkedinUrl.trim(),
+      telegramHandle: telegramHandle.trim(),
+      farcasterHandle: farcasterHandle.trim(),
+      websiteUrl: websiteUrl.trim(),
       attendingEvents,
     });
   };
@@ -364,6 +376,39 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   value={linkedinUrl}
                   onChange={(e) => setLinkedinUrl(e.target.value)}
                   placeholder="linkedin.com/in/..."
+                  className="w-full p-2 bg-[#FAFAFA] border border-[#000000] text-xs focus:outline-none focus:bg-[#FFFFFF]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[11px] text-[#666666] font-bold">TELEGRAM HANDLE</span>
+                <input
+                  type="text"
+                  value={telegramHandle}
+                  onChange={(e) => setTelegramHandle(e.target.value)}
+                  placeholder="@telegram_handle"
+                  className="w-full p-2 bg-[#FAFAFA] border border-[#000000] text-xs focus:outline-none focus:bg-[#FFFFFF]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[11px] text-[#666666] font-bold">FARCASTER / WARPCAST</span>
+                <input
+                  type="text"
+                  value={farcasterHandle}
+                  onChange={(e) => setFarcasterHandle(e.target.value)}
+                  placeholder="@fc_handle"
+                  className="w-full p-2 bg-[#FAFAFA] border border-[#000000] text-xs focus:outline-none focus:bg-[#FFFFFF]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[11px] text-[#666666] font-bold">PORTFOLIO / WEBSITE</span>
+                <input
+                  type="text"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://..."
                   className="w-full p-2 bg-[#FAFAFA] border border-[#000000] text-xs focus:outline-none focus:bg-[#FFFFFF]"
                 />
               </div>
