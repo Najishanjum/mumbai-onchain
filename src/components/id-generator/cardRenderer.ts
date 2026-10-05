@@ -2,7 +2,14 @@
 
 import { MUMBAI_COORDS, getGreatCirclePoints, calculateDistanceKm } from './citiesData';
 import type { CityLocation } from './citiesData';
-import { STATE_POLYGONS, REAL_CITIES, WEST_COASTLINE_COORDS, createGeoProjection } from './geoMapData';
+import {
+  STATE_POLYGONS,
+  REAL_CITIES,
+  WEST_COASTLINE_COORDS,
+  WORLD_CONTINENT_POLYGONS,
+  INDIA_OUTLINE_COORDS,
+  createGeoProjection
+} from './geoMapData';
 
 export type CardTemplate = 'classic' | 'postcard' | 'journey';
 export type CardTheme = 'night' | 'marine' | 'gateway' | 'monsoon' | 'cyber';
@@ -780,176 +787,271 @@ export function renderJourneyCard(
   ctx.fillStyle = ocean;
   ctx.fillRect(0, 0, w, h);
 
-  // Spotlight Aura behind Brand Header (Top Left)
-  const spotlight = ctx.createRadialGradient(200, 160, 20, 200, 160, 280);
-  spotlight.addColorStop(0, 'rgba(181, 156, 242, 0.22)');
-  spotlight.addColorStop(0.5, 'rgba(95, 227, 214, 0.12)');
-  spotlight.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = spotlight;
-  ctx.fillRect(0, 0, w, h);
-
   // 2. Real Dynamic Geographic Projection
   const geo = createGeoProjection(fromCoord, MUMBAI_COORDS, {
     x: 40,
-    y: 120,
+    y: 110,
     w: w - 80,
-    h: 620
+    h: 630
   });
 
-  // 3. Coastline & Topographic Bathymetric Contour Waves
-  const projectedCoast = WEST_COASTLINE_COORDS.map(([cLat, cLon]) => geo.project(cLat, cLon));
+  if (geo.isWorldView) {
+    // ========================================================================
+    // WORLD MAP VIEW (Global / International: USA, Europe, Asia, Americas)
+    // ========================================================================
 
-  ctx.save();
-  // Draw 7 bathymetric ripple contour lines extending into the Arabian Sea
-  for (let i = 7; i >= 1; i--) {
-    const offsetPx = i * 9;
-    ctx.strokeStyle = `rgba(95, 227, 214, ${0.42 - i * 0.045})`;
-    ctx.lineWidth = i === 1 ? 2.2 : 1.2;
-    ctx.beginPath();
-    projectedCoast.forEach(([px, py], idx) => {
-      // Offset perpendicular/westward into ocean
-      const ox = px - offsetPx * (1 + (idx % 2) * 0.1);
-      const oy = py;
-      if (idx === 0) ctx.moveTo(ox, oy);
-      else ctx.lineTo(ox, oy);
+    // 2a. Bathymetric Ripple Contours across Oceans
+    ctx.save();
+    WORLD_CONTINENT_POLYGONS.forEach((poly) => {
+      const projCoords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
+      for (let r = 4; r >= 1; r--) {
+        const offset = r * 14;
+        ctx.strokeStyle = `rgba(95, 227, 214, ${0.18 - r * 0.035})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        projCoords.forEach(([px, py], idx) => {
+          // Slight outward normal expansion
+          const ox = px + (idx % 2 === 0 ? offset : -offset * 0.5);
+          const oy = py + (idx % 2 === 1 ? offset : -offset * 0.5);
+          if (idx === 0) ctx.moveTo(ox, oy);
+          else ctx.lineTo(ox, oy);
+        });
+        ctx.closePath();
+        ctx.stroke();
+      }
     });
-    ctx.stroke();
-  }
+    ctx.restore();
 
-  // Primary Western Coastline Line
-  ctx.strokeStyle = '#5FE3D6';
-  ctx.lineWidth = 2.4;
-  ctx.shadowColor = '#5FE3D6';
-  ctx.shadowBlur = 12;
-  ctx.beginPath();
-  projectedCoast.forEach(([px, py], idx) => {
-    if (idx === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  });
-  ctx.stroke();
-  ctx.restore();
+    // 2b. World Continents Base Polygons
+    ctx.save();
+    WORLD_CONTINENT_POLYGONS.forEach((poly) => {
+      const projCoords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
+      ctx.beginPath();
+      projCoords.forEach(([px, py], idx) => {
+        if (idx === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
 
-  // 4. Landmass Area & Halftone Dot-Matrix Texture
-  ctx.save();
-  // Render high-density matrix dots over the land region
-  ctx.fillStyle = 'rgba(195, 215, 255, 0.15)';
-  const dotStep = 15;
-  for (let dy = 130; dy < 740; dy += dotStep) {
-    for (let dx = 60; dx < w - 50; dx += dotStep) {
-      // Check if coordinate is to the east of the coastline
-      let isLand = true;
-      for (let cIdx = 0; cIdx < projectedCoast.length - 1; cIdx++) {
-        const [, py1] = projectedCoast[cIdx];
-        const [, py2] = projectedCoast[cIdx + 1];
-        if (dy >= Math.min(py1, py2) && dy <= Math.max(py1, py2)) {
-          const [px1] = projectedCoast[cIdx];
-          const [px2] = projectedCoast[cIdx + 1];
-          const t = (dy - py1) / (py2 - py1 || 1);
-          const coastX = px1 + t * (px2 - px1);
-          if (dx < coastX - 6) {
-            isLand = false;
+      // Continent Landmass fill & border
+      ctx.fillStyle = 'rgba(23, 27, 72, 0.95)';
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(181, 156, 242, 0.35)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    // 2c. Landmass Dot-Matrix Texture inside Continents
+    ctx.save();
+    ctx.fillStyle = 'rgba(195, 215, 255, 0.18)';
+    const dotStep = 18;
+    for (let dy = 120; dy < 740; dy += dotStep) {
+      for (let dx = 40; dx < w - 40; dx += dotStep) {
+        // Sample test inside world landmasses
+        let inContinent = false;
+        for (const poly of WORLD_CONTINENT_POLYGONS) {
+          const coords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
+          let inside = false;
+          for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+            const xi = coords[i][0], yi = coords[i][1];
+            const xj = coords[j][0], yj = coords[j][1];
+            const intersect = ((yi > dy) !== (yj > dy)) && (dx < (xj - xi) * (dy - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+          }
+          if (inside) {
+            inContinent = true;
             break;
           }
         }
-      }
-      if (isLand) {
-        ctx.beginPath();
-        ctx.arc(dx, dy, 1.25, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }
-  ctx.restore();
-
-  // 5. State Boundaries
-  ctx.save();
-  STATE_POLYGONS.forEach((poly) => {
-    const coords = poly.coordinates;
-    let anyVisible = false;
-    for (const [lat, lon] of coords) {
-      if (geo.isInside(lat, lon, 100)) {
-        anyVisible = true;
-        break;
+        if (inContinent) {
+          ctx.beginPath();
+          ctx.arc(dx, dy, 1.25, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
-    if (!anyVisible) return;
+    ctx.restore();
 
+    // 2d. Highlighted Glowing India Outline on World Map
+    ctx.save();
+    const projIndia = INDIA_OUTLINE_COORDS.map(([lat, lon]) => geo.project(lat, lon));
     ctx.beginPath();
-    coords.forEach(([pLat, pLon], idx) => {
-      const [px, py] = geo.project(pLat, pLon);
+    projIndia.forEach(([px, py], idx) => {
       if (idx === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
     });
     ctx.closePath();
-    ctx.strokeStyle = 'rgba(181, 156, 242, 0.18)';
-    ctx.lineWidth = 1.4;
-    ctx.setLineDash([4, 6]);
+
+    ctx.fillStyle = 'rgba(95, 227, 214, 0.14)';
+    ctx.fill();
+
+    ctx.strokeStyle = '#5FE3D6';
+    ctx.lineWidth = 2.4;
+    ctx.shadowColor = '#5FE3D6';
+    ctx.shadowBlur = 14;
     ctx.stroke();
-  });
-  ctx.restore();
+    ctx.restore();
 
-  // 6. State Names in Stylized Matrix Lettering
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '800 15px "IBM Plex Mono", "Bricolage Grotesque", monospace';
-  ctx.fillStyle = 'rgba(195, 205, 245, 0.24)';
-  ctx.letterSpacing = '4px';
+  } else {
+    // ========================================================================
+    // REGIONAL INDIA VIEW (Central / Western India, Jabalpur, Mumbai, etc.)
+    // ========================================================================
 
-  STATE_POLYGONS.forEach((poly) => {
-    const [cLat, cLon] = poly.centroid;
-    if (geo.isInside(cLat, cLon, 20)) {
-      const [sx, sy] = geo.project(cLat, cLon);
-      const spacedName = poly.name.split('').join(' ');
-      ctx.fillText(spacedName, sx, sy);
-    }
-  });
-  ctx.letterSpacing = '0px';
-  ctx.restore();
+    // Coastline & Topographic Bathymetric Contour Waves
+    const projectedCoast = WEST_COASTLINE_COORDS.map(([cLat, cLon]) => geo.project(cLat, cLon));
 
-  // 7. Geographic Transit City Nodes & Labels
-  ctx.save();
-  REAL_CITIES.forEach((city) => {
-    const isOrigin = Math.abs(city.lat - fromCoord[0]) < 0.25 && Math.abs(city.lon - fromCoord[1]) < 0.25;
-    const isMumbai = Math.abs(city.lat - MUMBAI_COORDS[0]) < 0.25 && Math.abs(city.lon - MUMBAI_COORDS[1]) < 0.25;
-
-    if (isOrigin || isMumbai) return;
-
-    if (geo.isInside(city.lat, city.lon, 20)) {
-      const [nx, ny] = geo.project(city.lat, city.lon);
-
-      // Hollow Node Dot with dark inner
-      ctx.fillStyle = '#FFFFFF';
+    ctx.save();
+    for (let i = 7; i >= 1; i--) {
+      const offsetPx = i * 9;
+      ctx.strokeStyle = `rgba(95, 227, 214, ${0.42 - i * 0.045})`;
+      ctx.lineWidth = i === 1 ? 2.2 : 1.2;
       ctx.beginPath();
-      ctx.arc(nx, ny, 3.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#101338';
-      ctx.beginPath();
-      ctx.arc(nx, ny, 1.6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // City Label
-      ctx.fillStyle = 'rgba(235, 242, 255, 0.82)';
-      ctx.font = '600 13px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = 6;
-      ctx.fillText(city.name, nx + 7, ny);
+      projectedCoast.forEach(([px, py], idx) => {
+        const ox = px - offsetPx * (1 + (idx % 2) * 0.1);
+        const oy = py;
+        if (idx === 0) ctx.moveTo(ox, oy);
+        else ctx.lineTo(ox, oy);
+      });
+      ctx.stroke();
     }
-  });
-  ctx.restore();
 
-  // 8. Flight Trajectory (Glowing Geodesic Arc)
-  const routePoints = getGreatCirclePoints(fromCoord, MUMBAI_COORDS, 90);
-  const projectedRoute = routePoints.map(([rLat, rLon]) => geo.project(rLat, rLon));
+    // Primary Western Coastline Line
+    ctx.strokeStyle = '#5FE3D6';
+    ctx.lineWidth = 2.4;
+    ctx.shadowColor = '#5FE3D6';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    projectedCoast.forEach(([px, py], idx) => {
+      if (idx === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.restore();
+
+    // Landmass Area & Halftone Dot-Matrix Texture
+    ctx.save();
+    ctx.fillStyle = 'rgba(195, 215, 255, 0.15)';
+    const dotStep = 15;
+    for (let dy = 130; dy < 740; dy += dotStep) {
+      for (let dx = 60; dx < w - 50; dx += dotStep) {
+        let isLand = true;
+        for (let cIdx = 0; cIdx < projectedCoast.length - 1; cIdx++) {
+          const [, py1] = projectedCoast[cIdx];
+          const [, py2] = projectedCoast[cIdx + 1];
+          if (dy >= Math.min(py1, py2) && dy <= Math.max(py1, py2)) {
+            const [px1] = projectedCoast[cIdx];
+            const [px2] = projectedCoast[cIdx + 1];
+            const t = (dy - py1) / (py2 - py1 || 1);
+            const coastX = px1 + t * (px2 - px1);
+            if (dx < coastX - 6) {
+              isLand = false;
+              break;
+            }
+          }
+        }
+        if (isLand) {
+          ctx.beginPath();
+          ctx.arc(dx, dy, 1.25, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    ctx.restore();
+
+    // State Boundaries
+    ctx.save();
+    STATE_POLYGONS.forEach((poly) => {
+      const coords = poly.coordinates;
+      let anyVisible = false;
+      for (const [lat, lon] of coords) {
+        if (geo.isInside(lat, lon, 100)) {
+          anyVisible = true;
+          break;
+        }
+      }
+      if (!anyVisible) return;
+
+      ctx.beginPath();
+      coords.forEach(([pLat, pLon], idx) => {
+        const [px, py] = geo.project(pLat, pLon);
+        if (idx === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(181, 156, 242, 0.18)';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 6]);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    // State Names in Stylized Matrix Lettering
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 15px "IBM Plex Mono", "Bricolage Grotesque", monospace';
+    ctx.fillStyle = 'rgba(195, 205, 245, 0.24)';
+    ctx.letterSpacing = '4px';
+
+    STATE_POLYGONS.forEach((poly) => {
+      const [cLat, cLon] = poly.centroid;
+      if (geo.isInside(cLat, cLon, 20)) {
+        const [sx, sy] = geo.project(cLat, cLon);
+        const spacedName = poly.name.split('').join(' ');
+        ctx.fillText(spacedName, sx, sy);
+      }
+    });
+    ctx.letterSpacing = '0px';
+    ctx.restore();
+
+    // Geographic Transit City Nodes & Labels
+    ctx.save();
+    REAL_CITIES.forEach((city) => {
+      const isOrigin = Math.abs(city.lat - fromCoord[0]) < 0.25 && Math.abs(city.lon - fromCoord[1]) < 0.25;
+      const isMumbai = Math.abs(city.lat - MUMBAI_COORDS[0]) < 0.25 && Math.abs(city.lon - MUMBAI_COORDS[1]) < 0.25;
+
+      if (isOrigin || isMumbai) return;
+
+      if (geo.isInside(city.lat, city.lon, 20)) {
+        const [nx, ny] = geo.project(city.lat, city.lon);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(nx, ny, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#101338';
+        ctx.beginPath();
+        ctx.arc(nx, ny, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(235, 242, 255, 0.82)';
+        ctx.font = '600 13px "IBM Plex Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 6;
+        ctx.fillText(city.name, nx + 7, ny);
+      }
+    });
+    ctx.restore();
+  }
+
+  // ==========================================================================
+  // SHARED FLIGHT TRAJECTORY, BEACONS & BADGES
+  // ==========================================================================
+
+  // 3. Flight Trajectory (Glowing Great-Circle Geodesic Arc)
+  const rawRoutePoints = getGreatCirclePoints(fromCoord, MUMBAI_COORDS, 100);
+  const projectedRoute = rawRoutePoints.map(([rLat, rLon]) => geo.project(rLat, rLon));
 
   // Glowing Outer Trajectory
   ctx.save();
   ctx.shadowColor = '#5FE3D6';
   ctx.shadowBlur = 18;
-  ctx.strokeStyle = 'rgba(95, 227, 214, 0.6)';
+  ctx.strokeStyle = 'rgba(95, 227, 214, 0.65)';
   ctx.lineWidth = 4.5;
   ctx.setLineDash([7, 7]);
   ctx.beginPath();
@@ -961,6 +1063,7 @@ export function renderJourneyCard(
   ctx.restore();
 
   // Solid Inner Dashed Line
+  ctx.save();
   ctx.strokeStyle = '#FFFFFF';
   ctx.lineWidth = 2.2;
   ctx.setLineDash([6, 6]);
@@ -970,17 +1073,48 @@ export function renderJourneyCard(
     else ctx.lineTo(rx, ry);
   });
   ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.restore();
 
-  // 9. Destination Beacon (Mumbai)
+  // 4. On-Arc Distance Badge Pill (Matching reference: centered directly on arc peak)
+  ctx.save();
+  let peakIdx = 0;
+  let minY = Infinity;
+  projectedRoute.forEach(([, py], idx) => {
+    if (py < minY && idx > 5 && idx < projectedRoute.length - 5) {
+      minY = py;
+      peakIdx = idx;
+    }
+  });
+  if (peakIdx === 0) peakIdx = Math.floor(projectedRoute.length * 0.4);
+
+  const [peakX, peakY] = projectedRoute[peakIdx];
+  const arcDistText = `${distanceKm.toLocaleString()} km`;
+  ctx.font = '700 15px "IBM Plex Mono", monospace';
+  const adw = ctx.measureText(arcDistText).width + 30;
+  const adh = 32;
+
+  roundRect(ctx, peakX - adw / 2, peakY - adh - 8, adw, adh, 16);
+  ctx.fillStyle = 'rgba(15, 18, 52, 0.92)';
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(95, 227, 214, 0.5)';
+  ctx.stroke();
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(arcDistText, peakX, peakY - adh / 2 - 7);
+  ctx.restore();
+
+  // 5. Destination Beacon (Mumbai)
   const [mumX, mumY] = geo.project(MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
 
-  // Peach halo rings
+  // Glowing peach halo rings
   for (let r = 1; r <= 3; r++) {
     ctx.strokeStyle = `rgba(246, 160, 103, ${0.75 - r * 0.2})`;
     ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.arc(mumX, mumY, r * 15, 0, Math.PI * 2);
+    ctx.arc(mumX, mumY, r * 14, 0, Math.PI * 2);
     ctx.stroke();
   }
 
@@ -1008,10 +1142,9 @@ export function renderJourneyCard(
   ctx.fillText(mLabel, mumX, mumY + 40);
   ctx.restore();
 
-  // 10. Origin Beacon (Jabalpur / Selected City)
+  // 6. Origin Beacon & Avatar (Departure Location)
   const [srcX, srcY] = geo.project(fromCoord[0], fromCoord[1]);
 
-  // Glowing departure marker with avatar
   drawGlowingAvatar(
     ctx,
     srcX,
@@ -1037,8 +1170,8 @@ export function renderJourneyCard(
   ctx.fillText(cName, srcX, srcY + 52);
   ctx.restore();
 
-  // 11. Airplane Sprite along the Flight Path
-  const progress = options.progress !== undefined ? options.progress : 0.72;
+  // 7. Airplane Sprite along the Flight Path
+  const progress = options.progress !== undefined ? options.progress : 0.78;
   const pIdx = Math.min(
     projectedRoute.length - 1,
     Math.max(0, Math.floor(progress * (projectedRoute.length - 1)))
@@ -1049,72 +1182,79 @@ export function renderJourneyCard(
 
   drawSprite(ctx, 'plane', currentPlane[0], currentPlane[1], 48, angle);
 
-  // 8. Top Header Badges
-  // Brand Header Top Left
+  // 8. Top Header: Devcon 8 / MumbaiOnChain Badge
   ctx.save();
-  ctx.textAlign = 'left';
-  ctx.font = '900 28px "Fraunces", serif';
-  ctx.fillStyle = '#FFF8F0';
-  ctx.fillText('MUMBAI ONCHAIN', 64, 72);
-  ctx.font = '700 13px "IBM Plex Mono", monospace';
-  ctx.fillStyle = TEAL;
-  ctx.fillText('JOURNEY TO MUMBAI // 2026', 64, 96);
+  ctx.textAlign = 'center';
 
-  // Distance Badge Top Right
-  const destBadge = `${fromCity.name.toUpperCase()}  ➔  MUMBAI`;
-  const kmBadge = `${distanceKm.toLocaleString()} km`;
-
-  const bw = 320;
-  const bh = 94;
-  const bx = w - 64 - bw;
-  const by = 48;
-
-  roundRect(ctx, bx, by, bw, bh, 20);
-  ctx.fillStyle = 'rgba(20, 23, 72, 0.88)';
+  // Floating Ethereum Diamond Logo
+  const lx = w / 2;
+  const ly = 78;
+  const ls = 36;
+  ctx.save();
+  ctx.shadowColor = 'rgba(95, 227, 214, 0.8)';
+  ctx.shadowBlur = 18;
+  ctx.strokeStyle = TEAL;
+  ctx.lineWidth = 2.5;
+  ctx.fillStyle = 'rgba(95, 227, 214, 0.2)';
+  ctx.beginPath();
+  ctx.moveTo(lx, ly - ls);
+  ctx.lineTo(lx + ls * 0.65, ly);
+  ctx.lineTo(lx, ly + ls);
+  ctx.lineTo(lx - ls * 0.65, ly);
+  ctx.closePath();
   ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(181, 156, 242, 0.4)';
   ctx.stroke();
 
-  ctx.textAlign = 'center';
-  ctx.font = '700 13px "IBM Plex Mono", monospace';
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-  ctx.fillText(destBadge, bx + bw / 2, by + 32);
-
-  ctx.font = '800 36px "Bricolage Grotesque", sans-serif';
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(kmBadge, bx + bw / 2, by + 72);
+  // Inner Eye / Lotus core
+  ctx.fillStyle = PEACH;
+  ctx.beginPath();
+  ctx.arc(lx, ly, 7, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 
-  // 9. Bottom Handle, Tagline & ID
+  // DEVCON VIII / MUMBAI ONCHAIN Lettering
+  ctx.font = '900 32px "Fraunces", "Bricolage Grotesque", serif';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+  ctx.shadowBlur = 16;
+  ctx.fillText('DEVCON  •  MUMBAI', w / 2, 142);
+
+  ctx.font = '700 13px "IBM Plex Mono", monospace';
+  ctx.fillStyle = TEAL;
+  ctx.letterSpacing = '3px';
+  ctx.fillText('INDIA 2026 // ONCHAIN JOURNEY', w / 2, 168);
+  ctx.letterSpacing = '0px';
+  ctx.restore();
+
+  // 9. Bottom Handle, Tagline & ID Details
   ctx.save();
   ctx.textAlign = 'center';
-  ctx.font = '800 58px "Bricolage Grotesque", sans-serif';
+  ctx.font = '800 62px "Bricolage Grotesque", sans-serif';
   ctx.fillStyle = '#FFFFFF';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-  ctx.shadowBlur = 20;
-  ctx.fillText(`@${options.handle || 'yourhandle'}`, w / 2, 770);
+  ctx.shadowBlur = 24;
+  ctx.fillText(`@${options.handle || 'yourhandle'}`, w / 2, 780);
   ctx.restore();
 
-  // Tagline
-  drawTaglinePill(ctx, options.tagline, w / 2, 840, w - 160);
+  // Tagline Pill
+  drawTaglinePill(ctx, options.tagline || "I'm going to Devcon 8", w / 2, 850, w - 160);
 
   // ID Badge & Location Bottom
-  drawIdBadge(ctx, options.idNumber, 64, 896, 22);
+  drawIdBadge(ctx, options.idNumber, 64, 904, 22);
 
   ctx.save();
   ctx.font = '700 20px "IBM Plex Mono", monospace';
   ctx.fillStyle = '#FFFFFF';
   ctx.textAlign = 'left';
-  ctx.fillText('Mumbai, India • 01—08 Nov 2026', 64, 956);
+  ctx.fillText('Mumbai, India • 01—08 Nov 2026', 64, 960);
 
   ctx.textAlign = 'right';
-  ctx.font = '600 18px "IBM Plex Mono", monospace';
+  ctx.font = '600 17px "IBM Plex Mono", monospace';
   ctx.fillStyle = TEAL;
-  ctx.fillText('Make yours at', w - 64, 922);
+  ctx.fillText('Make yours at', w - 64, 926);
   ctx.font = '700 20px "IBM Plex Mono", monospace';
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillText('mumbai-onchain.vercel.app', w - 64, 952);
+  ctx.fillText('mumbai-onchain.vercel.app', w - 64, 956);
 
   // Disclaimer
   ctx.textAlign = 'center';

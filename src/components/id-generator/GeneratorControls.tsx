@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type {
   CardTemplate,
   CardTheme
 } from './cardRenderer';
-import { PRESET_CITIES, calculateDistanceKm, MUMBAI_COORDS } from './citiesData';
+import { PRESET_CITIES, calculateDistanceKm, MUMBAI_COORDS, searchGlobalLocations } from './citiesData';
 import type { CityLocation } from './citiesData';
 import {
   Download,
@@ -19,7 +19,10 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  Edit3
+  Edit3,
+  Search,
+  Globe,
+  X
 } from 'lucide-react';
 
 const XIcon = ({ className }: { className?: string }) => (
@@ -91,6 +94,19 @@ const THEMES: { id: CardTheme; label: string; color: string }[] = [
   { id: 'cyber', label: 'Cyber Mumbai', color: '#00F0FF' }
 ];
 
+const QUICK_CITIES = [
+  'USA',
+  'Jabalpur',
+  'San Francisco',
+  'London',
+  'Dubai',
+  'Tokyo',
+  'Bengaluru',
+  'Berlin',
+  'Singapore',
+  'Delhi NCR'
+];
+
 export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
   template,
   setTemplate,
@@ -127,6 +143,13 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
   const [customTaglineActive, setCustomTaglineActive] = useState(false);
   const [showEditDisplayName, setShowEditDisplayName] = useState(false);
 
+  // Search Bar State for Journey Location
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [searchResults, setSearchResults] = useState<CityLocation[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
   const distanceKm = calculateDistanceKm(
     selectedCity.lat,
     selectedCity.lon,
@@ -140,6 +163,37 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
       onFetchProfile();
     }
   };
+
+  // Handle Search Input Change
+  useEffect(() => {
+    if (!locationSearchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingLocation(true);
+      try {
+        const results = await searchGlobalLocations(locationSearchQuery);
+        setSearchResults(results);
+      } finally {
+        setIsSearchingLocation(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [locationSearchQuery]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -389,38 +443,144 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
       )}
 
       {template === 'journey' && (
-        <div className="bg-[#12102E]/70 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl space-y-3">
+        <div className="bg-[#12102E]/70 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
           <div className="flex items-center justify-between font-mono text-xs text-[#5FE3D6] uppercase tracking-wider font-bold">
             <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-[#5FE3D6]" />
-              <span>4. Departing Origin City</span>
+              <Globe className="w-4 h-4 text-[#5FE3D6]" />
+              <span>4. Departing Location / Region Search</span>
             </div>
-            <span className="text-[#F6A067]">{distanceKm} KM</span>
+            <span className="text-[#F6A067] font-bold">{distanceKm.toLocaleString()} KM</span>
           </div>
 
-          <select
-            value={selectedCity.name}
-            onChange={(e) => {
-              const city = PRESET_CITIES.find((c) => c.name === e.target.value);
-              if (city) setSelectedCity(city);
-            }}
-            className="w-full px-3.5 py-2.5 bg-[#0A091E] border border-white/20 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-[#5FE3D6] transition-all cursor-pointer"
-          >
-            <optgroup label="India Cities">
-              {PRESET_CITIES.filter((c) => c.isDomestic || c.country === 'IN').map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}, India ({calculateDistanceKm(c.lat, c.lon, MUMBAI_COORDS[0], MUMBAI_COORDS[1])} km)
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Global Hubs">
-              {PRESET_CITIES.filter((c) => !c.isDomestic && c.country !== 'IN').map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}, {c.country} ({calculateDistanceKm(c.lat, c.lon, MUMBAI_COORDS[0], MUMBAI_COORDS[1])} km)
-                </option>
-              ))}
-            </optgroup>
-          </select>
+          {/* Active Location Display */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-[#0A091E] border border-[#5FE3D6]/30">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-[#5FE3D6]/10 text-[#5FE3D6]">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-heading font-black text-sm text-white flex items-center gap-2">
+                  <span>{selectedCity.name}</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-gray-300 font-normal">
+                    {selectedCity.country}
+                  </span>
+                </div>
+                <div className="text-[11px] font-mono text-gray-400">
+                  {selectedCity.isDomestic ? 'Domestic Route • Regional India Map' : 'International Route • Full World Map'}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs font-mono font-bold text-[#5FE3D6]">
+                ➔ Mumbai
+              </div>
+              <div className="text-[11px] font-mono text-gray-400">
+                {distanceKm.toLocaleString()} km
+              </div>
+            </div>
+          </div>
+
+          {/* Location Search Bar with Autocomplete */}
+          <div ref={searchContainerRef} className="relative">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                {isSearchingLocation ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-[#5FE3D6]" />
+                ) : (
+                  <Search className="w-4 h-4 text-gray-400" />
+                )}
+              </div>
+              <input
+                type="text"
+                value={locationSearchQuery}
+                onFocus={() => setIsDropdownOpen(true)}
+                onChange={(e) => {
+                  setLocationSearchQuery(e.target.value);
+                  setIsDropdownOpen(true);
+                }}
+                placeholder="Search any region or city (e.g. USA, San Francisco, London, Jabalpur, Tokyo...)"
+                className="w-full pl-10 pr-10 py-2.5 bg-[#0A091E] border border-white/20 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-[#5FE3D6] focus:ring-1 focus:ring-[#5FE3D6] transition-all"
+              />
+              {locationSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocationSearchQuery('');
+                    setSearchResults([]);
+                  }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Live Search Suggestions Dropdown */}
+            {isDropdownOpen && (searchResults.length > 0 || locationSearchQuery.trim().length > 0) && (
+              <div className="absolute z-50 left-0 right-0 mt-1.5 max-h-60 overflow-y-auto bg-[#0E0D28] border border-white/20 rounded-xl shadow-2xl divide-y divide-white/5 backdrop-blur-2xl">
+                {searchResults.length > 0 ? (
+                  searchResults.map((city, idx) => {
+                    const dist = calculateDistanceKm(city.lat, city.lon, MUMBAI_COORDS[0], MUMBAI_COORDS[1]);
+                    return (
+                      <button
+                        key={`${city.name}-${city.lat}-${idx}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCity(city);
+                          setLocationSearchQuery('');
+                          setIsDropdownOpen(false);
+                        }}
+                        className="w-full px-4 py-2.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <MapPin className="w-3.5 h-3.5 text-[#5FE3D6] shrink-0" />
+                          <div>
+                            <span className="font-heading font-bold text-xs text-white">{city.name}</span>
+                            <span className="font-mono text-[10px] text-gray-400 ml-1.5">({city.country})</span>
+                          </div>
+                        </div>
+                        <span className="font-mono text-[11px] text-[#F6A067] shrink-0 font-semibold">
+                          {dist.toLocaleString()} km
+                        </span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="px-4 py-3 text-center text-xs font-mono text-gray-400">
+                    {isSearchingLocation ? 'Searching global database...' : 'No exact match found. Try typing another region or city name.'}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Preset Location Chips */}
+          <div className="space-y-1.5">
+            <div className="text-[11px] font-mono text-gray-400 uppercase tracking-wider">
+              Popular Regions:
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_CITIES.map((name) => {
+                const city = PRESET_CITIES.find((c) => c.name.toLowerCase() === name.toLowerCase());
+                if (!city) return null;
+                const isSelected = selectedCity.name.toLowerCase() === name.toLowerCase();
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setSelectedCity(city)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border ${
+                      isSelected
+                        ? 'bg-[#5FE3D6] text-[#0A091E] font-bold border-[#5FE3D6] shadow-sm'
+                        : 'bg-white/5 hover:bg-white/15 text-gray-300 border-white/10'
+                    }`}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
