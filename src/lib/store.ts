@@ -35,10 +35,11 @@ export function useAppStore() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeDateFilter, setActiveDateFilter] = useState<string>('ALL');
 
-  const [activeTab, setActiveTabState] = useState<'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai'>(() => {
+  const [activeTab, setActiveTabState] = useState<'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
+      if (path.includes('id-generator') || hash.includes('id-generator') || path.includes('/id') || hash.includes('#id')) return 'id-generator';
       if (path.includes('people') || hash.includes('people')) return 'people';
       if (path.includes('timeline') || hash.includes('timeline')) return 'timeline';
       if (path.includes('events') || hash.includes('events')) return 'events';
@@ -48,7 +49,7 @@ export function useAppStore() {
     return 'home';
   });
 
-  const setActiveTab = (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai') => {
+  const setActiveTab = (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator') => {
     setActiveTabState(tab);
     if (typeof window !== 'undefined') {
       const newPath = tab === 'home' ? '/' : `/${tab}`;
@@ -63,7 +64,8 @@ export function useAppStore() {
     const handlePopState = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      if (path.includes('people') || hash.includes('people')) setActiveTabState('people');
+      if (path.includes('id-generator') || hash.includes('id-generator') || path.includes('/id') || hash.includes('#id')) setActiveTabState('id-generator');
+      else if (path.includes('people') || hash.includes('people')) setActiveTabState('people');
       else if (path.includes('timeline') || hash.includes('timeline')) setActiveTabState('timeline');
       else if (path.includes('events') || hash.includes('events')) setActiveTabState('events');
       else if (path.includes('map') || hash.includes('map')) setActiveTabState('map');

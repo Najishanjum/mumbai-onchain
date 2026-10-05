@@ -2,8 +2,8 @@ import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai';
-  setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai') => void;
+  activeTab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator';
+  setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
@@ -88,6 +88,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             }`}
           >
             MAP
+          </button>
+
+          <button
+            onClick={() => setActiveTab('id-generator')}
+            className={`px-3 py-1.5 transition-all border-b-2 font-bold flex items-center gap-1.5 ${
+              activeTab === 'id-generator'
+                ? 'border-[#0052FF] text-[#0052FF] bg-[#0052FF]/5'
+                : 'border-transparent text-[#555555] hover:text-[#0052FF]'
+            }`}
+          >
+            <span>ID GENERATOR</span>
+            <span className="w-2 h-2 rounded-full bg-[#5FE3D6] animate-pulse" />
           </button>
         </nav>
 

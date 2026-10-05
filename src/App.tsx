@@ -21,6 +21,7 @@ import { SideEvents } from './components/SideEvents';
 import { PeopleDirectory } from './components/PeopleDirectory';
 import { Footer } from './components/Footer';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
+import { IDGeneratorPage } from './components/id-generator/IDGeneratorPage';
 import { AlertCircle } from 'lucide-react';
 
 export function App() {
@@ -205,6 +206,10 @@ export function App() {
               onUpdateStatus={updateEventStatus}
             />
           </div>
+        )}
+
+        {activeTab === 'id-generator' && (
+          <IDGeneratorPage />
         )}
       </main>
 
