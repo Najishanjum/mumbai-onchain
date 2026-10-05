@@ -2,7 +2,8 @@ import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 're
 import type {
   CardTemplate,
   CardTheme,
-  CardRenderOptions
+  CardRenderOptions,
+  JourneyMapView
 } from './cardRenderer';
 import {
   renderMumbaiCard,
@@ -29,6 +30,7 @@ interface CardCanvasProps {
   avatarImage: HTMLImageElement | null;
   photoZoom: number;
   city: CityLocation;
+  mapView?: JourneyMapView;
 }
 
 export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
@@ -43,19 +45,30 @@ export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
       idNumber,
       avatarImage,
       photoZoom,
-      city
+      city,
+      mapView = 'shine3d'
     },
     ref
   ) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const [artworkImg, setArtworkImg] = useState<HTMLImageElement | null>(null);
+    const [shineMapImg, setShineMapImg] = useState<HTMLImageElement | null>(null);
+    const [globeMapImg, setGlobeMapImg] = useState<HTMLImageElement | null>(null);
     const [progress, setProgress] = useState(0.75);
 
-    // Preload artwork
+    // Preload artwork & map textures
     useEffect(() => {
       const img = new Image();
       img.src = '/images/id-generator/mumbai-artwork.webp';
       img.onload = () => setArtworkImg(img);
+
+      const sImg = new Image();
+      sImg.src = '/assets/maps/journey-shine-map.webp';
+      sImg.onload = () => setShineMapImg(sImg);
+
+      const gImg = new Image();
+      gImg.src = '/assets/maps/globe-india-highlight.webp';
+      gImg.onload = () => setGlobeMapImg(gImg);
     }, []);
 
     // Animation loop for Journey flight path
@@ -108,7 +121,10 @@ export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
         photoZoom,
         city,
         progress,
-        artworkImage: artworkImg
+        artworkImage: artworkImg,
+        shineMapImage: shineMapImg,
+        globeMapImage: globeMapImg,
+        mapView
       };
 
       if (template === 'postcard') {
@@ -131,6 +147,9 @@ export const CardCanvas = forwardRef<CardCanvasRef, CardCanvasProps>(
       city,
       progress,
       artworkImg,
+      shineMapImg,
+      globeMapImg,
+      mapView,
       canvasWidth,
       canvasHeight
     ]);

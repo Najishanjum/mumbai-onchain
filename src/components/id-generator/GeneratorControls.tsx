@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type {
   CardTemplate,
-  CardTheme
+  CardTheme,
+  JourneyMapView
 } from './cardRenderer';
 import { PRESET_CITIES, calculateDistanceKm, MUMBAI_COORDS, searchGlobalLocations } from './citiesData';
 import type { CityLocation } from './citiesData';
@@ -55,6 +56,8 @@ interface GeneratorControlsProps {
   setMessage: (m: string) => void;
   selectedCity: CityLocation;
   setSelectedCity: (c: CityLocation) => void;
+  mapView?: JourneyMapView;
+  setMapView?: (v: JourneyMapView) => void;
   idNumber: number;
   onDownloadPng: () => void;
   onDownloadGif: () => void;
@@ -131,6 +134,8 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
   setMessage,
   selectedCity,
   setSelectedCity,
+  mapView = 'shine3d',
+  setMapView,
   idNumber,
   onDownloadPng,
   onDownloadGif,
@@ -477,6 +482,56 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
               <div className="text-[11px] font-mono text-gray-400">
                 {distanceKm.toLocaleString()} km
               </div>
+            </div>
+          </div>
+
+          {/* Map View Mode Selector (3D Shining Orbit, 3D Planet Globe, 2D States Map) */}
+          <div className="space-y-1.5">
+            <div className="text-[11px] font-mono text-gray-400 uppercase tracking-wider flex items-center justify-between">
+              <span>Map Render Mode:</span>
+              <span className="text-[#5FE3D6] text-[10px]">
+                {mapView === 'shine3d' ? '✨ Orbit Night Glow' : mapView === 'globe3d' ? '🌍 3D Planet Globe' : '🗺️ 2D States Map'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setMapView?.('shine3d')}
+                className={`px-3 py-2 rounded-xl text-xs font-heading font-bold transition-all flex flex-col items-center gap-1 border ${
+                  mapView === 'shine3d'
+                    ? 'bg-[#5FE3D6]/20 border-[#5FE3D6] text-[#5FE3D6] shadow-md shadow-[#5FE3D6]/20'
+                    : 'bg-[#0A091E] border-white/10 text-gray-400 hover:text-white hover:border-white/30'
+                }`}
+              >
+                <span className="text-sm">✨</span>
+                <span className="text-[11px]">3D Shining</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMapView?.('globe3d')}
+                className={`px-3 py-2 rounded-xl text-xs font-heading font-bold transition-all flex flex-col items-center gap-1 border ${
+                  mapView === 'globe3d'
+                    ? 'bg-[#F6A067]/20 border-[#F6A067] text-[#F6A067] shadow-md shadow-[#F6A067]/20'
+                    : 'bg-[#0A091E] border-white/10 text-gray-400 hover:text-white hover:border-white/30'
+                }`}
+              >
+                <span className="text-sm">🌍</span>
+                <span className="text-[11px]">3D Globe</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMapView?.('states2d')}
+                className={`px-3 py-2 rounded-xl text-xs font-heading font-bold transition-all flex flex-col items-center gap-1 border ${
+                  mapView === 'states2d'
+                    ? 'bg-[#B59CF2]/20 border-[#B59CF2] text-[#B59CF2] shadow-md shadow-[#B59CF2]/20'
+                    : 'bg-[#0A091E] border-white/10 text-gray-400 hover:text-white hover:border-white/30'
+                }`}
+              >
+                <span className="text-sm">🗺️</span>
+                <span className="text-[11px]">2D States</span>
+              </button>
             </div>
           </div>
 

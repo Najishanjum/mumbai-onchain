@@ -13,6 +13,7 @@ import {
 
 export type CardTemplate = 'classic' | 'postcard' | 'journey';
 export type CardTheme = 'night' | 'marine' | 'gateway' | 'monsoon' | 'cyber';
+export type JourneyMapView = 'shine3d' | 'globe3d' | 'states2d';
 
 export interface CardRenderOptions {
   template: CardTemplate;
@@ -27,6 +28,9 @@ export interface CardRenderOptions {
   city: CityLocation;
   progress?: number; // 0 to 1 for Journey animation
   artworkImage?: HTMLImageElement | null;
+  shineMapImage?: HTMLImageElement | null;
+  globeMapImage?: HTMLImageElement | null;
+  mapView?: JourneyMapView;
 }
 
 const TEAL = '#5FE3D6';
@@ -801,7 +805,7 @@ export function renderJourneyCard(
   }
   ctx.restore();
 
-  // 2. Real Dynamic Geographic Projection (3D Spherical Globe for Global, Regional for Domestic)
+  // 2. Real Dynamic Geographic Projection
   const geo = createGeoProjection(fromCoord, MUMBAI_COORDS, {
     x: 40,
     y: 110,
@@ -809,9 +813,52 @@ export function renderJourneyCard(
     h: 630
   });
 
-  if (geo.isGlobe) {
+  const activeMapView: JourneyMapView = options.mapView || (geo.isWorldView ? 'globe3d' : 'shine3d');
+
+  if (activeMapView === 'shine3d') {
     // ========================================================================
-    // 3D GOOGLE EARTH GLOBE VIEW (Spherical Earth, Space Atmospheric Limb)
+    // 1. SHINE 3D ORBIT VIEW (Photographic / Glowing High-Orbit Satellite India)
+    // ========================================================================
+    if (options.shineMapImage && options.shineMapImage.naturalWidth > 0) {
+      ctx.save();
+      // Draw 3D Shine Satellite Background
+      const sImg = options.shineMapImage;
+      const shY = 70;
+      const shH = 680;
+      ctx.drawImage(sImg, 0, shY, w, shH);
+
+      // Atmospheric Vignette Gradient Overlay
+      const vig = ctx.createLinearGradient(0, shY, 0, shY + shH);
+      vig.addColorStop(0, 'rgba(4, 5, 16, 0.7)');
+      vig.addColorStop(0.18, 'rgba(4, 5, 16, 0.15)');
+      vig.addColorStop(0.82, 'rgba(4, 5, 16, 0.35)');
+      vig.addColorStop(1, 'rgba(4, 5, 16, 0.95)');
+      ctx.fillStyle = vig;
+      ctx.fillRect(0, shY, w, shH);
+      ctx.restore();
+    } else {
+      // Procedural Vector High-Orbit Shine Fallback
+      ctx.save();
+      const projIndia = INDIA_OUTLINE_COORDS.map(([lat, lon]) => geo.project(lat, lon));
+      ctx.beginPath();
+      projIndia.forEach(([px, py], idx) => {
+        if (idx === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(246, 160, 103, 0.22)';
+      ctx.fill();
+      ctx.strokeStyle = '#F6A067';
+      ctx.lineWidth = 3.5;
+      ctx.shadowColor = '#F6A067';
+      ctx.shadowBlur = 24;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+  } else if (activeMapView === 'globe3d' || geo.isGlobe) {
+    // ========================================================================
+    // 2. 3D GOOGLE EARTH GLOBE VIEW (Planet Earth Sphere & Atmospheric Limb)
     // ========================================================================
     const [gcx, gcy] = geo.globeCenter;
     const gr = geo.globeRadius;
@@ -835,87 +882,43 @@ export function renderJourneyCard(
     ctx.arc(gcx, gcy, gr, 0, Math.PI * 2);
     ctx.clip();
 
-    // Spherical Ocean Shading (3D lighting)
-    const oceanGrad = ctx.createRadialGradient(
-      gcx - gr * 0.35,
-      gcy - gr * 0.35,
-      gr * 0.1,
-      gcx,
-      gcy,
-      gr
-    );
-    oceanGrad.addColorStop(0, '#1c2466');
-    oceanGrad.addColorStop(0.55, '#13184a');
-    oceanGrad.addColorStop(0.9, '#0c1032');
-    oceanGrad.addColorStop(1, '#06081c');
-    ctx.fillStyle = oceanGrad;
-    ctx.fillRect(gcx - gr, gcy - gr, gr * 2, gr * 2);
+    if (options.globeMapImage && options.globeMapImage.naturalWidth > 0) {
+      // Draw Globe Image Texture
+      ctx.drawImage(options.globeMapImage, gcx - gr, gcy - gr, gr * 2, gr * 2);
+    } else {
+      // Spherical Ocean Shading (3D lighting)
+      const oceanGrad = ctx.createRadialGradient(
+        gcx - gr * 0.35,
+        gcy - gr * 0.35,
+        gr * 0.1,
+        gcx,
+        gcy,
+        gr
+      );
+      oceanGrad.addColorStop(0, '#1c2466');
+      oceanGrad.addColorStop(0.55, '#13184a');
+      oceanGrad.addColorStop(0.9, '#0c1032');
+      oceanGrad.addColorStop(1, '#06081c');
+      ctx.fillStyle = oceanGrad;
+      ctx.fillRect(gcx - gr, gcy - gr, gr * 2, gr * 2);
 
-    // Oceanic Bathymetric Ripple Waves on Globe
-    WORLD_CONTINENT_POLYGONS.forEach((poly) => {
-      const projCoords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
-      for (let r = 3; r >= 1; r--) {
-        const offset = r * 10;
-        ctx.strokeStyle = `rgba(95, 227, 214, ${0.2 - r * 0.045})`;
-        ctx.lineWidth = 1.2;
+      // World Continents on 3D Globe
+      WORLD_CONTINENT_POLYGONS.forEach((poly) => {
+        const projCoords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
         ctx.beginPath();
         projCoords.forEach(([px, py], idx) => {
-          const ox = px + (idx % 2 === 0 ? offset : -offset * 0.5);
-          const oy = py + (idx % 2 === 1 ? offset : -offset * 0.5);
-          if (idx === 0) ctx.moveTo(ox, oy);
-          else ctx.lineTo(ox, oy);
+          if (idx === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
         });
         ctx.closePath();
+
+        ctx.fillStyle = 'rgba(26, 32, 88, 0.94)';
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(181, 156, 242, 0.38)';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
-      }
-    });
-
-    // World Continents on 3D Globe
-    WORLD_CONTINENT_POLYGONS.forEach((poly) => {
-      const projCoords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
-      ctx.beginPath();
-      projCoords.forEach(([px, py], idx) => {
-        if (idx === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
       });
-      ctx.closePath();
-
-      // Landmass 3D fill
-      ctx.fillStyle = 'rgba(26, 32, 88, 0.94)';
-      ctx.fill();
-
-      ctx.strokeStyle = 'rgba(181, 156, 242, 0.38)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    });
-
-    // Landmass Dot-Matrix Texture on Globe
-    ctx.fillStyle = 'rgba(195, 215, 255, 0.2)';
-    const dotStep = 16;
-    for (let dy = gcy - gr + 10; dy < gcy + gr - 10; dy += dotStep) {
-      for (let dx = gcx - gr + 10; dx < gcx + gr - 10; dx += dotStep) {
-        if (Math.hypot(dx - gcx, dy - gcy) > gr - 4) continue;
-        let inContinent = false;
-        for (const poly of WORLD_CONTINENT_POLYGONS) {
-          const coords = poly.coordinates.map(([lat, lon]) => geo.project(lat, lon));
-          let inside = false;
-          for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
-            const xi = coords[i][0], yi = coords[i][1];
-            const xj = coords[j][0], yj = coords[j][1];
-            const intersect = ((yi > dy) !== (yj > dy)) && (dx < (xj - xi) * (dy - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
-          }
-          if (inside) {
-            inContinent = true;
-            break;
-          }
-        }
-        if (inContinent) {
-          ctx.beginPath();
-          ctx.arc(dx, dy, 1.25, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
     }
 
     // 2c. SHINE ON INDIA (Glowing Neon Subcontinent on the Globe)
@@ -928,11 +931,9 @@ export function renderJourneyCard(
     });
     ctx.closePath();
 
-    // Vibrant glowing wash over India
     ctx.fillStyle = 'rgba(95, 227, 214, 0.24)';
     ctx.fill();
 
-    // Bright neon cyan boundary
     ctx.strokeStyle = '#5FE3D6';
     ctx.lineWidth = 3.2;
     ctx.shadowColor = '#5FE3D6';
@@ -956,7 +957,7 @@ export function renderJourneyCard(
 
   } else {
     // ========================================================================
-    // REGIONAL INDIA VIEW (Central / Western India: Jabalpur, Mumbai, etc.)
+    // 3. 2D INDIA STATES & UNION TERRITORIES TOPOGRAPHIC MAP VIEW
     // ========================================================================
     const projectedCoast = WEST_COASTLINE_COORDS.map(([cLat, cLon]) => geo.project(cLat, cLon));
 
@@ -1038,8 +1039,8 @@ export function renderJourneyCard(
         else ctx.lineTo(px, py);
       });
       ctx.closePath();
-      ctx.strokeStyle = 'rgba(181, 156, 242, 0.18)';
-      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = 'rgba(181, 156, 242, 0.22)';
+      ctx.lineWidth = 1.6;
       ctx.setLineDash([4, 6]);
       ctx.stroke();
     });
@@ -1050,7 +1051,7 @@ export function renderJourneyCard(
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = '800 15px "IBM Plex Mono", "Bricolage Grotesque", monospace';
-    ctx.fillStyle = 'rgba(195, 205, 245, 0.24)';
+    ctx.fillStyle = 'rgba(195, 205, 245, 0.28)';
     ctx.letterSpacing = '4px';
 
     STATE_POLYGONS.forEach((poly) => {

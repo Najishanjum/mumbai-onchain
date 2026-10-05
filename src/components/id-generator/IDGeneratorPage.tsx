@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import type { CardTemplate, CardTheme } from './cardRenderer';
+import type { CardTemplate, CardTheme, JourneyMapView } from './cardRenderer';
 import { PRESET_CITIES } from './citiesData';
 import type { CityLocation } from './citiesData';
 import { useXProfile } from './useXProfile';
@@ -17,6 +17,7 @@ export const IDGeneratorPage: React.FC = () => {
   // Core Generator State
   const [template, setTemplate] = useState<CardTemplate>('classic');
   const [theme, setTheme] = useState<CardTheme>('night');
+  const [mapView, setMapView] = useState<JourneyMapView>('shine3d');
   const [photoZoom, setPhotoZoom] = useState<number>(1.1);
   const [tagline, setTagline] = useState<string>("I'm building onchain in Mumbai");
   const [message, setMessage] = useState<string>(
@@ -220,6 +221,7 @@ export const IDGeneratorPage: React.FC = () => {
               avatarImage={avatarImage}
               photoZoom={photoZoom}
               city={selectedCity}
+              mapView={mapView}
             />
 
             <div className="text-center font-mono text-[11px] text-gray-500 pt-1">
@@ -253,6 +255,8 @@ export const IDGeneratorPage: React.FC = () => {
               setMessage={setMessage}
               selectedCity={selectedCity}
               setSelectedCity={setSelectedCity}
+              mapView={mapView}
+              setMapView={setMapView}
               idNumber={idNumber}
               onDownloadPng={handleDownloadPng}
               onDownloadGif={handleDownloadGif}
