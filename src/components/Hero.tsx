@@ -1,8 +1,17 @@
 import React from 'react';
 import { Countdown } from './Countdown';
 import { HeroArtwork } from './HeroArtwork';
+import { Users, ArrowRight, UserPlus } from 'lucide-react';
 
-export const Hero: React.FC = () => {
+interface HeroProps {
+  onNavigatePeople?: () => void;
+  onOpenCreateProfile?: () => void;
+}
+
+export const Hero: React.FC<HeroProps> = ({
+  onNavigatePeople,
+  onOpenCreateProfile,
+}) => {
   return (
     <section className="relative w-full pt-10 sm:pt-14 pb-16 sm:pb-20 overflow-hidden bg-[#FFFFFF] border-b border-[#D8D8D8] tech-grid">
       
@@ -47,8 +56,36 @@ export const Hero: React.FC = () => {
           </div>
           
           <p className="font-sans text-sm sm:text-base text-[#444444] leading-relaxed max-w-xl mx-auto">
-            A personal Web3 event command center tracking Devcon 8, India Blockchain Week, ETHGlobal Mumbai and events across Mumbai.
+            A personal Web3 event command center tracking Devcon 8, India Blockchain Week, ETHGlobal Mumbai and connecting builders worldwide.
           </p>
+        </div>
+
+        {/* PRIMARY HERO CALL-TO-ACTION: PEOPLE & CONNECT // BOLD & ANIMATED */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5 max-w-lg mx-auto">
+          <button
+            type="button"
+            onClick={onNavigatePeople}
+            className="w-full sm:w-auto group relative inline-flex items-center justify-center gap-2.5 bg-[#000000] text-[#FFFFFF] hover:bg-[#1A1A1A] px-7 py-4 border-2 border-[#000000] font-heading font-black text-sm sm:text-base uppercase tracking-wider transition-all duration-200 shadow-[5px_5px_0px_0px_rgba(249,115,22,1)] hover:shadow-[7px_7px_0px_0px_rgba(34,197,94,1)] active:translate-x-1 active:translate-y-1 active:shadow-none cursor-pointer"
+          >
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-80" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#22C55E]" />
+            </span>
+            <Users className="w-5 h-5 text-[#22C55E] group-hover:scale-110 transition-transform" />
+            <span className="tracking-wide">PEOPLE & CONNECT</span>
+            <ArrowRight className="w-4 h-4 text-[#F97316] group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {onOpenCreateProfile && (
+            <button
+              type="button"
+              onClick={onOpenCreateProfile}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#FFFFFF] text-[#000000] hover:bg-[#F5F5F5] px-6 py-4 border-2 border-[#000000] font-mono font-bold text-xs sm:text-sm uppercase tracking-wide transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4 text-[#000000]" />
+              <span>+ CREATE YOUR PROFILE</span>
+            </button>
+          )}
         </div>
 
         {/* Editorial Countdown */}

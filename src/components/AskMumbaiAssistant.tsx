@@ -9,7 +9,8 @@ import {
   ArrowUpRight,
   Globe,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Users
 } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
@@ -29,6 +30,7 @@ interface AskMumbaiAssistantProps {
   notes: Record<string, any>;
   onSelectEvent: (eventId: string) => void;
   onSelectPerson: (personId: string) => void;
+  onNavigatePeople?: () => void;
 }
 
 const STORAGE_CHAT_KEY = 'mumbai_onchain_ai_chat_history_v2';
@@ -42,6 +44,7 @@ export const AskMumbaiAssistant: React.FC<AskMumbaiAssistantProps> = ({
   notes,
   onSelectEvent,
   onSelectPerson,
+  onNavigatePeople,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>('');
@@ -209,6 +212,28 @@ export const AskMumbaiAssistant: React.FC<AskMumbaiAssistantProps> = ({
 
   return (
     <>
+      {/* ────────────────────────────────────────────────────────────────────
+          0. FLOATING "PEOPLE & CONNECT" BOLD ANIMATED BUTTON (Above Chatbot)
+          ──────────────────────────────────────────────────────────────────── */}
+      {!isOpen && onNavigatePeople && (
+        <div className="fixed bottom-32 right-3.5 sm:bottom-20 sm:right-6 z-40 select-none animate-bounce duration-1000">
+          <button
+            type="button"
+            onClick={onNavigatePeople}
+            className="group relative flex items-center gap-2 px-4 py-2.5 rounded-full font-heading font-black text-xs uppercase tracking-wider bg-[#000000] text-[#FFFFFF] border-2 border-[#22C55E] shadow-[0_0_15px_rgba(34,197,94,0.5)] hover:shadow-[0_0_25px_rgba(34,197,94,0.85)] hover:border-[#22C55E] hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+            title="Open People & Connect Community Hub"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-80" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#22C55E]" />
+            </span>
+            <Users className="w-4 h-4 text-[#22C55E] group-hover:scale-110 transition-transform" />
+            <span className="font-black text-[#FFFFFF] tracking-wider">PEOPLE & CONNECT</span>
+            <ArrowUpRight className="w-3.5 h-3.5 text-[#22C55E] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </button>
+        </div>
+      )}
+
       {/* ────────────────────────────────────────────────────────────────────
           1. SLEEK FLOATING TRIGGER BUTTON (Bottom-Right)
           ──────────────────────────────────────────────────────────────────── */}

@@ -113,7 +113,10 @@ export function App() {
       <main className="flex-1 pb-20 md:pb-12">
         {activeTab === 'home' && (
           <div className="space-y-12">
-            <Hero />
+            <Hero
+              onNavigatePeople={() => setActiveTab('people')}
+              onOpenCreateProfile={() => setIsEditModalOpen(true)}
+            />
 
             {/* Dynamic People / Community Ticker (Positioned directly above Next Up On Calendar) */}
             <PeopleMarquee onSelectPerson={(id) => setSelectedPersonId(id)} />
@@ -277,6 +280,7 @@ export function App() {
         notes={notes}
         onSelectEvent={(id) => setSelectedEventId(id)}
         onSelectPerson={(id) => setSelectedPersonId(id)}
+        onNavigatePeople={() => setActiveTab('people')}
       />
 
       {/* Footer */}
