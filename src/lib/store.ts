@@ -35,7 +35,7 @@ export function useAppStore() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeDateFilter, setActiveDateFilter] = useState<string>('ALL');
 
-  const [activeTab, setActiveTabState] = useState<'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator'>(() => {
+  const [activeTab, setActiveTabState] = useState<'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'mumbai8'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
@@ -43,6 +43,7 @@ export function useAppStore() {
         window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
         return 'home';
       }
+      if (path.includes('mumbai8') || path.includes('train') || hash.includes('mumbai8') || hash.includes('train')) return 'mumbai8';
       if (path.includes('people') || hash.includes('people')) return 'people';
       if (path.includes('timeline') || hash.includes('timeline')) return 'timeline';
       if (path.includes('events') || hash.includes('events')) return 'events';
@@ -52,7 +53,7 @@ export function useAppStore() {
     return 'home';
   });
 
-  const setActiveTab = (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator') => {
+  const setActiveTab = (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'mumbai8') => {
     if (tab === 'id-generator') {
       window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
       return;
@@ -72,6 +73,7 @@ export function useAppStore() {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       if (path.includes('id-generator') || hash.includes('id-generator') || path.includes('/id') || hash.includes('#id')) setActiveTabState('id-generator');
+      else if (path.includes('mumbai8') || path.includes('train') || hash.includes('mumbai8') || hash.includes('train')) setActiveTabState('mumbai8');
       else if (path.includes('people') || hash.includes('people')) setActiveTabState('people');
       else if (path.includes('timeline') || hash.includes('timeline')) setActiveTabState('timeline');
       else if (path.includes('events') || hash.includes('events')) setActiveTabState('events');

@@ -2,8 +2,8 @@ import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator';
-  setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator') => void;
+  activeTab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'mumbai8';
+  setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'mumbai8') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
@@ -43,6 +43,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             }`}
           >
             HOME
+          </button>
+
+          {/* MUMBAI8 Feature Tab */}
+          <button
+            onClick={() => setActiveTab('mumbai8')}
+            className={`px-3 py-1.5 transition-all border-b-2 font-bold flex items-center gap-1.5 ${
+              activeTab === 'mumbai8'
+                ? 'border-[#00F0FF] text-[#008080] bg-cyan-50/80 shadow-sm'
+                : 'border-transparent text-[#006677] hover:text-[#000000] hover:bg-slate-50'
+            }`}
+            title="MUMBAI8 — The Onchain Express"
+          >
+            <span>🚄 MUMBAI8</span>
+            <span className="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse" />
           </button>
 
           <button
