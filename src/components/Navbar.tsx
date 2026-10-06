@@ -90,17 +90,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             MAP
           </button>
 
-          <button
-            onClick={() => setActiveTab('id-generator')}
-            className={`px-3 py-1.5 transition-all border-b-2 font-bold flex items-center gap-1.5 ${
-              activeTab === 'id-generator'
-                ? 'border-[#0052FF] text-[#0052FF] bg-[#0052FF]/5'
-                : 'border-transparent text-[#555555] hover:text-[#0052FF]'
-            }`}
+          <a
+            href="https://devcon8-id.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 transition-all border-b-2 border-transparent font-bold flex items-center gap-1.5 text-[#000000] hover:text-[#0052FF] hover:border-[#0052FF] group"
+            title="Open Devcon 8 ID Generator web app"
           >
             <span>ID GENERATOR</span>
             <span className="w-2 h-2 rounded-full bg-[#5FE3D6] animate-pulse" />
-          </button>
+            <ArrowUpRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </a>
         </nav>
 
         {/* Right: Black Pill Button (as in the reference screenshots) */}

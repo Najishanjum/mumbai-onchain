@@ -28,6 +28,7 @@ export const Footer: React.FC = () => {
               </span>
               <ul className="space-y-1.5 text-[#444444]">
                 <li><a href="https://devcon.org/en/" target="_blank" rel="noopener noreferrer" className="hover:underline">DEVCON 8 INDIA ↗</a></li>
+                <li><a href="https://devcon8-id.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:underline text-[#0052FF] font-bold">DEVCON 8 ID GENERATOR ↗</a></li>
                 <li><a href="https://ethglobal.com/events/mumbai" target="_blank" rel="noopener noreferrer" className="hover:underline">ETHGLOBAL MUMBAI ↗</a></li>
                 <li><a href="https://indiablockchainweek.com/" target="_blank" rel="noopener noreferrer" className="hover:underline">INDIA BLOCKCHAIN WEEK ↗</a></li>
                 <li><a href="https://ethereum.org" target="_blank" rel="noopener noreferrer" className="hover:underline">ETHEREUM FOUNDATION ↗</a></li>

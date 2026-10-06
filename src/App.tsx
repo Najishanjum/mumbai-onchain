@@ -22,7 +22,6 @@ import { SideEvents } from './components/SideEvents';
 import { PeopleDirectory } from './components/PeopleDirectory';
 import { Footer } from './components/Footer';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
-import { IDGeneratorPage } from './components/id-generator/IDGeneratorPage';
 import { AlertCircle } from 'lucide-react';
 
 export function App() {
@@ -64,8 +63,11 @@ export function App() {
       if (personId) {
         setSelectedPersonId(personId);
         setActiveTab('people');
+      } else if (tabParam === 'id-generator') {
+        window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
+        setActiveTab('home');
       } else if (tabParam) {
-        if (['home', 'timeline', 'events', 'people', 'map', 'mymumbai', 'id-generator'].includes(tabParam)) {
+        if (['home', 'timeline', 'events', 'people', 'map', 'mymumbai'].includes(tabParam)) {
           setActiveTab(tabParam as any);
         }
       }
@@ -227,10 +229,6 @@ export function App() {
               onUpdateStatus={updateEventStatus}
             />
           </div>
-        )}
-
-        {activeTab === 'id-generator' && (
-          <IDGeneratorPage />
         )}
       </main>
 

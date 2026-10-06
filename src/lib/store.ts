@@ -39,7 +39,10 @@ export function useAppStore() {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      if (path.includes('id-generator') || hash.includes('id-generator') || path.includes('/id') || hash.includes('#id')) return 'id-generator';
+      if (path.includes('id-generator') || hash.includes('id-generator') || path.includes('/id') || hash.includes('#id')) {
+        window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
+        return 'home';
+      }
       if (path.includes('people') || hash.includes('people')) return 'people';
       if (path.includes('timeline') || hash.includes('timeline')) return 'timeline';
       if (path.includes('events') || hash.includes('events')) return 'events';
@@ -50,6 +53,10 @@ export function useAppStore() {
   });
 
   const setActiveTab = (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator') => {
+    if (tab === 'id-generator') {
+      window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
+      return;
+    }
     setActiveTabState(tab);
     if (typeof window !== 'undefined') {
       const newPath = tab === 'home' ? '/' : `/${tab}`;

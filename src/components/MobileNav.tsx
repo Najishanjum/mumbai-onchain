@@ -70,18 +70,17 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, setActiveTab })
           <span className="text-[8px] font-mono tracking-wider">MAP</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('id-generator')}
-          className={`flex flex-col items-center justify-center py-2 px-0.5 transition-all relative ${
-            activeTab === 'id-generator'
-              ? 'text-[#0052FF] font-bold'
-              : 'text-[#777777] hover:text-[#0052FF]'
-          }`}
+        <a
+          href="https://devcon8-id.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center justify-center py-2 px-0.5 transition-all relative text-[#0052FF] hover:text-[#000000]"
+          title="Open Devcon 8 ID Generator web app"
         >
           <span className="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-[#5FE3D6] animate-ping" />
           <Sparkles className="w-4 h-4 mb-0.5" />
-          <span className="text-[8px] font-mono tracking-wider">ID GEN</span>
-        </button>
+          <span className="text-[8px] font-mono tracking-wider font-bold">ID GEN ↗</span>
+        </a>
       </div>
     </div>
   );
