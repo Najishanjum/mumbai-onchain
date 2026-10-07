@@ -37,3 +37,4 @@ See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rule
 
 f you are developing a production application, we recommend enabling type-aware lint rules by installing
 letys crat connect 
+and explore the devcon
