@@ -47,11 +47,10 @@ export const PersonCard: React.FC<PersonCardProps> = ({
 
   return (
     <div
-      className={`group relative bg-[#FFFFFF] border p-6 flex flex-col justify-between transition-all duration-200 select-none overflow-hidden ${
-        isCurrentUser
+      className={`group relative bg-[#FFFFFF] border p-6 flex flex-col justify-between transition-all duration-200 select-none overflow-hidden ${isCurrentUser
           ? 'border-2 border-[#000000] shadow-sm'
           : 'border-[#D8D8D8] hover:border-[#000000]'
-      }`}
+        }`}
     >
       {/* Subtle Background Numbering */}
       <div className="absolute right-2 -bottom-4 font-mono font-black text-7xl sm:text-8xl text-[#F2F2F2] group-hover:text-[#EAEAEA] transition-colors pointer-events-none select-none z-0">
@@ -218,35 +217,34 @@ export const PersonCard: React.FC<PersonCardProps> = ({
               <span>EDIT</span>
             </button>
           ) : (
-          <button
-            onClick={() => onCycleConnection(person.id)}
-            title="Click to toggle status: CONNECT → REQUESTED → CONNECTED"
-            className={`inline-flex items-center gap-1.5 px-3 py-1 font-mono text-xs font-bold transition-all duration-150 border active:scale-95 ${
-              connectionStatus === 'CONNECTED'
-                ? 'bg-[#15803D] border-[#15803D] text-[#FFFFFF] hover:bg-[#166534]'
-                : connectionStatus === 'REQUESTED'
-                ? 'bg-[#D97706] border-[#D97706] text-[#FFFFFF] hover:bg-[#B45309]'
-                : 'bg-[#000000] border-[#000000] text-[#FFFFFF] hover:bg-[#222222]'
-            }`}
-          >
-            {connectionStatus === 'CONNECTED' ? (
-              <>
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>CONNECTED</span>
-              </>
-            ) : connectionStatus === 'REQUESTED' ? (
-              <>
-                <Clock className="w-3.5 h-3.5" />
-                <span>REQUESTED</span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-3.5 h-3.5" />
-                <span>CONNECT</span>
-              </>
-            )}
-          </button>
-        )}
+            <button
+              onClick={() => onCycleConnection(person.id)}
+              title="Click to toggle status: CONNECT → REQUESTED → CONNECTED"
+              className={`inline-flex items-center gap-1.5 px-3 py-1 font-mono text-xs font-bold transition-all duration-150 border active:scale-95 ${connectionStatus === 'CONNECTED'
+                  ? 'bg-[#15803D] border-[#15803D] text-[#FFFFFF] hover:bg-[#166534]'
+                  : connectionStatus === 'REQUESTED'
+                    ? 'bg-[#D97706] border-[#D97706] text-[#FFFFFF] hover:bg-[#B45309]'
+                    : 'bg-[#000000] border-[#000000] text-[#FFFFFF] hover:bg-[#222222]'
+                }`}
+            >
+              {connectionStatus === 'CONNECTED' ? (
+                <>
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>CONNECTED</span>
+                </>
+              ) : connectionStatus === 'REQUESTED' ? (
+                <>
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>REQUESTED</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>CONNECT</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

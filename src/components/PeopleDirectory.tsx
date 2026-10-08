@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
 import { usePeopleStore } from '../lib/usePeopleStore';
+import { useSnapStore } from '../lib/useSnapStore';
+import { calculateMatchScore } from '../lib/matchingEngine';
 import type { EventItem } from '../types/event';
 import type { PersonCategory, PersonProfile } from '../types/person';
 import { PersonCard } from './PersonCard';
 import { PersonAvatar } from './PersonAvatar';
 import { ProfileQrModal } from './ProfileQrModal';
 import { ProfileScannerModal } from './ProfileScannerModal';
+import { BuilderSpeedMatch } from './BuilderSpeedMatch';
+import { SurpriseMeModal } from './SurpriseMeModal';
 import {
   Search,
-  UserPlus,
   Users,
+  Camera,
+  QrCode,
+  Sparkles,
+  RefreshCw,
+  Compass,
+  Flame,
+  UserPlus,
   UserCheck,
   Clock,
   X,
-  Sparkles,
-  AlertCircle,
-  RefreshCw,
-  Camera,
-  QrCode,
 } from 'lucide-react';
 
 interface PeopleDirectoryProps {
@@ -35,9 +40,15 @@ const CATEGORY_TABS: Array<'ALL' | PersonCategory> = [
   'Other',
 ];
 
-export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
-  events,
-}) => {
+const FLAGSHIP_EVENT_CHIPS = [
+  { id: 'ALL', label: 'ALL EVENTS' },
+  { id: 'devcon-8-india', label: '🎟️ DEVCON 8' },
+  { id: 'india-blockchain-week-2026', label: '🎟️ IBW MUMBAI' },
+  { id: 'ethglobal-mumbai-2026', label: '🎟️ ETHGLOBAL' },
+  { id: 'ethereum-cypherpunk-congress-3', label: '🎟️ CYPHERPUNK' },
+];
+
+export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ events }) => {
   const {
     people,
     myProfile,
@@ -45,7 +56,6 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
     filteredPeople,
     stats,
     isSyncing,
-    refreshProfiles,
     setSelectedPersonId,
     setIsEditModalOpen,
     setFilters,
@@ -53,8 +63,15 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
     getConnectionStatus,
   } = usePeopleStore();
 
+  const {
+    recentSnaps,
+    setActiveSnapForViewer,
+    setIsAddSnapModalOpen,
+  } = useSnapStore();
+
   const [qrTargetPerson, setQrTargetPerson] = useState<PersonProfile | null>(null);
   const [isScannerModalOpen, setIsScannerModalOpen] = useState<boolean>(false);
+  const [isSurpriseModalOpen, setIsSurpriseModalOpen] = useState<boolean>(false);
 
   // Helper to resolve event name
   const getEventTitleById = (id: string): string => {
@@ -62,15 +79,29 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
     return found ? found.title : id;
   };
 
+  // Top 5 Highest Quality Matches for "WHO SHOULD I MEET?"
+  const topMatches = React.useMemo(() => {
+    return people
+      .filter(p => !p.isCurrentUser && (!myProfile || p.id !== myProfile.id))
+      .map(p => ({
+        person: p,
+        match: calculateMatchScore(myProfile, p),
+      }))
+      .sort((a, b) => b.match.overall - a.match.overall)
+      .slice(0, 5);
+  }, [people, myProfile]);
+
   return (
-    <div className="space-y-8 select-none">
+    <div className="space-y-10 select-none pb-12">
       
-      {/* Top Banner / Hero Header */}
-      <div className="bg-[#FFFFFF] border-2 border-[#000000] p-6 sm:p-8 space-y-6">
+      {/* ──────────────────────────────────────────────────────────────────
+          PAGE HEADER
+          ────────────────────────────────────────────────────────────────── */}
+      <div className="bg-[#FFFFFF] border-2 border-[#000000] p-6 sm:p-8 space-y-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#EAEAEA] pb-6">
           <div className="space-y-1.5">
             <div className="font-mono text-xs uppercase tracking-widest flex items-center gap-2 flex-wrap">
-              <span className="text-[#666666]">COMMUNITY DIRECTORY // 01—08 NOV 2026</span>
+              <span className="text-[#666666]">COMMUNITY NETWORKING // 01—08 NOV 2026</span>
               <span className="text-[#CCCCCC]">•</span>
               <span className="inline-flex items-center gap-1.5 bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-0.5 text-[#15803D] font-bold">
                 <span className="w-2 h-2 bg-[#22C55E] rounded-full inline-block animate-pulse" />
@@ -78,43 +109,51 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
                 {isSyncing && <RefreshCw className="w-3 h-3 animate-spin text-[#15803D]" />}
               </span>
             </div>
-            <h1 className="font-heading font-black text-3xl sm:text-5xl text-[#050505] uppercase tracking-tight">
+            <h1 className="font-heading font-black text-4xl sm:text-6xl text-[#050505] uppercase tracking-tight">
               PEOPLE & CONNECT
             </h1>
-            <p className="font-mono text-xs text-[#555555] max-w-2xl">
-              Connect with developers, founders, volunteers, and researchers across Devcon 8, India Blockchain Week, and side events. Scan QR passes to immediately connect and explore social profiles.
+            <p className="font-mono text-xs sm:text-sm text-[#555555] max-w-2xl">
+              Find builders. Find your people. Connect via algorithmic builder compatibility, exchange digital QR passes, and share live event Snaps.
             </p>
           </div>
 
-          {/* Action Buttons: Camera Scanner + Create/Edit/QR Pass */}
+          {/* Action Buttons: Add Snap + Camera Scanner + My QR Pass */}
           <div className="shrink-0 flex items-center flex-wrap gap-2.5">
+            {/* + Add Snap Quick Button */}
+            <button
+              type="button"
+              onClick={() => setIsAddSnapModalOpen(true)}
+              className="inline-flex items-center gap-2 bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] border-2 border-[#000000] px-4 py-3 font-heading font-black text-xs sm:text-sm tracking-wide transition-all shadow-[3px_3px_0px_0px_rgba(249,115,22,1)] active:scale-95 cursor-pointer"
+            >
+              <Camera className="w-4 h-4 text-[#22C55E]" />
+              <span>+ ADD SNAP</span>
+            </button>
+
             {/* Open Camera Scanner Button */}
             <button
               type="button"
               onClick={() => setIsScannerModalOpen(true)}
-              className="inline-flex items-center gap-2 bg-[#22C55E] hover:bg-[#16a34a] text-[#000000] hover:text-[#FFFFFF] border-2 border-[#000000] px-4 py-3 font-heading font-black text-xs sm:text-sm tracking-wide transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] group"
+              className="inline-flex items-center gap-2 bg-[#22C55E] hover:bg-[#16a34a] text-[#000000] hover:text-[#FFFFFF] border-2 border-[#000000] px-4 py-3 font-heading font-black text-xs sm:text-sm tracking-wide transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer group"
               title="Open camera scanner to scan any attendee's QR Pass"
             >
-              <Camera className="w-4 h-4 text-[#000000] group-hover:text-[#FFFFFF] animate-pulse" />
+              <QrCode className="w-4 h-4" />
               <span>SCAN QR PROFILE</span>
             </button>
 
             {myProfile ? (
               <div className="flex items-center gap-2">
-                {/* My QR Pass Quick Button */}
                 <button
                   type="button"
                   onClick={() => setQrTargetPerson(myProfile)}
-                  className="inline-flex items-center gap-1.5 bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] border-2 border-[#000000] px-3.5 py-3 font-mono text-xs font-black transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:scale-95"
+                  className="inline-flex items-center gap-1.5 bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] border-2 border-[#000000] px-3.5 py-3 font-mono text-xs font-black transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:scale-95 cursor-pointer"
                   title="Show your QR Connect Pass"
                 >
-                  <QrCode className="w-4 h-4" />
                   <span>MY QR PASS</span>
                 </button>
 
                 <div
                   onClick={() => setIsEditModalOpen(true)}
-                  className="cursor-pointer border-2 border-[#000000] p-2 bg-[#FAFAFA] hover:bg-[#F0F0F0] flex items-center gap-3 transition-colors shadow-sm"
+                  className="cursor-pointer border-2 border-[#000000] p-1.5 bg-[#FAFAFA] hover:bg-[#F0F0F0] flex items-center gap-2 transition-colors shadow-xs"
                   title="Edit your profile"
                 >
                   <PersonAvatar
@@ -122,282 +161,469 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({
                     avatarUrl={myProfile.avatar}
                     size="sm"
                   />
-                  <div className="font-mono text-xs pr-2">
-                    <div className="font-black text-[#000000] truncate max-w-[100px] sm:max-w-[130px]">
-                      {myProfile.name}
-                    </div>
-                    <div className="text-[10px] text-[#666666] flex items-center gap-1">
-                      <span>{myProfile.category}</span>
-                      <span>•</span>
-                      <span className="font-bold underline">EDIT</span>
-                    </div>
+                  <div className="hidden lg:block text-left font-mono pr-2">
+                    <div className="text-xs font-black truncate max-w-[120px]">{myProfile.name}</div>
+                    <div className="text-[10px] text-[#16a34a] font-bold">EDIT PROFILE</div>
                   </div>
                 </div>
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] px-5 py-3 font-heading font-black text-xs sm:text-sm tracking-wide transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] group"
+                className="inline-flex items-center gap-2 bg-[#FFFFFF] hover:bg-[#F5F5F5] text-[#000000] border-2 border-[#000000] px-4 py-3 font-mono text-xs font-black tracking-wide transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:scale-95 cursor-pointer"
               >
-                <UserPlus className="w-4 h-4 text-[#FFFFFF]" />
-                <span>CREATE YOUR PROFILE</span>
+                <span>+ CREATE PROFILE</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Live Metrics Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-          <div className="p-3 bg-[#FAFAFA] border border-[#E5E5E5] space-y-0.5">
-            <div className="text-[10px] text-[#777777] uppercase font-bold flex items-center gap-1">
-              <Users className="w-3 h-3 text-[#000000]" />
-              <span>COMMUNITY MEMBERS</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-[#000000]">
-              {stats.total}
-            </div>
+        {/* Telemetry Stats Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 font-mono text-xs">
+          <div className="p-3 bg-[#FAFAFA] border border-[#000000]">
+            <div className="text-[10px] text-[#666666] uppercase">TOTAL PROFILES</div>
+            <div className="text-xl font-black text-[#000000] font-heading">{stats.total}</div>
           </div>
-
-          <div className="p-3 bg-[#F0FDF4] border border-[#BBF7D0] space-y-0.5">
-            <div className="text-[10px] text-[#166534] uppercase font-bold flex items-center gap-1">
-              <UserCheck className="w-3 h-3 text-[#166534]" />
-              <span>MY CONNECTIONS</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-[#166534]">
-              {stats.connectedCount}
-            </div>
+          <div className="p-3 bg-[#F0FDF4] border border-[#22C55E]">
+            <div className="text-[10px] text-[#15803D] uppercase">CONNECTED</div>
+            <div className="text-xl font-black text-[#15803D] font-heading">{stats.connectedCount}</div>
           </div>
-
-          <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] space-y-0.5">
-            <div className="text-[10px] text-[#B45309] uppercase font-bold flex items-center gap-1">
-              <Clock className="w-3 h-3 text-[#B45309]" />
-              <span>REQUESTS SENT</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-[#B45309]">
-              {stats.requestedCount}
-            </div>
+          <div className="p-3 bg-[#FFFBEB] border border-[#F59E0B]">
+            <div className="text-[10px] text-[#B45309] uppercase">PENDING</div>
+            <div className="text-xl font-black text-[#B45309] font-heading">{stats.requestedCount}</div>
           </div>
-
-          <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] space-y-0.5">
-            <div className="text-[10px] text-[#1D4ED8] uppercase font-bold flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-[#1D4ED8]" />
-              <span>BUILDERS & FOUNDERS</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-[#1D4ED8]">
-              {stats.buildersCount + (stats.total - stats.buildersCount - stats.volunteersCount - stats.studentsCount)}
-            </div>
+          <div className="p-3 bg-[#FAFAFA] border border-[#000000]">
+            <div className="text-[10px] text-[#666666] uppercase">BUILDERS</div>
+            <div className="text-xl font-black text-[#000000] font-heading">{stats.buildersCount}</div>
           </div>
-        </div>
-
-        {/* Live sync indicator */}
-        <div className="flex items-center justify-between text-[11px] font-mono text-[#15803D] bg-[#F0FDF4] border border-[#BBF7D0] px-3 py-1.5">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-[#22C55E] rounded-full inline-block animate-pulse" />
-            <span>GLOBAL DIRECTORY // SYNCS AUTOMATICALLY ACROSS ALL DEVICES</span>
-          </span>
-          <button
-            type="button"
-            onClick={() => refreshProfiles()}
-            className="underline font-bold hover:text-[#166534] flex items-center gap-1 cursor-pointer"
-          >
-            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
+          <div className="p-3 bg-[#FAFAFA] border border-[#000000]">
+            <div className="text-[10px] text-[#666666] uppercase">VOLUNTEERS</div>
+            <div className="text-xl font-black text-[#000000] font-heading">{stats.volunteersCount}</div>
+          </div>
+          <div className="p-3 bg-[#FAFAFA] border border-[#000000]">
+            <div className="text-[10px] text-[#666666] uppercase">COMMUNITY SNAPS</div>
+            <div className="text-xl font-black text-[#F97316] font-heading">{recentSnaps.length}</div>
+          </div>
         </div>
       </div>
 
-      {/* Filter and Search Controls */}
-      <div className="bg-[#FFFFFF] border border-[#000000] p-4 sm:p-6 space-y-4">
-        
-        {/* Row 1: Search + Connection Status Tabs */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-          
-          {/* Search Box */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* ──────────────────────────────────────────────────────────────────
+          SECTION 1: ✦ WHO SHOULD I MEET? (Top 5 Personalized Matches)
+          ────────────────────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-end justify-between border-b-2 border-[#000000] pb-2">
+          <div>
+            <div className="font-mono text-[10px] text-[#F97316] uppercase font-bold tracking-widest flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 fill-[#F97316]" />
+              <span>ALGORITHMIC BUILDER COMPATIBILITY</span>
+            </div>
+            <h2 className="font-heading font-black text-2xl sm:text-3xl text-[#000000] uppercase tracking-tight">
+              ✦ WHO SHOULD I MEET?
+            </h2>
+            <p className="font-mono text-xs text-[#555555]">
+              Find people you'll actually want to talk to. Ranked by shared technical interests, dev tools, and active event attendance.
+            </p>
+          </div>
+        </div>
+
+        {/* Top 5 Cards Horizontal Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {topMatches.map(({ person, match }) => {
+            const status = getConnectionStatus(person.id);
+            return (
+              <div
+                key={person.id}
+                className="bg-[#FFFFFF] border-2 border-[#000000] p-4 flex flex-col justify-between space-y-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] transition-all hover:-translate-y-0.5"
+              >
+                {/* Score Pill & Category */}
+                <div className="flex items-center justify-between border-b border-[#F0F0F0] pb-2">
+                  <span className="font-mono text-xs font-black px-2 py-0.5 bg-[#FFF7ED] text-[#C2410C] border border-[#FDBA74]">
+                    {match.categoryEmoji} {match.overall}% MATCH
+                  </span>
+                  <span className="font-mono text-[10px] text-[#666666] uppercase">
+                    {person.category}
+                  </span>
+                </div>
+
+                {/* Identity */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2.5">
+                    {person.avatar ? (
+                      <img
+                        src={person.avatar}
+                        alt={person.name}
+                        className="w-10 h-10 rounded-full object-cover border border-[#000000] shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-black text-white font-bold flex items-center justify-center shrink-0">
+                        {person.name.charAt(0)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h4
+                        onClick={() => setSelectedPersonId(person.id)}
+                        className="font-heading font-black text-sm text-[#000000] truncate cursor-pointer hover:underline"
+                      >
+                        {person.name}
+                      </h4>
+                      <div className="font-mono text-[10px] text-[#666666] truncate">
+                        {person.city} • {person.headline ? person.headline.split('·')[0].trim() : person.category}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skills tags */}
+                  {person.skills && person.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {person.skills.slice(0, 3).map((sk, idx) => (
+                        <span key={idx} className="font-mono text-[9px] bg-[#FAFAFA] border border-[#D4D4D4] px-1.5 py-0.5 text-[#333333]">
+                          {sk}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Events attending */}
+                  <div className="font-mono text-[10px] text-[#444444] truncate flex items-center gap-1">
+                    <span>🎟️</span>
+                    <span className="truncate">
+                      {person.attendingEvents.map(e => getEventTitleById(e).split(' ')[0]).slice(0, 2).join(' · ')}
+                    </span>
+                  </div>
+
+                  {/* Why you match */}
+                  <div className="bg-[#FAF5FF] border border-[#E9D5FF] p-2 rounded text-[10.5px] font-sans text-[#581C87] space-y-0.5">
+                    <div className="font-mono text-[9px] font-bold uppercase text-[#7E22CE]">WHY YOU MATCH:</div>
+                    <div className="line-clamp-2">
+                      {match.reasons.length > 0 ? match.reasons[0] : 'High Builder Compatibility'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Actions */}
+                <div className="pt-2 border-t border-[#F0F0F0] flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPersonId(person.id)}
+                    className="flex-1 py-1.5 px-2 bg-[#FFFFFF] hover:bg-[#F5F5F5] text-black border border-[#000000] font-mono text-[10.5px] font-bold text-center transition-colors cursor-pointer"
+                  >
+                    VIEW
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => cycleConnection(person.id)}
+                    className={`py-1.5 px-2.5 font-mono text-[10.5px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                      status === 'CONNECTED'
+                        ? 'bg-[#22C55E] text-black border-[#000000]'
+                        : status === 'REQUESTED'
+                        ? 'bg-[#FEF08A] text-black border-[#000000]'
+                        : 'bg-[#000000] text-white border-[#000000] hover:bg-[#222222]'
+                    }`}
+                  >
+                    {status === 'CONNECTED' ? (
+                      <UserCheck className="w-3 h-3" />
+                    ) : status === 'REQUESTED' ? (
+                      <Clock className="w-3 h-3" />
+                    ) : (
+                      <UserPlus className="w-3 h-3" />
+                    )}
+                    <span>{status === 'CONNECTED' ? 'YES' : status === 'REQUESTED' ? 'WAIT' : 'CONNECT'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────────────────────────
+          SECTION 2: ⚡ LIVE NETWORKING & SURPRISE ME
+          ────────────────────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b-2 border-[#000000] pb-2">
+          <div>
+            <div className="font-mono text-[10px] text-[#22C55E] uppercase font-bold tracking-widest flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-ping" />
+              <span>ACTIVE DISCOVERY CHANNELS</span>
+            </div>
+            <h2 className="font-heading font-black text-2xl sm:text-3xl text-[#000000] uppercase tracking-tight">
+              ⚡ LIVE NETWORKING
+            </h2>
+            <p className="font-mono text-xs text-[#555555]">
+              People currently looking to connect in Mumbai. Join the 15-minute round-robin or discover unexpected builder connections.
+            </p>
+          </div>
+
+          {/* ✦ SURPRISE ME button */}
+          <button
+            type="button"
+            onClick={() => setIsSurpriseModalOpen(true)}
+            className="px-4 py-2.5 bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] border-2 border-[#000000] font-mono text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-[3px_3px_0px_0px_rgba(249,115,22,1)] active:scale-95 cursor-pointer"
+          >
+            <Compass className="w-4 h-4 text-[#F97316]" />
+            <span>✦ SURPRISE ME</span>
+          </button>
+        </div>
+
+        {/* Builder Speed Match Countdown Widget */}
+        <BuilderSpeedMatch onOpenProfile={(id) => setSelectedPersonId(id)} />
+      </section>
+
+      {/* ──────────────────────────────────────────────────────────────────
+          SECTION 3: 📸 RECENT SNAPS (Visual Event Memory Stream)
+          ────────────────────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between border-b-2 border-[#000000] pb-2">
+          <div>
+            <div className="font-mono text-[10px] text-[#A855F7] uppercase font-bold tracking-widest flex items-center gap-1.5">
+              <Camera className="w-3.5 h-3.5 text-[#A855F7]" />
+              <span>VISUAL EVENT MEMORY FEED</span>
+            </div>
+            <h2 className="font-heading font-black text-2xl sm:text-3xl text-[#000000] uppercase tracking-tight">
+              📸 RECENT SNAPS
+            </h2>
+            <p className="font-mono text-xs text-[#555555]">
+              See Mumbai Onchain Week through the eyes of the people attending it. Click any snap to view memory & builder profile.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsAddSnapModalOpen(true)}
+            className="px-3.5 py-2 bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+          >
+            <Camera className="w-3.5 h-3.5 text-[#22C55E]" />
+            <span>+ ADD SNAP</span>
+          </button>
+        </div>
+
+        {/* Snaps Grid (Horizontal on mobile, 4-col on desktop) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+          {recentSnaps.slice(0, 8).map(snap => (
+            <div
+              key={snap.id}
+              onClick={() => setActiveSnapForViewer(snap)}
+              className="group bg-[#FFFFFF] border-2 border-[#000000] overflow-hidden cursor-pointer shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 flex flex-col justify-between"
+            >
+              <div className="relative aspect-4/3 bg-[#000000] overflow-hidden">
+                <img
+                  src={snap.thumbnailUrl || snap.imageUrl}
+                  alt={snap.caption || 'Event Snap'}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute top-2 right-2 bg-black/75 px-1.5 py-0.5 rounded text-[9.5px] font-mono text-white flex items-center gap-1">
+                  <Flame className="w-3 h-3 text-[#F97316] fill-[#F97316]" />
+                  <span>{snap.reactions.fire + snap.reactions.heart}</span>
+                </div>
+              </div>
+
+              {/* Creator & Event metadata below image */}
+              <div className="p-2.5 bg-[#FFFFFF] border-t border-[#000000] space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-heading font-black text-[#000000] truncate">
+                    {snap.authorName}
+                  </span>
+                  <span className="font-mono text-[10px] text-[#666666] shrink-0">
+                    {snap.date.split(',')[0]}
+                  </span>
+                </div>
+                <div className="font-mono text-[10.5px] text-[#22C55E] truncate font-bold">
+                  {snap.eventName || 'Devcon 8'}
+                </div>
+                {snap.caption && (
+                  <p className="font-sans text-[11px] text-[#555555] line-clamp-1 italic">
+                    "{snap.caption}"
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────────────────────────
+          SECTION 4: 🎟️ AT YOUR EVENTS (Event Filter Quick Bar)
+          ────────────────────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="border-b-2 border-[#000000] pb-2">
+          <div className="font-mono text-[10px] text-[#666666] uppercase font-bold tracking-widest">
+            SESSION FILTER
+          </div>
+          <h2 className="font-heading font-black text-2xl text-[#000000] uppercase tracking-tight">
+            🎟️ AT YOUR EVENTS
+          </h2>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {FLAGSHIP_EVENT_CHIPS.map(chip => (
+            <button
+              key={chip.id}
+              type="button"
+              onClick={() => setFilters({ ...filters, eventId: chip.id })}
+              className={`px-3 py-2 font-mono text-xs font-bold border-2 transition-all cursor-pointer ${
+                filters.eventId === chip.id
+                  ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  : 'bg-[#FFFFFF] text-[#000000] border-[#000000] hover:bg-[#F5F5F5]'
+              }`}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────────────────────────
+          SECTION 5: 🌐 ALL PEOPLE (Full Directory)
+          ────────────────────────────────────────────────────────────────── */}
+      <section className="space-y-6">
+        <div className="border-b-2 border-[#000000] pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <div className="font-mono text-[10px] text-[#666666] uppercase font-bold tracking-widest">
+              GLOBAL COMMUNITY INDEX
+            </div>
+            <h2 className="font-heading font-black text-2xl sm:text-3xl text-[#000000] uppercase tracking-tight">
+              🌐 ALL PEOPLE ({filteredPeople.length})
+            </h2>
+          </div>
+
+          {/* Connection Filter Toggle */}
+          <div className="flex items-center gap-1 font-mono text-xs">
+            <button
+              type="button"
+              onClick={() => setFilters({ ...filters, connectionStatus: 'ALL' })}
+              className={`px-2.5 py-1 border transition-colors ${
+                filters.connectionStatus === 'ALL'
+                  ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] font-bold'
+                  : 'bg-[#FFFFFF] text-[#555555] border-[#CCCCCC]'
+              }`}
+            >
+              ALL
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilters({ ...filters, connectionStatus: 'CONNECTED' })}
+              className={`px-2.5 py-1 border transition-colors ${
+                filters.connectionStatus === 'CONNECTED'
+                  ? 'bg-[#22C55E] text-black border-[#000000] font-bold'
+                  : 'bg-[#FFFFFF] text-[#555555] border-[#CCCCCC]'
+              }`}
+            >
+              CONNECTED ({stats.connectedCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilters({ ...filters, connectionStatus: 'REQUESTED' })}
+              className={`px-2.5 py-1 border transition-colors ${
+                filters.connectionStatus === 'REQUESTED'
+                  ? 'bg-[#FEF08A] text-black border-[#000000] font-bold'
+                  : 'bg-[#FFFFFF] text-[#555555] border-[#CCCCCC]'
+              }`}
+            >
+              PENDING ({stats.requestedCount})
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar + Category Pills */}
+        <div className="bg-[#FFFFFF] border-2 border-[#000000] p-4 space-y-4">
+          <div className="relative">
+            <Search className="w-4 h-4 text-[#888888] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={filters.searchQuery}
-              onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-              placeholder="Search people by name, city (e.g. Mumbai, Bengaluru, Berlin) or bio..."
-              className="w-full pl-9 pr-8 py-2.5 bg-[#FAFAFA] border border-[#D8D8D8] focus:border-[#000000] font-mono text-xs focus:outline-none focus:bg-[#FFFFFF] transition-colors"
+              onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
+              placeholder="Search by name, role, city, bio, skills, or projects..."
+              className="w-full pl-10 pr-4 py-2.5 bg-[#FAFAFA] border border-[#CCCCCC] focus:border-[#000000] font-mono text-xs focus:outline-none"
             />
             {filters.searchQuery && (
               <button
-                onClick={() => setFilters(prev => ({ ...prev, searchQuery: '' }))}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#888888] hover:text-[#000000]"
+                type="button"
+                onClick={() => setFilters({ ...filters, searchQuery: '' })}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888888] hover:text-[#000000]"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* Connection Filter Tabs */}
-          <div className="flex items-center gap-1 font-mono text-xs border border-[#D8D8D8] p-1 bg-[#FAFAFA] shrink-0">
-            <button
-              onClick={() => setFilters(prev => ({ ...prev, connectionStatus: 'ALL' }))}
-              className={`px-3 py-1.5 font-bold transition-colors ${
-                filters.connectionStatus === 'ALL'
-                  ? 'bg-[#000000] text-[#FFFFFF]'
-                  : 'text-[#666666] hover:text-[#000000]'
-              }`}
-            >
-              ALL PEOPLE
-            </button>
-            <button
-              onClick={() => setFilters(prev => ({ ...prev, connectionStatus: 'CONNECTED' }))}
-              className={`px-3 py-1.5 font-bold transition-colors flex items-center gap-1.5 ${
-                filters.connectionStatus === 'CONNECTED'
-                  ? 'bg-[#15803D] text-[#FFFFFF]'
-                  : 'text-[#666666] hover:text-[#15803D]'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>CONNECTED ({stats.connectedCount})</span>
-            </button>
-            <button
-              onClick={() => setFilters(prev => ({ ...prev, connectionStatus: 'REQUESTED' }))}
-              className={`px-3 py-1.5 font-bold transition-colors flex items-center gap-1.5 ${
-                filters.connectionStatus === 'REQUESTED'
-                  ? 'bg-[#D97706] text-[#FFFFFF]'
-                  : 'text-[#666666] hover:text-[#D97706]'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>REQUESTED ({stats.requestedCount})</span>
-            </button>
-          </div>
-
-        </div>
-
-        {/* Row 2: Category Pills + Event Filter Dropdown */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-t border-[#EAEAEA] pt-4">
-          
-          {/* Category Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar font-mono text-xs">
-            <span className="text-[11px] text-[#888888] uppercase font-bold mr-1 shrink-0">ROLE:</span>
+          <div className="flex flex-wrap gap-1.5 font-mono text-xs">
             {CATEGORY_TABS.map(cat => (
               <button
                 key={cat}
-                onClick={() => setFilters(prev => ({ ...prev, category: cat }))}
-                className={`px-3 py-1 border font-semibold transition-all shrink-0 uppercase text-[11px] ${
+                type="button"
+                onClick={() => setFilters({ ...filters, category: cat })}
+                className={`px-3 py-1.5 border transition-all cursor-pointer ${
                   filters.category === cat
-                    ? 'bg-[#000000] text-[#FFFFFF] border-[#000000]'
-                    : 'bg-[#FFFFFF] text-[#555555] border-[#D8D8D8] hover:border-[#000000]'
+                    ? 'bg-[#000000] text-[#FFFFFF] border-[#000000] font-bold'
+                    : 'bg-[#FAFAFA] text-[#555555] border-[#D4D4D4] hover:border-[#000000]'
                 }`}
               >
-                {cat}
+                {cat.toUpperCase()}
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Event Filter Dropdown */}
-          <div className="flex items-center gap-2 shrink-0 font-mono text-xs">
-            <span className="text-[11px] text-[#888888] uppercase font-bold shrink-0">EVENT:</span>
-            <select
-              value={filters.eventId}
-              onChange={(e) => setFilters(prev => ({ ...prev, eventId: e.target.value }))}
-              className="p-1.5 bg-[#FAFAFA] border border-[#D8D8D8] hover:border-[#000000] text-xs font-mono focus:outline-none max-w-[220px]"
-            >
-              <option value="ALL">ALL EVENTS</option>
-              {events.map(e => (
-                <option key={e.id} value={e.id}>
-                  {e.title}
-                </option>
-              ))}
-            </select>
+        {/* Directory Grid */}
+        {filteredPeople.length === 0 ? (
+          <div className="py-16 text-center border-2 border-dashed border-[#CCCCCC] bg-[#FAFAFA] space-y-2">
+            <Users className="w-8 h-8 text-[#888888] mx-auto" />
+            <h4 className="font-heading font-black text-sm uppercase">NO PROFILES MATCHED</h4>
+            <p className="font-mono text-xs text-[#666666]">
+              Try relaxing your search terms or resetting category filters.
+            </p>
           </div>
-
-        </div>
-
-        {/* Active Filters Summary */}
-        <div className="flex items-center justify-between font-mono text-[11px] text-[#666666] border-t border-[#F0F0F0] pt-2">
-          <div>
-            SHOWING <strong className="text-[#000000]">{filteredPeople.length}</strong> COMMUNITY PROFILES
-            {filters.category !== 'ALL' && <span> • Filtered by {filters.category}</span>}
-            {filters.eventId !== 'ALL' && <span> • Attending {getEventTitleById(filters.eventId)}</span>}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPeople.map((person, idx) => (
+              <PersonCard
+                key={person.id}
+                person={person}
+                index={idx}
+                connectionStatus={getConnectionStatus(person.id)}
+                isCurrentUser={Boolean(person.isCurrentUser || (myProfile && myProfile.id === person.id))}
+                onViewProfile={(id) => setSelectedPersonId(id)}
+                onCycleConnection={cycleConnection}
+                onEditProfile={() => setIsEditModalOpen(true)}
+                onOpenQr={(p) => setQrTargetPerson(p)}
+                getEventTitleById={getEventTitleById}
+              />
+            ))}
           </div>
+        )}
+      </section>
 
-          {(filters.category !== 'ALL' || filters.eventId !== 'ALL' || filters.searchQuery || filters.connectionStatus !== 'ALL') && (
-            <button
-              onClick={() => setFilters({ searchQuery: '', category: 'ALL', eventId: 'ALL', connectionStatus: 'ALL' })}
-              className="text-[#000000] underline font-bold hover:text-[#DC2626]"
-            >
-              RESET FILTERS
-            </button>
-          )}
-        </div>
-
-      </div>
-
-      {/* Grid of Profile Cards */}
-      {filteredPeople.length === 0 ? (
-        <div className="py-20 text-center border-2 border-dashed border-[#D8D8D8] bg-[#FAFAFA] p-8 space-y-3">
-          <AlertCircle className="w-10 h-10 text-[#888888] mx-auto" />
-          <h3 className="font-heading font-black text-xl text-[#000000] uppercase">
-            NO PROFILES MATCHED
-          </h3>
-          <p className="font-mono text-xs text-[#666666] max-w-md mx-auto">
-            {filters.connectionStatus === 'CONNECTED'
-              ? "You haven't connected with anyone yet. Click '+ CONNECT' on any card to request and manage your network."
-              : filters.connectionStatus === 'REQUESTED'
-              ? 'No pending connection requests.'
-              : 'Try clearing your search query or selecting a different category or event.'}
-          </p>
-          <div className="pt-2 flex items-center justify-center gap-3">
-            <button
-              onClick={() => setFilters({ searchQuery: '', category: 'ALL', eventId: 'ALL', connectionStatus: 'ALL' })}
-              className="px-4 py-2 border border-[#000000] font-mono text-xs font-bold hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors"
-            >
-              SHOW ALL PEOPLE
-            </button>
-            {!myProfile && (
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="px-4 py-2 bg-[#000000] text-[#FFFFFF] font-mono text-xs font-bold hover:bg-[#222222] transition-colors"
-              >
-                CREATE YOUR PROFILE
-              </button>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPeople.map((person, idx) => (
-            <PersonCard
-              key={person.id}
-              person={person}
-              index={idx}
-              connectionStatus={getConnectionStatus(person.id)}
-              isCurrentUser={Boolean(person.isCurrentUser || (myProfile && myProfile.id === person.id))}
-              onViewProfile={(id) => setSelectedPersonId(id)}
-              onCycleConnection={cycleConnection}
-              onEditProfile={() => setIsEditModalOpen(true)}
-              onOpenQr={(p) => setQrTargetPerson(p)}
-              getEventTitleById={getEventTitleById}
-            />
-          ))}
-        </div>
+      {/* QR Connect Pass Modal */}
+      {qrTargetPerson && (
+        <ProfileQrModal
+          person={qrTargetPerson}
+          isOpen={Boolean(qrTargetPerson)}
+          onClose={() => setQrTargetPerson(null)}
+          connectionStatus={getConnectionStatus(qrTargetPerson.id)}
+          onCycleConnection={cycleConnection}
+          isCurrentUser={Boolean(qrTargetPerson.isCurrentUser || (myProfile && myProfile.id === qrTargetPerson.id))}
+        />
       )}
 
-      {/* Profile QR Connect Pass Modal */}
-      <ProfileQrModal
-        person={qrTargetPerson}
-        isOpen={Boolean(qrTargetPerson)}
-        onClose={() => setQrTargetPerson(null)}
-        connectionStatus={qrTargetPerson ? getConnectionStatus(qrTargetPerson.id) : 'NOT_CONNECTED'}
-        onCycleConnection={cycleConnection}
-        isCurrentUser={Boolean(qrTargetPerson && (qrTargetPerson.isCurrentUser || (myProfile && myProfile.id === qrTargetPerson.id)))}
-      />
+      {/* Live QR Camera Scanner Modal */}
+      {isScannerModalOpen && (
+        <ProfileScannerModal
+          isOpen={isScannerModalOpen}
+          people={people}
+          onClose={() => setIsScannerModalOpen(false)}
+          onSelectPerson={(id) => setSelectedPersonId(id)}
+          onCycleConnection={cycleConnection}
+          getConnectionStatus={getConnectionStatus}
+        />
+      )}
 
-      {/* Live Camera & Image Profile QR Scanner Modal */}
-      <ProfileScannerModal
-        isOpen={isScannerModalOpen}
-        onClose={() => setIsScannerModalOpen(false)}
-        people={people}
-        onSelectPerson={(id) => setSelectedPersonId(id)}
-        onCycleConnection={cycleConnection}
-        getConnectionStatus={getConnectionStatus}
+      {/* Surprise Discovery Modal */}
+      <SurpriseMeModal
+        isOpen={isSurpriseModalOpen}
+        onClose={() => setIsSurpriseModalOpen(false)}
+        onOpenProfile={(id) => setSelectedPersonId(id)}
       />
 
     </div>

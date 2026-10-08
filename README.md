@@ -31,30 +31,54 @@ Designed with a high-contrast editorial cyber-industrial aesthetic, Mumbai Oncha
 - **Conflict & Overlap Alerts**: Automatic detection and visual alerts when attending multiple overlapping events.
 - **Marquee Telemetry Streams**: Real-time ticker streaming event headlines, speakers, and ecosystem news across the viewport.
 
-### 3. 👥 People & Connect (Community Hub)
-- **Global Attendee Directory**: Discover builders, core devs, founders, investors, and researchers attending Mumbai Onchain Week.
-- **Custom Builder Profiles**: Create and edit your attendee profile with role, bios, ecosystem tags, X handle, Telegram, GitHub, and personal links.
+### 3. 👥 Profile Match & Networking Compatibility
+- **Deterministic 5-Dimensional Algorithm**: Calculates **YOU × THEM** compatibility score (e.g. `92% Match`) based on skills, technical interests, event attendance overlap, geographic hub, and mutual connections.
+- **Detailed Sub-Score Breakdown**:
+  - 🎯 **Interests** (AI Agents, Ethereum, ZK, DeFi, L2s, etc.)
+  - 🛠️ **Skills** (Solidity, Rust, TypeScript, Foundry, Python, etc.)
+  - 🎟️ **Events Attending** (Shared conferences, hackathons, and side events)
+  - 📍 **Location Hub** (City proximity and regional synergy)
+  - 🤝 **Network Synergy** (Direct connections, mutual contacts, and Builder × Founder synergy)
+- **Natural-Language "Why You Match"**: Human-readable alignment reasons (e.g., *"Both attending Devcon 8"*, *"Both building AI developer tools"*, *"2 mutual connections"*).
+- **Match Categories**: 🔥 *90–100% Excellent Match*, ⚡ *80–89% Strong Match*, ✦ *70–79% Good Match*, ○ *Below 70% Potential Connection*.
+- **"✦ Who Should I Meet?"**: Top 5 personalized builder recommendations at the head of the directory.
+- **"⚡ 15 Min Builder Match"**: Round-robin networking sessions with a live countdown timer and instant IRL/Chat meeting matching.
+- **"✦ Surprise Me"**: Serendipitous discovery channel that highlights unexpected high-compatibility builders.
+- **Non-Intrusive Live Match Toast**: Dismissible popup notification when a high-compatibility attendee is discovered.
+- **Event-Level Attendee Matching**: Match ranking and filters (90%+, 80%+, Builders, Founders, AI, Students) on every event dossier.
+
+### 4. 📸 Snaps — Visual Event Memories
+- **Lightweight Visual Memory Feed**: See Mumbai Onchain Week through the eyes of the attendees who captured it.
+- **Image-Only Stream**: Zero text clutter; focused entirely on real moments, stages, hackathons, and cityscapes.
+- **Client-Side Image Optimization**: High-performance in-browser canvas compression, automatic WebP conversion, and thumbnail generation to ensure low storage footprint and zero lag.
+- **Interactive Lightbox Viewer**: Full-screen photo lightbox showing date, event badge, caption, and creator credentials.
+- **Natural Discovery Loop**: `Photo → Person → 92% Match → Connect → Meet IRL`.
+- **People Tagging**: Manual profile tagging in Snaps with one-click navigation to tagged attendees.
+- **Lightweight Reactions**: Instant reaction bar (❤️ Love, 🔥 Fire, 👀 Eyes, 👏 Clap) with local state sync.
+- **Event Photo Wall**: Dedicated Snaps grid inside each event dossier showing attendee photos from that specific session.
+
+### 5. 🪪 Identity Passes & Camera Scanner
 - **Instant QR Profile Pass**: Generate your personal high-resolution QR profile card for instant physical networking at venues.
 - **Live In-App Camera Scanner**: Built-in camera scanner (`jsQR`) to scan other attendees' QR passes instantly without leaving the app.
-- **Connection Pipeline**: Manage your network with status badges (*Connected*, *Pending*, *Follow-up*) and quick access to social profiles.
+- **Connection Pipeline**: Manage your network with status badges (*Connected*, *Pending*, *Follow-up*) and vCard export.
 - **People Marquee**: Live animated ticker featuring active community profiles directly on the home page.
 
-### 4. 🗺️ Multi-Mode Interactive Map
+### 6. 🗺️ Multi-Mode Interactive Map
 - **Interactive Venue Locations**: Explore key event hubs across Mumbai (BKC, Lower Parel, Powai, Andheri, South Mumbai).
 - **3D & 2D Visualization**: Switch between 3D Shining India Map, 3D Planet Globe, and 2D states map projections.
 - **Venue Directions & Clusters**: Direct links to Google Maps navigation for each venue.
 
-### 5. 🤖 "Ask Mumbai" Multilingual AI Assistant
+### 7. 🤖 "Ask Mumbai" Multilingual AI Assistant
 - **Floating Intelligent Assistant**: Quick-access AI assistant floating throughout the platform.
 - **Real-Time Knowledge Retrieval**: Instantly answer queries regarding schedules, speaker sessions, side events, venue directions, and attendees.
 - **Multilingual Support**: Full support for 11 languages:
   - English (`en`), हिन्दी / Hindi (`hi`), Español (`es`), Français (`fr`), Deutsch (`de`), 日本語 / Japanese (`ja`), 한국어 / Korean (`ko`), 中文 / Chinese (`zh`), Português (`pt`), Русский (`ru`), العربية (`ar`).
 - **Quick Query Prompts**: Instant one-tap suggestion chips for fast discovery.
 
-### 6. 🪪 Devcon 8 ID Generator Integration
+### 8. 🪪 Devcon 8 ID Generator Integration
 - Seamless navigation and deep-linking to the official [Devcon 8 ID Generator](https://devcon8-id.vercel.app/) web application.
 
-### 7. 📓 My Mumbai (Personal Dashboard)
+### 9. 📓 My Mumbai (Personal Dashboard)
 - **Personalized Schedule**: View only the events you have RSVP'd or saved.
 - **Post-Event Recap**: Dedicated networking logs, contacts made, and follow-ups.
 - **Export & Backup**: Export your customized itinerary and notes.

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAppStore } from './lib/store';
 import { usePeopleStore } from './lib/usePeopleStore';
+import { useSnapStore } from './lib/useSnapStore';
 import { Navbar } from './components/Navbar';
 import { MarqueeTicker } from './components/MarqueeTicker';
 import { PeopleMarquee } from './components/PeopleMarquee';
@@ -20,9 +21,12 @@ import { MapView } from './components/MapView';
 import { MyMumbai } from './components/MyMumbai';
 import { SideEvents } from './components/SideEvents';
 import { PeopleDirectory } from './components/PeopleDirectory';
+import { SnapViewerModal } from './components/SnapViewerModal';
+import { AddSnapModal } from './components/AddSnapModal';
+import { LiveMatchToast } from './components/LiveMatchToast';
 import { Footer } from './components/Footer';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Camera, ArrowRight } from 'lucide-react';
 
 export function App() {
   const {
@@ -52,6 +56,15 @@ export function App() {
     cycleConnection,
     getConnectionStatus,
   } = usePeopleStore();
+
+  const {
+    activeSnapForViewer,
+    isAddSnapModalOpen,
+    preselectedEventIdForSnap,
+    recentSnaps,
+    setActiveSnapForViewer,
+    setIsAddSnapModalOpen,
+  } = useSnapStore();
 
   // Handle URL deep-linking for scanned QR codes and shared profile links
   useEffect(() => {
@@ -118,8 +131,54 @@ export function App() {
               onOpenCreateProfile={() => setIsEditModalOpen(true)}
             />
 
-            {/* Dynamic People / Community Ticker (Positioned directly above Next Up On Calendar) */}
+            {/* Dynamic People / Community Ticker */}
             <PeopleMarquee onSelectPerson={(id) => setSelectedPersonId(id)} />
+
+            {/* Home Quick Visual Snaps Banner (Requirement 15) */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="bg-[#FFFFFF] border-2 border-[#000000] p-4 sm:p-5 space-y-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-[#F97316]" />
+                    <span className="font-heading font-black text-sm uppercase tracking-wide">
+                      📸 RECENT COMMUNITY SNAPS
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('people')}
+                    className="font-mono text-xs font-bold text-[#000000] hover:text-[#0052FF] flex items-center gap-1"
+                  >
+                    <span>EXPLORE ALL</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                  {recentSnaps.slice(0, 6).map(snap => (
+                    <div
+                      key={snap.id}
+                      onClick={() => setActiveSnapForViewer(snap)}
+                      className="group relative aspect-square bg-black border border-[#000000] overflow-hidden cursor-pointer shadow-2xs hover:shadow-xs transition-all"
+                    >
+                      <img
+                        src={snap.thumbnailUrl || snap.imageUrl}
+                        alt="Snap"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-1.5 opacity-90 group-hover:opacity-100">
+                        <div className="text-[9px] font-mono text-[#22C55E] truncate font-bold">
+                          {snap.authorName.split(' ')[0]}
+                        </div>
+                        <div className="text-[8.5px] font-mono text-white/80 truncate">
+                          {snap.eventName?.split(' ')[0] || 'Devcon'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
               {/* Mumbai Onchain Official Intro Video Player */}
@@ -235,16 +294,17 @@ export function App() {
         )}
       </main>
 
-      {/* Event Details Right Drawer */}
+      {/* Event Details Right Drawer with People Match & Snaps */}
       <EventDrawer
         event={selectedEvent}
         note={selectedEventId ? notes[selectedEventId] : undefined}
         onClose={() => setSelectedEventId(null)}
         onUpdateStatus={updateEventStatus}
         onSaveNote={saveEventNote}
+        onOpenPersonProfile={(personId) => setSelectedPersonId(personId)}
       />
 
-      {/* Community Profile Drawer (Opens from People Marquee on any tab) */}
+      {/* Community Profile Drawer (4 Tabs: OVERVIEW, SNAPS, EVENTS, MATCH, NETWORK) */}
       <ProfileDrawer
         person={selectedPerson}
         connectionStatus={selectedPersonId ? getConnectionStatus(selectedPersonId) : 'NOT_CONNECTED'}
@@ -256,13 +316,33 @@ export function App() {
         onSelectEvent={(id) => setSelectedEventId(id)}
       />
 
-      {/* Global Edit / Create Profile Modal */}
+      {/* Global Edit / Create Profile Modal with Skills, Building, Privacy */}
       <EditProfileModal
         isOpen={isEditModalOpen}
         currentProfile={myProfile}
         events={events}
         onClose={() => setIsEditModalOpen(false)}
         onSave={saveMyProfile}
+      />
+
+      {/* Lightbox Snap Viewer */}
+      <SnapViewerModal
+        snap={activeSnapForViewer}
+        onClose={() => setActiveSnapForViewer(null)}
+        onOpenProfile={(personId) => setSelectedPersonId(personId)}
+      />
+
+      {/* Add Snap Modal */}
+      <AddSnapModal
+        isOpen={isAddSnapModalOpen}
+        events={events}
+        preselectedEventId={preselectedEventIdForSnap}
+        onClose={() => setIsAddSnapModalOpen(false)}
+      />
+
+      {/* Non-intrusive Live Match Toast */}
+      <LiveMatchToast
+        onOpenProfile={(personId) => setSelectedPersonId(personId)}
       />
 
       {/* Mobile Navigation */}

@@ -1,8 +1,27 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, MapPin, UserCheck, Clock, Plus, Edit3, QrCode, Contact, Copy, Check } from 'lucide-react';
 import type { PersonProfile, ConnectionStatus } from '../types/person';
 import type { EventItem } from '../types/event';
-import { PersonAvatar } from './PersonAvatar';
+import { usePeopleStore } from '../lib/usePeopleStore';
+import { useSnapStore } from '../lib/useSnapStore';
+import { calculateMatchScore } from '../lib/matchingEngine';
+import { MatchBreakdownCard } from './MatchBreakdownCard';
+import {
+  X,
+  MapPin,
+  UserCheck,
+  Clock,
+  UserPlus,
+  Edit3,
+  QrCode,
+  Copy,
+  Check,
+  Sparkles,
+  Camera,
+  Flame,
+  ExternalLink,
+  Activity,
+  Users,
+} from 'lucide-react';
 import { ProfileQrModal } from './ProfileQrModal';
 
 interface ProfileDrawerProps {
@@ -26,10 +45,19 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   onEditProfile,
   onSelectEvent,
 }) => {
-  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const { myProfile, connections, people } = usePeopleStore();
+  const { getSnapsByAuthor, setActiveSnapForViewer, setIsAddSnapModalOpen } = useSnapStore();
+
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'SNAPS' | 'EVENTS' | 'MATCH' | 'CONNECTIONS'>('OVERVIEW');
+  const [isQrModalOpen, setIsQrModalOpen] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
   if (!person) return null;
+
+  // Match score against current user
+  const match = calculateMatchScore(myProfile, person, connections);
+  const snaps = getSnapsByAuthor(person.id);
+  const attendedEventsList = events.filter(e => person.attendingEvents.includes(e.id));
 
   // Category badge styling
   const categoryStyles: Record<string, string> = {
@@ -42,7 +70,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   };
   const badgeStyle = categoryStyles[person.category] || categoryStyles.Other;
 
-  // Format handles
+  // Clean handles
   const cleanXHandle = person.xHandle
     ? person.xHandle.replace(/^@/, '').replace(/https?:\/\/(www\.)?(twitter|x)\.com\//, '')
     : null;
@@ -52,14 +80,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   const cleanTg = person.telegramHandle
     ? person.telegramHandle.replace(/^@/, '').replace(/https?:\/\/t\.me\//, '')
     : null;
-  const cleanFc = person.farcasterHandle
-    ? person.farcasterHandle.replace(/^@/, '').replace(/https?:\/\/(warpcast\.com|farcaster\.xyz)\//, '')
-    : null;
 
-  // Match attending event objects
-  const attendedEventsList = events.filter(e => person.attendingEvents.includes(e.id));
-
-  // Copy Profile URL
   const handleCopyProfileUrl = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://mumbaionchain.xyz';
     const profileUrl = `${origin}/?tab=people&person=${encodeURIComponent(person.id)}`;
@@ -68,69 +89,54 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  // Download vCard
-  const handleDownloadVCard = () => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://mumbaionchain.xyz';
-    const profileUrl = `${origin}/?tab=people&person=${encodeURIComponent(person.id)}`;
-    const vCardLines = [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      `FN:${person.name}`,
-      `NOTE:${person.bio || 'Mumbai Onchain Community'}`,
-      person.city ? `ADR;TYPE=WORK:;;${person.city};;;;` : '',
-      cleanXHandle ? `X-SOCIALPROFILE;type=twitter:https://x.com/${cleanXHandle}` : '',
-      cleanGithub ? `X-SOCIALPROFILE;type=github:https://github.com/${cleanGithub}` : '',
-      cleanTg ? `X-SOCIALPROFILE;type=telegram:https://t.me/${cleanTg}` : '',
-      person.linkedinUrl ? `URL;type=linkedin:${person.linkedinUrl}` : '',
-      person.websiteUrl ? `URL:${person.websiteUrl}` : '',
-      `URL;type=mumbaionchain:${profileUrl}`,
-      'END:VCARD'
-    ].filter(Boolean).join('\r\n');
-
-    const blob = new Blob([vCardLines], { type: 'text/vcard;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${person.name.replace(/\s+/g, '_')}_contact.vcf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 flex justify-end animate-in fade-in duration-150 select-none">
-      {/* Backdrop */}
+    <div
+      className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-150 select-none"
+      role="dialog"
+      aria-label="Profile Dossier"
+    >
       <div className="absolute inset-0" onClick={onClose} />
 
-      {/* Drawer Container */}
-      <div className="relative w-full max-w-xl bg-[#FFFFFF] border-l-2 border-[#000000] h-full flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-[#FFFFFF] border-l-2 border-[#000000] h-full flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
         
-        {/* Header bar */}
-        <div className="sticky top-0 z-20 bg-[#FFFFFF] border-b border-[#000000] p-5 sm:p-6 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="font-pixel text-base font-bold text-[#000000]">
-              COMMUNITY PROFILE
+        {/* Sticky Top Bar */}
+        <div className="sticky top-0 z-20 bg-[#FFFFFF] border-b border-[#000000] p-4 sm:p-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-pixel text-sm font-bold text-[#000000]">
+              BUILDER IDENTITY
             </span>
             <span className="text-[#999999]">•</span>
-            <span
-              className={`font-mono text-xs font-bold uppercase px-2 py-0.5 border ${badgeStyle}`}
-            >
+            <span className={`font-mono text-[10px] font-bold uppercase px-2 py-0.5 border ${badgeStyle}`}>
               {person.category}
             </span>
+            {!isCurrentUser && (
+              <span className="font-mono text-[11px] font-black px-2 py-0.5 bg-[#FFF7ED] text-[#C2410C] border border-[#FDBA74]">
+                {match.overall}% MATCH
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Show QR Pass in Header */}
             <button
               type="button"
               onClick={() => setIsQrModalOpen(true)}
-              className="p-1.5 px-2.5 border-2 border-[#000000] bg-[#FAFAFA] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
-              title="Open QR Connect Pass"
+              className="p-1.5 px-2.5 border-2 border-[#000000] bg-[#FAFAFA] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+              title="QR Pass"
             >
               <QrCode className="w-3.5 h-3.5" />
-              <span>QR PASS</span>
+              <span className="hidden sm:inline">QR PASS</span>
             </button>
+
+            {isCurrentUser && (
+              <button
+                type="button"
+                onClick={onEditProfile}
+                className="p-1.5 px-2.5 border-2 border-[#000000] bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">EDIT</span>
+              </button>
+            )}
 
             <button
               onClick={onClose}
@@ -142,317 +148,523 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
           </div>
         </div>
 
-        {/* Profile Content */}
-        <div className="p-6 sm:p-8 space-y-8 flex-1">
+        {/* Content Body */}
+        <div className="flex-1 p-5 sm:p-6 space-y-6">
           
-          {/* Top Hero: Avatar + Name + Location + Action */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 border-b border-[#EAEAEA] pb-6">
-            <PersonAvatar
-              name={person.name}
-              avatarUrl={person.avatar}
-              size="xl"
-              className="border-2 border-[#000000] shadow-md cursor-pointer hover:scale-105 transition-transform"
-            />
+          {/* HEADER SECTION */}
+          <div className="flex flex-col sm:flex-row items-start gap-4 border-b border-[#000000] pb-6">
+            <div className="relative shrink-0">
+              {person.avatar ? (
+                <img
+                  src={person.avatar}
+                  alt={person.name}
+                  className="w-20 h-20 sm:w-24 sm:h-24 object-cover border-2 border-[#000000] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                />
+              ) : (
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#111111] text-white flex items-center justify-center font-heading font-black text-2xl border-2 border-[#000000]">
+                  {person.name.charAt(0)}
+                </div>
+              )}
+            </div>
 
-            <div className="space-y-2 flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-heading font-black text-2xl sm:text-3xl text-[#050505] tracking-tight">
-                  {person.name}
-                </h2>
-                {isCurrentUser && (
-                  <span className="font-mono text-xs font-black uppercase bg-[#000000] text-[#FFFFFF] px-2 py-0.5">
-                    YOUR PROFILE
-                  </span>
-                )}
-              </div>
+            <div className="flex-1 space-y-1.5 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="font-heading font-black text-2xl sm:text-3xl text-[#050505] tracking-tight truncate">
+                    {person.name}
+                  </h2>
+                  <div className="font-mono text-xs text-[#555555] flex items-center gap-2 flex-wrap">
+                    <span className="flex items-center gap-1 text-[#000000] font-bold">
+                      <MapPin className="w-3.5 h-3.5 text-[#DC2626]" />
+                      <span>{person.city}</span>
+                    </span>
+                    <span>•</span>
+                    <span className="text-[#666666]">{person.category}</span>
+                    {cleanXHandle && (
+                      <>
+                        <span>•</span>
+                        <span className="text-[#0052FF]">@{cleanXHandle}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-1.5 text-xs text-[#555555] font-mono">
-                <MapPin className="w-3.5 h-3.5 text-[#000000]" />
-                <span className="font-semibold text-[#111111]">{person.city}</span>
-                <span className="text-[#CCCCCC]">•</span>
-                <span>Active for Mumbai Week</span>
-              </div>
-
-              {/* Status / Connect / QR Buttons inside hero */}
-              <div className="pt-2 flex items-center flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsQrModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 bg-[#FFFFFF] border-2 border-[#000000] text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] px-3.5 py-2 font-mono text-xs font-bold transition-all shadow-sm"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>SHOW QR PASS</span>
-                </button>
-
-                {isCurrentUser ? (
+                {/* Connect button in header */}
+                {!isCurrentUser && (
                   <button
-                    onClick={() => {
-                      onClose();
-                      onEditProfile();
-                    }}
-                    className="inline-flex items-center gap-1.5 bg-[#000000] text-[#FFFFFF] px-4 py-2 font-mono text-xs font-bold hover:bg-[#222222] transition-all"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>EDIT MY PROFILE</span>
-                  </button>
-                ) : (
-                  <button
+                    type="button"
                     onClick={() => onCycleConnection(person.id)}
-                    className={`inline-flex items-center gap-2 px-5 py-2 font-mono text-xs font-bold transition-all border shadow-sm ${
+                    className={`shrink-0 px-3 py-2 font-mono text-xs font-bold border-2 transition-all cursor-pointer shadow-xs flex items-center gap-1.5 ${
                       connectionStatus === 'CONNECTED'
-                        ? 'bg-[#15803D] border-[#15803D] text-[#FFFFFF] hover:bg-[#166534]'
+                        ? 'bg-[#22C55E] text-[#000000] border-[#000000]'
                         : connectionStatus === 'REQUESTED'
-                        ? 'bg-[#D97706] border-[#D97706] text-[#FFFFFF] hover:bg-[#B45309]'
-                        : 'bg-[#000000] border-[#000000] text-[#FFFFFF] hover:bg-[#222222]'
+                        ? 'bg-[#FEF08A] text-[#713F12] border-[#000000]'
+                        : 'bg-[#000000] text-[#FFFFFF] border-[#000000] hover:bg-[#222222]'
                     }`}
                   >
                     {connectionStatus === 'CONNECTED' ? (
                       <>
-                        <UserCheck className="w-4 h-4" />
+                        <UserCheck className="w-3.5 h-3.5" />
                         <span>CONNECTED</span>
                       </>
                     ) : connectionStatus === 'REQUESTED' ? (
                       <>
-                        <Clock className="w-4 h-4" />
-                        <span>REQUEST SENT</span>
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>PENDING</span>
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4" />
+                        <UserPlus className="w-3.5 h-3.5" />
                         <span>CONNECT</span>
                       </>
                     )}
                   </button>
                 )}
               </div>
+
+              {person.headline && (
+                <p className="font-sans text-xs font-medium text-[#222222]">
+                  {person.headline}
+                </p>
+              )}
+
+              {/* Social Link Strip */}
+              <div className="flex items-center gap-2 pt-1 flex-wrap">
+                {cleanXHandle && (
+                  <a
+                    href={`https://x.com/${cleanXHandle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-[11px] font-bold text-[#000000] hover:text-[#0052FF] flex items-center gap-1 underline underline-offset-2"
+                  >
+                    <span>𝕏 @{cleanXHandle}</span>
+                  </a>
+                )}
+                {cleanGithub && (
+                  <a
+                    href={`https://github.com/${cleanGithub}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-[11px] font-bold text-[#000000] hover:text-[#0052FF] flex items-center gap-1 underline underline-offset-2"
+                  >
+                    <span>GitHub</span>
+                  </a>
+                )}
+                {person.linkedinUrl && (
+                  <a
+                    href={person.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-[11px] font-bold text-[#000000] hover:text-[#0052FF] flex items-center gap-1 underline underline-offset-2"
+                  >
+                    <span>LinkedIn</span>
+                  </a>
+                )}
+                {cleanTg && (
+                  <a
+                    href={`https://t.me/${cleanTg}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-[11px] font-bold text-[#000000] hover:text-[#0052FF] flex items-center gap-1 underline underline-offset-2"
+                  >
+                    <span>TG</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCopyProfileUrl}
+                  className="font-mono text-[11px] text-[#666666] hover:text-[#000000] flex items-center gap-1 ml-auto"
+                  title="Copy Profile Link"
+                >
+                  {copiedLink ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                  <span>{copiedLink ? 'COPIED' : 'SHARE'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Biography Section */}
-          <div className="space-y-3">
-            <h4 className="font-mono text-xs font-bold text-[#888888] uppercase tracking-wider">
-              ABOUT // BIO
-            </h4>
-            <div className="bg-[#FAFAFA] border border-[#EAEAEA] p-4 text-[#222222] font-sans text-sm leading-relaxed whitespace-pre-wrap">
-              {person.bio || 'No bio provided yet.'}
-            </div>
-          </div>
-
-          {/* Social Links & Accounts Grid */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-mono text-xs font-bold text-[#888888] uppercase tracking-wider">
-                ONLINE PRESENCE & SOCIAL ACCOUNTS
-              </h4>
-              <button
-                type="button"
-                onClick={handleCopyProfileUrl}
-                className="text-[11px] font-mono text-[#000000] hover:underline flex items-center gap-1 font-bold"
-              >
-                {copiedLink ? <Check className="w-3 h-3 text-[#15803D]" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedLink ? 'LINK COPIED' : 'COPY PROFILE URL'}</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 font-mono text-xs">
-              {/* X / Twitter */}
-              {cleanXHandle ? (
-                <a
-                  href={`https://x.com/${cleanXHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 border-2 border-[#000000] bg-[#000000] text-[#FFFFFF] hover:bg-[#222222] transition-colors group"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-black text-sm">𝕏</span>
-                    <span className="font-bold">@{cleanXHandle}</span>
-                  </span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
-                </a>
-              ) : (
-                <div className="p-3 border border-dashed border-[#D8D8D8] text-[#999999] flex items-center gap-2">
-                  <span className="font-black text-sm">𝕏</span>
-                  <span>Not linked</span>
-                </div>
-              )}
-
-              {/* GitHub */}
-              {cleanGithub ? (
-                <a
-                  href={person.githubUrl?.startsWith('http') ? person.githubUrl : `https://github.com/${cleanGithub}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 border-2 border-[#000000] bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors group"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-bold">GH:</span>
-                    <span className="font-bold truncate max-w-[130px]">{cleanGithub}</span>
-                  </span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
-                </a>
-              ) : (
-                <div className="p-3 border border-dashed border-[#D8D8D8] text-[#999999] flex items-center gap-2">
-                  <span>GH:</span>
-                  <span>Not linked</span>
-                </div>
-              )}
-
-              {/* Telegram */}
-              {cleanTg && (
-                <a
-                  href={`https://t.me/${cleanTg}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 border border-[#000000] bg-[#229ED9] text-[#FFFFFF] hover:opacity-95 transition-colors group"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-bold">Telegram:</span>
-                    <span className="font-bold truncate max-w-[130px]">@{cleanTg}</span>
-                  </span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
-                </a>
-              )}
-
-              {/* Farcaster */}
-              {cleanFc && (
-                <a
-                  href={`https://warpcast.com/${cleanFc}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 border border-[#000000] bg-[#8A63D2] text-[#FFFFFF] hover:opacity-95 transition-colors group"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-bold">Farcaster:</span>
-                    <span className="font-bold truncate max-w-[130px]">@{cleanFc}</span>
-                  </span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
-                </a>
-              )}
-
-              {/* LinkedIn */}
-              {person.linkedinUrl && (
-                <a
-                  href={person.linkedinUrl.startsWith('http') ? person.linkedinUrl : `https://${person.linkedinUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${!cleanTg && !cleanFc ? 'sm:col-span-2' : ''} flex items-center justify-between p-3 border border-[#000000] bg-[#0077B5] text-[#FFFFFF] hover:opacity-95 transition-colors group`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-bold">LinkedIn:</span>
-                    <span className="truncate max-w-[280px] font-bold">{person.linkedinUrl}</span>
-                  </span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
-                </a>
-              )}
-
-              {/* Website */}
-              {person.websiteUrl && (
-                <a
-                  href={person.websiteUrl.startsWith('http') ? person.websiteUrl : `https://${person.websiteUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="sm:col-span-2 flex items-center justify-between p-3 border-2 border-[#000000] bg-[#FAFAFA] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors group"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-bold">🌐 Website:</span>
-                    <span className="truncate max-w-[320px] font-bold">{person.websiteUrl}</span>
-                  </span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
-                </a>
-              )}
-            </div>
-
-            {/* Save vCard Contact Button */}
+          {/* 4-TAB NAVIGATION BAR */}
+          <div className="flex border-b-2 border-[#000000] font-mono text-xs font-bold overflow-x-auto no-scrollbar">
             <button
               type="button"
-              onClick={handleDownloadVCard}
-              className="w-full mt-2 py-2.5 px-3 border border-[#000000] bg-[#F5F5F5] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] font-mono text-xs font-bold transition-colors flex items-center justify-center gap-2"
+              onClick={() => setActiveTab('OVERVIEW')}
+              className={`py-2 px-3 border-b-2 -mb-[2px] transition-colors whitespace-nowrap ${
+                activeTab === 'OVERVIEW'
+                  ? 'border-[#000000] text-[#000000] bg-[#F5F5F5]'
+                  : 'border-transparent text-[#666666] hover:text-[#000000]'
+              }`}
             >
-              <Contact className="w-4 h-4" />
-              <span>SAVE TO PHONE CONTACTS (.VCF)</span>
+              OVERVIEW
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('SNAPS')}
+              className={`py-2 px-3 border-b-2 -mb-[2px] transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'SNAPS'
+                  ? 'border-[#000000] text-[#000000] bg-[#F5F5F5]'
+                  : 'border-transparent text-[#666666] hover:text-[#000000]'
+              }`}
+            >
+              <span>📸 SNAPS</span>
+              <span className="font-mono text-[10px] px-1 bg-[#E5E5E5] text-[#000000]">
+                {snaps.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('EVENTS')}
+              className={`py-2 px-3 border-b-2 -mb-[2px] transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'EVENTS'
+                  ? 'border-[#000000] text-[#000000] bg-[#F5F5F5]'
+                  : 'border-transparent text-[#666666] hover:text-[#000000]'
+              }`}
+            >
+              <span>🎟️ EVENTS</span>
+              <span className="font-mono text-[10px] px-1 bg-[#E5E5E5] text-[#000000]">
+                {person.attendingEvents.length}
+              </span>
+            </button>
+
+            {!isCurrentUser && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('MATCH')}
+                className={`py-2 px-3 border-b-2 -mb-[2px] transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  activeTab === 'MATCH'
+                    ? 'border-[#F97316] text-[#C2410C] bg-[#FFF7ED]'
+                    : 'border-transparent text-[#C2410C] hover:bg-[#FFF7ED]'
+                }`}
+              >
+                <span>🔥 {match.overall}% MATCH</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('CONNECTIONS')}
+              className={`py-2 px-3 border-b-2 -mb-[2px] transition-colors whitespace-nowrap ${
+                activeTab === 'CONNECTIONS'
+                  ? 'border-[#000000] text-[#000000] bg-[#F5F5F5]'
+                  : 'border-transparent text-[#666666] hover:text-[#000000]'
+              }`}
+            >
+              NETWORK
             </button>
           </div>
 
-          {/* Attending Events */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-mono text-xs font-bold text-[#888888] uppercase tracking-wider">
-                ATTENDING EVENTS ({person.attendingEvents.length})
-              </h4>
-            </div>
+          {/* TAB 1: OVERVIEW */}
+          {activeTab === 'OVERVIEW' && (
+            <div className="space-y-6 animate-in fade-in duration-150">
+              {/* CURRENTLY BUILDING */}
+              {person.currentlyBuilding && (
+                <div className="p-4 bg-[#0A0A0A] text-white border-2 border-[#000000] space-y-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="font-mono text-[10px] text-[#22C55E] uppercase tracking-wider flex items-center gap-1.5 font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-[#22C55E]" />
+                    <span>CURRENTLY BUILDING</span>
+                  </div>
+                  <p className="font-heading font-black text-sm sm:text-base text-white">
+                    {person.currentlyBuilding}
+                  </p>
+                  {person.lookingFor && (
+                    <div className="font-mono text-xs text-[#A3A3A3] pt-1 border-t border-[#222222]">
+                      <span className="text-white font-bold">Looking For: </span>
+                      {person.lookingFor}
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {attendedEventsList.length === 0 ? (
-              <div className="p-4 border border-dashed border-[#D8D8D8] text-center font-mono text-xs text-[#777777]">
-                No events selected yet.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {attendedEventsList.map(evt => (
-                  <div
-                    key={evt.id}
-                    className="p-3 border border-[#E0E0E0] hover:border-[#000000] bg-[#FFFFFF] transition-all flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] bg-[#000000] text-[#FFFFFF] px-1.5 py-0.5 font-bold">
-                          {evt.startDate.slice(5)}
-                        </span>
-                        <span className="font-mono text-[10px] text-[#666666]">
-                          {evt.category}
-                        </span>
+              {/* BIO */}
+              {person.bio && (
+                <div className="space-y-1.5">
+                  <div className="font-mono text-xs font-bold text-[#000000] uppercase tracking-wider">
+                    ABOUT
+                  </div>
+                  <p className="font-sans text-xs sm:text-sm text-[#444444] leading-relaxed bg-[#FAFAFA] p-3.5 border border-[#E5E5E5]">
+                    {person.bio}
+                  </p>
+                </div>
+              )}
+
+              {/* SKILLS */}
+              {person.skills && person.skills.length > 0 && (
+                <div className="space-y-2">
+                  <div className="font-mono text-xs font-bold text-[#000000] uppercase tracking-wider">
+                    TECHNICAL SKILLS & STACK
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {person.skills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="font-mono text-xs font-bold px-2.5 py-1 bg-[#FFFFFF] border-2 border-[#000000] text-[#000000] shadow-2xs"
+                      >
+                        🛠️ {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* INTERESTS */}
+              {person.interests && person.interests.length > 0 && (
+                <div className="space-y-2">
+                  <div className="font-mono text-xs font-bold text-[#000000] uppercase tracking-wider">
+                    INTERESTS & FOCUS AREAS
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {person.interests.map((interest, idx) => (
+                      <span
+                        key={idx}
+                        className="font-mono text-xs font-bold px-2.5 py-1 bg-[#FAF5FF] border border-[#E9D5FF] text-[#6B21A8]"
+                      >
+                        ✦ {interest}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* RECENT ACTIVITY */}
+              {person.recentActivity && person.recentActivity.length > 0 && (
+                <div className="space-y-2">
+                  <div className="font-mono text-xs font-bold text-[#000000] uppercase tracking-wider flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-[#2563EB]" />
+                    <span>RECENT ACTIVITY</span>
+                  </div>
+                  <div className="space-y-1.5 font-mono text-xs bg-[#FAFAFA] p-3 border border-[#E5E5E5]">
+                    {person.recentActivity.map(act => (
+                      <div key={act.id} className="flex items-center justify-between text-[#444444] py-1 border-b border-[#F0F0F0] last:border-0">
+                        <span className="truncate">{act.text}</span>
+                        <span className="text-[10px] text-[#888888] shrink-0">{act.timestamp}</span>
                       </div>
-                      <h5 className="font-heading font-black text-sm text-[#000000] truncate mt-1">
-                        {evt.title}
-                      </h5>
-                      <div className="font-mono text-[11px] text-[#666666] flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-[#000000]" />
-                        <span className="truncate">{evt.location}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: SNAPS (3-Column Desktop / 2-Column Mobile Grid) */}
+          {activeTab === 'SNAPS' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-heading font-black text-lg text-[#000000] uppercase tracking-tight">
+                    📸 EVENT SNAPS ({snaps.length})
+                  </h3>
+                  <p className="font-mono text-[11px] text-[#666666]">
+                    Visual moments captured by {person.name.split(' ')[0]} during Mumbai Onchain Week.
+                  </p>
+                </div>
+
+                {isCurrentUser && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddSnapModalOpen(true)}
+                    className="px-3 py-1.5 bg-[#000000] text-white hover:bg-[#222222] font-mono text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-[#22C55E]" />
+                    <span>+ ADD SNAP</span>
+                  </button>
+                )}
+              </div>
+
+              {snaps.length === 0 ? (
+                <div className="p-8 text-center border-2 border-dashed border-[#D4D4D4] bg-[#FAFAFA] space-y-2">
+                  <Camera className="w-8 h-8 text-[#888888] mx-auto" />
+                  <p className="font-mono text-xs text-[#555555]">
+                    No Snaps published yet by this attendee.
+                  </p>
+                  {isCurrentUser && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddSnapModalOpen(true)}
+                      className="mt-2 px-4 py-2 bg-[#000000] text-white font-mono text-xs font-bold"
+                    >
+                      PUBLISH FIRST SNAP
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {snaps.map(snap => (
+                    <div
+                      key={snap.id}
+                      onClick={() => setActiveSnapForViewer(snap)}
+                      className="group relative bg-[#000000] border-2 border-[#000000] aspect-square overflow-hidden cursor-pointer shadow-xs hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+                    >
+                      <img
+                        src={snap.thumbnailUrl || snap.imageUrl}
+                        alt={snap.caption || 'Event Snap'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+
+                      {/* Dark overlay & metadata */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90 group-hover:opacity-100 flex flex-col justify-end p-2 transition-opacity">
+                        <div className="font-mono text-[9px] text-[#22C55E] uppercase truncate font-bold">
+                          {snap.eventName || 'Devcon 8'}
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-white font-mono">
+                          <span>{snap.date}</span>
+                          <span className="flex items-center gap-1">
+                            <Flame className="w-3 h-3 text-[#F97316] fill-[#F97316]" />
+                            <span>{snap.reactions.fire + snap.reactions.heart}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                    {onSelectEvent && (
-                      <button
-                        onClick={() => {
-                          onClose();
-                          onSelectEvent(evt.id);
-                        }}
-                        className="font-mono text-[11px] font-bold text-[#000000] hover:underline shrink-0 p-2 border border-[#EAEAEA] hover:border-[#000000]"
-                      >
-                        VIEW EVENT
-                      </button>
-                    )}
-                  </div>
-                ))}
+          {/* TAB 3: EVENTS */}
+          {activeTab === 'EVENTS' && (
+            <div className="space-y-3 animate-in fade-in duration-150">
+              <div className="font-mono text-xs font-bold text-[#000000] uppercase tracking-wider">
+                ATTENDING ({attendedEventsList.length} SESSIONS)
               </div>
-            )}
-          </div>
+
+              {attendedEventsList.length === 0 ? (
+                <p className="font-mono text-xs text-[#777777] italic">No public events listed.</p>
+              ) : (
+                <div className="space-y-2">
+                  {attendedEventsList.map(evt => (
+                    <div
+                      key={evt.id}
+                      onClick={() => {
+                        onClose();
+                        if (onSelectEvent) onSelectEvent(evt.id);
+                      }}
+                      className="p-3 bg-[#FFFFFF] hover:bg-[#FAFAFA] border-2 border-[#000000] flex items-center justify-between gap-3 cursor-pointer transition-all hover:-translate-x-0.5 shadow-2xs"
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="font-mono text-[10px] text-[#F97316] font-bold uppercase">
+                          {evt.category} • {evt.startDate}
+                        </div>
+                        <div className="font-heading font-black text-sm text-[#000000] truncate">
+                          {evt.title}
+                        </div>
+                        <div className="font-mono text-[10.5px] text-[#666666] truncate flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-[#DC2626]" />
+                          <span>{evt.location}</span>
+                        </div>
+                      </div>
+
+                      <ExternalLink className="w-4 h-4 text-[#888888] shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: MATCH (Deep compatibility breakdown) */}
+          {activeTab === 'MATCH' && !isCurrentUser && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <MatchBreakdownCard
+                match={match}
+                targetName={person.name}
+                targetRole={person.headline || `${person.category} • ${person.city}`}
+              />
+            </div>
+          )}
+
+          {/* TAB 5: CONNECTIONS */}
+          {activeTab === 'CONNECTIONS' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="font-mono text-xs font-bold text-[#000000] uppercase tracking-wider">
+                SHARED ONCHAIN NETWORK
+              </div>
+
+              <div className="p-4 bg-[#FAFAFA] border border-[#E5E5E5] space-y-3">
+                <div className="flex items-center gap-2 font-mono text-xs text-[#333333]">
+                  <Users className="w-4 h-4 text-[#9333EA]" />
+                  <span>
+                    Estimated <strong>{match.mutualConnectionsCount} mutual connections</strong> in Mumbai Onchain directory.
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-[#E5E5E5] space-y-2">
+                  <div className="font-mono text-[11px] text-[#666666] uppercase">
+                    SUGGESTED PEER CONTACTS:
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {people
+                      .filter(p => p.id !== person.id && !p.isCurrentUser)
+                      .slice(0, 4)
+                      .map(peer => (
+                        <div key={peer.id} className="p-2 bg-white border border-[#D4D4D4] flex items-center gap-2">
+                          {peer.avatar ? (
+                            <img src={peer.avatar} alt={peer.name} className="w-7 h-7 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center">
+                              {peer.name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="min-w-0 font-mono text-xs truncate">
+                            <div className="font-bold truncate">{peer.name}</div>
+                            <div className="text-[10px] text-[#777777] truncate">{peer.category}</div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-[#FAFAFA] border-t border-[#000000] p-4 flex items-center justify-between">
-          <div className="font-mono text-[11px] text-[#666666]">
-            MUMBAI ONCHAIN WEEK // COMMUNITY NETWORK
+        {/* Sticky Drawer Footer */}
+        <div className="sticky bottom-0 bg-[#FFFFFF] border-t-2 border-[#000000] p-4 flex items-center justify-between gap-3">
+          <div className="font-mono text-xs text-[#666666] truncate">
+            {isCurrentUser ? 'Your Public Profile' : `Viewing ${person.name}`}
           </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-[#000000] text-[#FFFFFF] font-mono text-xs font-bold hover:bg-[#222222] transition-colors"
-          >
-            CLOSE
-          </button>
+
+          <div className="flex items-center gap-2">
+            {!isCurrentUser && (
+              <button
+                type="button"
+                onClick={() => onCycleConnection(person.id)}
+                className={`px-4 py-2 font-mono text-xs font-bold border-2 transition-all cursor-pointer shadow-xs ${
+                  connectionStatus === 'CONNECTED'
+                    ? 'bg-[#22C55E] text-[#000000] border-[#000000]'
+                    : connectionStatus === 'REQUESTED'
+                    ? 'bg-[#FEF08A] text-[#713F12] border-[#000000]'
+                    : 'bg-[#000000] text-[#FFFFFF] border-[#000000] hover:bg-[#222222]'
+                }`}
+              >
+                {connectionStatus === 'CONNECTED' ? 'CONNECTED' : connectionStatus === 'REQUESTED' ? 'PENDING' : 'CONNECT'}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border-2 border-[#000000] bg-[#FAFAFA] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] font-mono text-xs font-bold transition-colors"
+            >
+              CLOSE
+            </button>
+          </div>
         </div>
 
       </div>
 
-      {/* Profile QR Connect Pass Modal from Drawer */}
-      <ProfileQrModal
-        person={person}
-        isOpen={isQrModalOpen}
-        onClose={() => setIsQrModalOpen(false)}
-        connectionStatus={connectionStatus}
-        onCycleConnection={onCycleConnection}
-        isCurrentUser={isCurrentUser}
-      />
+      {/* QR Pass Modal */}
+      {isQrModalOpen && (
+        <ProfileQrModal
+          person={person}
+          isOpen={isQrModalOpen}
+          onClose={() => setIsQrModalOpen(false)}
+          connectionStatus={connectionStatus}
+          onCycleConnection={onCycleConnection}
+          isCurrentUser={isCurrentUser}
+        />
+      )}
     </div>
   );
 };
