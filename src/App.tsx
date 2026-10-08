@@ -20,7 +20,6 @@ import { MapView } from './components/MapView';
 import { MyMumbai } from './components/MyMumbai';
 import { SideEvents } from './components/SideEvents';
 import { PeopleDirectory } from './components/PeopleDirectory';
-import { Mumbai8Page } from './components/mumbai8/Mumbai8Page';
 import { Footer } from './components/Footer';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
 import { AlertCircle } from 'lucide-react';
@@ -68,7 +67,7 @@ export function App() {
         window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
         setActiveTab('home');
       } else if (tabParam) {
-        if (['home', 'timeline', 'events', 'people', 'map', 'mymumbai', 'mumbai8'].includes(tabParam)) {
+        if (['home', 'timeline', 'events', 'people', 'map', 'mymumbai'].includes(tabParam)) {
           setActiveTab(tabParam as any);
         }
       }
@@ -112,28 +111,11 @@ export function App() {
 
       {/* Main Content View Switcher */}
       <main className="flex-1 pb-20 md:pb-12">
-        {activeTab === 'mumbai8' && (
-          <Mumbai8Page
-            onNavigateToPeople={(passenger) => {
-              const matchedPerson = people.find(
-                (p) =>
-                  p.name.toLowerCase() === passenger.name.toLowerCase() ||
-                  (p.xHandle && p.xHandle.toLowerCase() === passenger.xHandle.toLowerCase())
-              );
-              if (matchedPerson) {
-                setSelectedPersonId(matchedPerson.id);
-              }
-              setActiveTab('people');
-            }}
-          />
-        )}
-
         {activeTab === 'home' && (
           <div className="space-y-12">
             <Hero
               onNavigatePeople={() => setActiveTab('people')}
               onOpenCreateProfile={() => setIsEditModalOpen(true)}
-              onNavigateMumbai8={() => setActiveTab('mumbai8')}
             />
 
             {/* Dynamic People / Community Ticker (Positioned directly above Next Up On Calendar) */}
@@ -298,7 +280,6 @@ export function App() {
         notes={notes}
         onSelectEvent={(id) => setSelectedEventId(id)}
         onSelectPerson={(id) => setSelectedPersonId(id)}
-        onNavigatePeople={() => setActiveTab('people')}
       />
 
       {/* Footer */}

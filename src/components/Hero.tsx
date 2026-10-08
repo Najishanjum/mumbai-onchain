@@ -6,13 +6,11 @@ import { Users, ArrowRight, UserPlus } from 'lucide-react';
 interface HeroProps {
   onNavigatePeople?: () => void;
   onOpenCreateProfile?: () => void;
-  onNavigateMumbai8?: () => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({
   onNavigatePeople,
   onOpenCreateProfile,
-  onNavigateMumbai8,
 }) => {
   return (
     <section className="relative w-full pt-10 sm:pt-14 pb-16 sm:pb-20 overflow-hidden bg-[#FFFFFF] border-b border-[#D8D8D8] tech-grid">
@@ -22,7 +20,7 @@ export const Hero: React.FC<HeroProps> = ({
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-8">
         
-        {/* Top Minimalist Event Identity Pill & Train Alert */}
+        {/* Top Minimalist Event Identity Pill */}
         <div className="flex flex-wrap items-center justify-center gap-2">
           <div className="inline-flex items-center gap-2 border border-[#D8D8D8] bg-[#FFFFFF] px-3.5 py-1.5 rounded-full shadow-2xs font-mono text-[11px] text-[#333333]">
             <span className="w-2 h-2 rounded-full bg-[#000000]" />
@@ -32,17 +30,6 @@ export const Hero: React.FC<HeroProps> = ({
             <span className="text-[#999999]">•</span>
             <span className="font-mono text-[#F97316] font-bold">ETH / SOL / ECOSYSTEM</span>
           </div>
-
-          {onNavigateMumbai8 && (
-            <button
-              onClick={onNavigateMumbai8}
-              className="group inline-flex items-center gap-2 border border-cyan-500/40 bg-gradient-to-r from-slate-950 via-cyan-950 to-slate-950 text-cyan-300 px-3.5 py-1.5 rounded-full shadow-md font-mono text-[11px] hover:border-cyan-400 hover:scale-105 transition-all"
-            >
-              <span>🚄 MUMBAI8 &bull; THE ONCHAIN EXPRESS</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          )}
         </div>
 
         {/* Hero Oversized Typographic Composition */}
@@ -90,17 +77,6 @@ export const Hero: React.FC<HeroProps> = ({
             <span className="tracking-wide">PEOPLE & CONNECT</span>
             <ArrowRight className="w-4 h-4 text-[#F97316] group-hover:translate-x-1 transition-transform" />
           </button>
-
-          {onNavigateMumbai8 && (
-            <button
-              type="button"
-              onClick={onNavigateMumbai8}
-              className="w-full sm:w-auto group inline-flex items-center justify-center gap-2 bg-[#050811] text-cyan-300 hover:text-white px-6 py-4 border-2 border-cyan-400 font-mono font-bold text-xs sm:text-sm uppercase tracking-wide transition-all shadow-[4px_4px_0px_0px_rgba(0,240,255,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,240,255,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none cursor-pointer"
-            >
-              <span>🚄 BOARD MUMBAI8</span>
-              <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
-            </button>
-          )}
 
           {onOpenCreateProfile && (
             <button
