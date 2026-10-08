@@ -128,14 +128,26 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
             </button>
 
             {isCurrentUser && (
-              <button
-                type="button"
-                onClick={onEditProfile}
-                className="p-1.5 px-2.5 border-2 border-[#000000] bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">EDIT</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsAddSnapModalOpen(true)}
+                  className="p-1.5 px-2.5 border-2 border-[#000000] bg-[#000000] hover:bg-[#222222] text-[#FFFFFF] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                  title="Add a new Snap"
+                >
+                  <Camera className="w-3.5 h-3.5 text-[#22C55E]" />
+                  <span className="hidden sm:inline">+ ADD SNAP</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onEditProfile}
+                  className="p-1.5 px-2.5 border-2 border-[#000000] bg-[#FFFFFF] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">EDIT</span>
+                </button>
+              </>
             )}
 
             <button
@@ -472,18 +484,18 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
               </div>
 
               {snaps.length === 0 ? (
-                <div className="p-8 text-center border-2 border-dashed border-[#D4D4D4] bg-[#FAFAFA] space-y-2">
+                <div className="p-8 text-center border-2 border-dashed border-[#000000] bg-[#FAFAFA] space-y-2">
                   <Camera className="w-8 h-8 text-[#888888] mx-auto" />
-                  <p className="font-mono text-xs text-[#555555]">
-                    No Snaps published yet by this attendee.
+                  <p className="font-heading font-black text-sm uppercase text-[#000000]">
+                    📸 No Snaps yet.
                   </p>
                   {isCurrentUser && (
                     <button
                       type="button"
                       onClick={() => setIsAddSnapModalOpen(true)}
-                      className="mt-2 px-4 py-2 bg-[#000000] text-white font-mono text-xs font-bold"
+                      className="mt-2 px-4 py-2 bg-[#000000] hover:bg-[#222222] text-white font-heading font-black text-xs uppercase cursor-pointer"
                     >
-                      PUBLISH FIRST SNAP
+                      + ADD SNAP
                     </button>
                   )}
                 </div>
@@ -498,6 +510,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                       <img
                         src={snap.thumbnailUrl || snap.imageUrl}
                         alt={snap.caption || 'Event Snap'}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
 

@@ -48,6 +48,25 @@ const FLAGSHIP_EVENT_CHIPS = [
   { id: 'ethereum-cypherpunk-congress-3', label: '🎟️ CYPHERPUNK' },
 ];
 
+function formatSnapTime(createdAt?: string, fallbackDate?: string): string {
+  if (!createdAt) return fallbackDate || 'Nov 2026';
+  try {
+    const diffMs = Date.now() - new Date(createdAt).getTime();
+    if (diffMs < 0) return fallbackDate || 'Just now';
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return fallbackDate || new Date(createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch {
+    return fallbackDate || 'Nov 2026';
+  }
+}
+
 export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ events }) => {
   const {
     people,
@@ -399,48 +418,93 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ events }) => {
           </button>
         </div>
 
-        {/* Snaps Grid (Horizontal on mobile, 4-col on desktop) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
-          {recentSnaps.slice(0, 8).map(snap => (
-            <div
-              key={snap.id}
-              onClick={() => setActiveSnapForViewer(snap)}
-              className="group bg-[#FFFFFF] border-2 border-[#000000] overflow-hidden cursor-pointer shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 flex flex-col justify-between"
+        {/* Snaps Grid with Empty State */}
+        {recentSnaps.length === 0 ? (
+          <div className="p-10 text-center border-2 border-dashed border-[#000000] bg-[#FAFAFA] space-y-2">
+            <Camera className="w-8 h-8 text-[#888888] mx-auto mb-1" />
+            <p className="font-heading font-black text-sm uppercase text-[#000000]">
+              📸 No community Snaps yet.
+            </p>
+            <p className="font-mono text-xs text-[#666666]">
+              Be the first to capture a moment.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsAddSnapModalOpen(true)}
+              className="mt-2 px-4 py-2 bg-[#000000] hover:bg-[#222222] text-white font-heading font-black text-xs uppercase cursor-pointer"
             >
-              <div className="relative aspect-4/3 bg-[#000000] overflow-hidden">
-                <img
-                  src={snap.thumbnailUrl || snap.imageUrl}
-                  alt={snap.caption || 'Event Snap'}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute top-2 right-2 bg-black/75 px-1.5 py-0.5 rounded text-[9.5px] font-mono text-white flex items-center gap-1">
-                  <Flame className="w-3 h-3 text-[#F97316] fill-[#F97316]" />
-                  <span>{snap.reactions.fire + snap.reactions.heart}</span>
+              + ADD SNAP
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+            {recentSnaps.slice(0, 8).map(snap => (
+              <div
+                key={snap.id}
+                onClick={() => setActiveSnapForViewer(snap)}
+                className="group bg-[#FFFFFF] border-2 border-[#000000] overflow-hidden cursor-pointer shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 flex flex-col justify-between"
+              >
+                <div className="relative aspect-4/3 bg-[#000000] overflow-hidden">
+                  <img
+                    src={snap.thumbnailUrl || snap.imageUrl}
+                    alt={snap.caption || 'Event Snap'}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-2 right-2 bg-black/75 px-1.5 py-0.5 rounded text-[9.5px] font-mono text-white flex items-center gap-1">
+                    <Flame className="w-3 h-3 text-[#F97316] fill-[#F97316]" />
+                    <span>{snap.reactions.fire + snap.reactions.heart}</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Creator & Event metadata below image */}
-              <div className="p-2.5 bg-[#FFFFFF] border-t border-[#000000] space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-heading font-black text-[#000000] truncate">
-                    {snap.authorName}
-                  </span>
-                  <span className="font-mono text-[10px] text-[#666666] shrink-0">
-                    {snap.date.split(',')[0]}
-                  </span>
+                {/* Creator & Event metadata below image */}
+                <div className="p-2.5 bg-[#FFFFFF] border-t border-[#000000] space-y-1.5">
+                  {/* Creator Photo & Name (Clicking opens their existing profile) */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPersonId(snap.authorId);
+                    }}
+                    className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer group/author"
+                    title={`View ${snap.authorName}'s Profile`}
+                  >
+                    {snap.authorAvatar ? (
+                      <img
+                        src={snap.authorAvatar}
+                        alt={snap.authorName}
+                        loading="lazy"
+                        className="w-5 h-5 rounded-full object-cover border border-[#000000] shrink-0"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-[#000000] text-white flex items-center justify-center font-bold text-[9px] shrink-0">
+                        {snap.authorName.charAt(0)}
+                      </div>
+                    )}
+                    <span className="font-heading font-black text-xs text-[#000000] truncate group-hover/author:underline">
+                      {snap.authorName}
+                    </span>
+                  </div>
+
+                  {/* Event Name & Upload Time */}
+                  <div className="flex items-center justify-between text-[10.5px] font-mono">
+                    <span className="text-[#22C55E] truncate font-bold">
+                      {snap.eventName || 'Devcon 8'}
+                    </span>
+                    <span className="text-[#666666] shrink-0 text-[10px]">
+                      {formatSnapTime(snap.createdAt, snap.date)}
+                    </span>
+                  </div>
+
+                  {snap.caption && (
+                    <p className="font-sans text-[11px] text-[#555555] line-clamp-1 italic">
+                      "{snap.caption}"
+                    </p>
+                  )}
                 </div>
-                <div className="font-mono text-[10.5px] text-[#22C55E] truncate font-bold">
-                  {snap.eventName || 'Devcon 8'}
-                </div>
-                {snap.caption && (
-                  <p className="font-sans text-[11px] text-[#555555] line-clamp-1 italic">
-                    "{snap.caption}"
-                  </p>
-                )}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ──────────────────────────────────────────────────────────────────

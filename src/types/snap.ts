@@ -22,6 +22,8 @@ export interface Snap {
   caption?: string;
   location?: string; // e.g. "Jio World Centre, BKC"
   taggedPersonIds?: string[];
+  storagePath?: string;
+  visibility?: 'public' | 'private';
   reactions: SnapReactions;
   createdAt: string;
 }

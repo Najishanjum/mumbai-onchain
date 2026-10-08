@@ -154,29 +154,41 @@ export function App() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-                  {recentSnaps.slice(0, 6).map(snap => (
-                    <div
-                      key={snap.id}
-                      onClick={() => setActiveSnapForViewer(snap)}
-                      className="group relative aspect-square bg-black border border-[#000000] overflow-hidden cursor-pointer shadow-2xs hover:shadow-xs transition-all"
-                    >
-                      <img
-                        src={snap.thumbnailUrl || snap.imageUrl}
-                        alt="Snap"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-1.5 opacity-90 group-hover:opacity-100">
-                        <div className="text-[9px] font-mono text-[#22C55E] truncate font-bold">
-                          {snap.authorName.split(' ')[0]}
-                        </div>
-                        <div className="text-[8.5px] font-mono text-white/80 truncate">
-                          {snap.eventName?.split(' ')[0] || 'Devcon'}
+                {recentSnaps.length === 0 ? (
+                  <div className="p-6 text-center border border-dashed border-[#000000] bg-[#FAFAFA]">
+                    <p className="font-heading font-black text-xs uppercase text-[#000000]">
+                      📸 No community Snaps yet.
+                    </p>
+                    <p className="font-mono text-[11px] text-[#666666] mt-0.5">
+                      Be the first to capture a moment.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                    {recentSnaps.slice(0, 6).map(snap => (
+                      <div
+                        key={snap.id}
+                        onClick={() => setActiveSnapForViewer(snap)}
+                        className="group relative aspect-square bg-black border border-[#000000] overflow-hidden cursor-pointer shadow-2xs hover:shadow-xs transition-all"
+                      >
+                        <img
+                          src={snap.thumbnailUrl || snap.imageUrl}
+                          alt="Snap"
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-1.5 opacity-90 group-hover:opacity-100">
+                          <div className="text-[9px] font-mono text-[#22C55E] truncate font-bold">
+                            {snap.authorName.split(' ')[0]}
+                          </div>
+                          <div className="text-[8.5px] font-mono text-white/80 truncate">
+                            {snap.eventName?.split(' ')[0] || 'Devcon'}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

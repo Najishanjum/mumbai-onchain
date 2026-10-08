@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { Snap } from '../types/snap';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
@@ -16,6 +16,8 @@ import {
   HandMetal,
   ArrowRight,
   Tag,
+  MoreHorizontal,
+  Trash2,
 } from 'lucide-react';
 
 interface SnapViewerModalProps {
@@ -29,8 +31,11 @@ export const SnapViewerModal: React.FC<SnapViewerModalProps> = ({
   onClose,
   onOpenProfile,
 }) => {
-  const { snaps, userReactions, toggleReaction, setActiveSnapForViewer } = useSnapStore();
+  const { snaps, userReactions, toggleReaction, setActiveSnapForViewer, deleteSnap, isOwnerOfSnap } = useSnapStore();
   const { people, myProfile, connections } = usePeopleStore();
+
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Current snap index and navigation
   const currentIndex = snap ? snaps.findIndex(s => s.id === snap.id) : -1;
@@ -137,9 +142,9 @@ export const SnapViewerModal: React.FC<SnapViewerModalProps> = ({
         {/* Right: Metadata, Creator, Match & Social Loop */}
         <div className="w-full md:w-88 lg:w-96 bg-[#111111] border-t md:border-t-0 md:border-l border-[#262626] p-5 flex flex-col justify-between overflow-y-auto space-y-4">
           
-          {/* Top Bar: Event Badge & Close button (desktop) */}
+          {/* Top Bar: Event Badge, Owner Menu & Close button (desktop) */}
           <div className="flex items-center justify-between border-b border-[#222222] pb-3">
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 min-w-0 pr-2">
               <span className="font-mono text-[10px] text-[#888888] uppercase tracking-widest">
                 MUMBAI ONCHAIN // SNAP MEMORY
               </span>
@@ -148,35 +153,84 @@ export const SnapViewerModal: React.FC<SnapViewerModalProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="hidden md:flex p-1.5 border border-[#333333] hover:border-[#666666] text-[#888888] hover:text-[#FFFFFF] rounded transition-colors"
-              aria-label="Close viewer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isOwnerOfSnap(snap) && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="p-1.5 border border-[#333333] hover:border-[#666666] text-[#AAAAAA] hover:text-[#FFFFFF] rounded transition-colors cursor-pointer"
+                    title="Snap Options"
+                    aria-label="Snap options"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+
+                  {isMenuOpen && (
+                    <div className="absolute right-0 top-full mt-1 w-36 bg-[#1A1A1A] border border-[#333333] shadow-xl rounded z-30 py-1 font-mono text-xs animate-in fade-in duration-100">
+                      <button
+                        type="button"
+                        disabled={isDeleting}
+                        onClick={async () => {
+                          if (window.confirm('Delete this Snap? This cannot be undone.')) {
+                            try {
+                              setIsDeleting(true);
+                              await deleteSnap(snap.id);
+                              onClose();
+                            } catch (e) {
+                              console.error('Delete failed:', e);
+                            } finally {
+                              setIsDeleting(false);
+                            }
+                          }
+                        }}
+                        className="w-full text-left px-3 py-2 text-red-400 hover:bg-red-950/40 hover:text-red-300 flex items-center gap-2 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{isDeleting ? 'Deleting...' : 'Delete Snap'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="hidden md:flex p-1.5 border border-[#333333] hover:border-[#666666] text-[#888888] hover:text-[#FFFFFF] rounded transition-colors"
+                aria-label="Close viewer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Author info & Match connection */}
           <div className="space-y-3">
             <div className="p-3 bg-[#171717] border border-[#2A2A2A] rounded-lg space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
+                <div
+                  onClick={() => {
+                    onClose();
+                    onOpenProfile(snap.authorId);
+                  }}
+                  className="flex items-center gap-2.5 cursor-pointer group/author min-w-0"
+                  title={`View ${snap.authorName}'s Profile`}
+                >
                   {snap.authorAvatar ? (
                     <img
                       src={snap.authorAvatar}
                       alt={snap.authorName}
-                      className="w-9 h-9 rounded-full object-cover border border-[#444444]"
+                      className="w-9 h-9 rounded-full object-cover border border-[#444444] group-hover/author:border-white transition-colors shrink-0"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-[#2A2A2A] border border-[#444444] flex items-center justify-center font-bold text-xs text-white">
+                    <div className="w-9 h-9 rounded-full bg-[#2A2A2A] border border-[#444444] group-hover/author:border-white transition-colors flex items-center justify-center font-bold text-xs text-white shrink-0">
                       {snap.authorName.charAt(0)}
                     </div>
                   )}
 
                   <div className="min-w-0">
-                    <div className="font-heading font-bold text-xs sm:text-sm text-[#FFFFFF] truncate">
+                    <div className="font-heading font-bold text-xs sm:text-sm text-[#FFFFFF] group-hover/author:underline truncate">
                       {snap.authorName}
                     </div>
                     <div className="font-mono text-[10px] text-[#888888] truncate">
@@ -187,7 +241,7 @@ export const SnapViewerModal: React.FC<SnapViewerModalProps> = ({
 
                 {/* Match percentage pill */}
                 {match && authorProfile && authorProfile.id !== myProfile?.id && (
-                  <div className="shrink-0 font-mono text-[11px] font-black px-2 py-0.5 rounded bg-[#F97316]/10 text-[#F97316] border border-[#F97316]/30">
+                  <div className="shrink-0 font-mono text-[11px] font-black px-2 py-0.5 rounded bg-[#F97316]/10 text-[#F97316] border border-[#F97316]/30 ml-2">
                     {match.overall}% MATCH
                   </div>
                 )}

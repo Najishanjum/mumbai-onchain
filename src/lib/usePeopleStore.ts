@@ -410,8 +410,8 @@ export const PeopleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
 export function usePeopleStore(): PeopleStoreType {
   const context = useContext(PeopleContext);
-  if (context) {
-    return context;
+  if (!context) {
+    throw new Error('usePeopleStore must be used within a PeopleProvider');
   }
-  return usePeopleStoreState();
+  return context;
 }

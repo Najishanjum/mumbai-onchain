@@ -461,6 +461,7 @@ export const EventDrawer: React.FC<EventDrawerProps> = ({
                       <img
                         src={snap.thumbnailUrl || snap.imageUrl}
                         alt={snap.caption || 'Event Snap'}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
 

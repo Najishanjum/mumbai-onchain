@@ -12,6 +12,7 @@ import {
   Loader2,
   Sparkles,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 
 interface AddSnapModalProps {
@@ -66,6 +67,15 @@ export const AddSnapModal: React.FC<AddSnapModalProps> = ({
       setPreviewUrl(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setSelectedFile(null);
+    setPreviewUrl('');
+    setErrorMessage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleToggleTag = (personId: string) => {
@@ -164,20 +174,32 @@ export const AddSnapModal: React.FC<AddSnapModalProps> = ({
             />
 
             {previewUrl ? (
-              <div className="relative border-2 border-[#000000] bg-[#000000] rounded overflow-hidden max-h-56 flex items-center justify-center group">
-                <img
-                  src={previewUrl}
-                  alt="Snap Preview"
-                  className="w-full h-56 object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 bg-black/50 text-white font-mono text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>CHANGE PHOTO</span>
-                </button>
+              <div className="space-y-2">
+                <div className="relative border-2 border-[#000000] bg-[#000000] rounded overflow-hidden max-h-56 flex items-center justify-center">
+                  <img
+                    src={previewUrl}
+                    alt="Snap Preview"
+                    className="w-full h-56 object-cover"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 py-1.5 px-3 border border-[#000000] bg-[#FAFAFA] hover:bg-[#000000] hover:text-[#FFFFFF] text-[#000000] font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>CHANGE IMAGE</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="py-1.5 px-3 border border-red-500 bg-red-50 hover:bg-red-600 hover:text-white text-red-700 font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>REMOVE</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div

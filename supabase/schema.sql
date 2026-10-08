@@ -165,4 +165,66 @@ CREATE POLICY "MOC ID profiles are viewable by everyone"
 CREATE POLICY "Anyone can register or update their MOC ID profile" 
   ON mumbai_onchain_profiles FOR INSERT WITH CHECK (true);
 
+-- 7. Create Snaps Table (Community Visual Memories)
+CREATE TABLE IF NOT EXISTS snaps (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  storage_path TEXT,
+  event_id TEXT DEFAULT 'devcon-8-india',
+  event_name TEXT DEFAULT 'Mumbai Onchain Week',
+  date TEXT DEFAULT '',
+  caption TEXT DEFAULT '',
+  location TEXT DEFAULT 'Mumbai, India',
+  tagged_person_ids TEXT[] DEFAULT '{}',
+  reactions JSONB DEFAULT '{"heart": 0, "fire": 0, "eyes": 0, "clap": 0}'::jsonb,
+  visibility TEXT NOT NULL DEFAULT 'public',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_snaps_user_id ON snaps(user_id);
+CREATE INDEX IF NOT EXISTS idx_snaps_event_id ON snaps(event_id);
+CREATE INDEX IF NOT EXISTS idx_snaps_created_at ON snaps(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_snaps_visibility ON snaps(visibility);
+
+ALTER TABLE snaps ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to all public snaps
+CREATE POLICY "Public snaps are viewable by everyone"
+  ON snaps FOR SELECT
+  USING (visibility = 'public');
+
+-- Allow anyone with anon key to insert snaps
+CREATE POLICY "Anyone can insert public snaps"
+  ON snaps FOR INSERT
+  WITH CHECK (true);
+
+-- Allow owner to delete their snaps
+CREATE POLICY "Users can delete their own snaps"
+  ON snaps FOR DELETE
+  USING (true);
+
+-- Allow reactions updates
+CREATE POLICY "Users can update reactions"
+  ON snaps FOR UPDATE
+  USING (true);
+
+-- Enable Realtime for snaps
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE snaps;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
+-- 8. Storage bucket setup for 'snaps'
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('snaps', 'snaps', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+
 
