@@ -16,7 +16,7 @@ export const Footer: React.FC = () => {
             </h3>
             <p className="font-mono text-xs text-[#555555] max-w-md pt-2">
               ONE WEEK. ONE CITY. MULTIPLE ECOSYSTEMS.<br />
-              A personal Web3 event command center tracking Devcon 8, India Blockchain Week, and ETHGlobal Mumbai.
+              A Web3 event command center tracking Devcon 8, India Blockchain Week, and ETHGlobal Mumbai.
             </p>
           </div>
 
