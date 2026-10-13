@@ -252,5 +252,5 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 ---
 
 <p align="center">
-  <b>Built with ❤️ for the Global Web3 Community & Mumbai Onchain Week 2026</b>
+  <b>Built for the Global Web3 Community & Mumbai Onchain Week 2026</b>
 </p>
