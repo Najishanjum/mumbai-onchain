@@ -6,8 +6,8 @@ import { compressAndOptimizeImage, dataUrlToBlob } from './imageCompressor';
 import { usePeopleStore } from './usePeopleStore';
 import { supabase, isSupabaseConfigured } from './supabase';
 
-const SNAPS_STORAGE_KEY = 'mumbai_onchain_snaps_v3';
-const USER_REACTIONS_STORAGE_KEY = 'mumbai_onchain_user_reactions_v3';
+const SNAPS_STORAGE_KEY = 'mumbai_onchain_snaps_v4';
+const USER_REACTIONS_STORAGE_KEY = 'mumbai_onchain_user_reactions_v4';
 
 export interface DbSnapRow {
   id: string;
@@ -105,13 +105,22 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initial load from LocalStorage cache or fallback to initial seed
   const [snaps, setSnaps] = useState<Snap[]>(() => {
     try {
+      // Clear out legacy snap versions
+      localStorage.removeItem('mumbai_onchain_snaps_v1');
+      localStorage.removeItem('mumbai_onchain_snaps_v2');
+      localStorage.removeItem('mumbai_onchain_snaps_v3');
+
       const saved = localStorage.getItem(SNAPS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((s: Snap) => s.id));
+          // Exclude any legacy placeholder snaps (e.g. snap-1 to snap-8)
+          const validLegacyExcluded = parsed.filter(
+            (s: Snap) => !['snap-1', 'snap-2', 'snap-3', 'snap-4', 'snap-5', 'snap-6', 'snap-7', 'snap-8'].includes(s.id)
+          );
+          const existingIds = new Set(validLegacyExcluded.map((s: Snap) => s.id));
           const missing = INITIAL_SNAPS.filter(s => !existingIds.has(s.id));
-          return [...parsed, ...missing];
+          return [...validLegacyExcluded, ...missing];
         }
       }
     } catch (e) {
