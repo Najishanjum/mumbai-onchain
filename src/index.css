@@ -91,19 +91,36 @@ main.app-main {
   background-image: var(--app-glow);
   background-repeat: no-repeat;
 }
-/* Sits behind the iPhone clock (0px tall elsewhere) so scrolled content
-   never runs under the status text. */
+/* Sits behind the iPhone clock (0px tall elsewhere) so scrolled content never
+   runs under the status text. In Dark it is invisible at the top of a screen
+   (the glow runs straight up behind the clock, no edge) and fades in once
+   content scrolls under it, with a soft bottom edge instead of a line. */
 .app-statusbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: env(safe-area-inset-top, 0px);
+  height: calc(env(safe-area-inset-top, 0px) + 14px);
   background: var(--app-statusbar);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
   z-index: 45;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.app-statusbar.is-scrolled { opacity: 1; }
+/* Light: the white clock always needs the dark strip behind it. */
+html[data-app-theme='light'] .app-statusbar {
+  opacity: 1;
+  height: env(safe-area-inset-top, 0px);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-statusbar { transition: none; }
 }
 .app-title {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, Roboto, sans-serif;

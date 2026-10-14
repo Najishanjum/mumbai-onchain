@@ -109,11 +109,20 @@ export const AppShell: React.FC<AppShellProps> = ({
     window.scrollTo({ top: 0 });
   }, [tab]);
 
+  // Show the status-bar scrim only once content has scrolled under the clock.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   const showPass = () => (myProfile ? setIsPassOpen(true) : onEditProfile());
 
   return (
     <>
-      <div className="app-statusbar" aria-hidden="true" />
+      <div className={`app-statusbar${scrolled ? ' is-scrolled' : ''}`} aria-hidden="true" />
       <main className="app-main min-h-dvh pt-[env(safe-area-inset-top)] pb-[calc(var(--app-tabbar-h)+env(safe-area-inset-bottom)+16px)]">
         {tab === 'today' && (
           <TodayScreen
