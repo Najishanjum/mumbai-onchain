@@ -26,20 +26,25 @@ export function isStandalone(): boolean {
   );
 }
 
-// The app layout is shown when launched from the home screen. `?app=1` forces
-// it in a normal tab for development and demos; `?app=0` turns it back off.
-const APP_PREVIEW_KEY = 'mo_app_preview';
-
+// The app layout is only for the installed app. Anyone opening the site in a
+// browser, on phone or desktop, gets the website. `?app=1` previews the app
+// layout for that page load only; it is deliberately not remembered, so the
+// plain URL always shows the website.
 export function isAppMode(): boolean {
   if (isStandalone()) return true;
   try {
-    const flag = new URLSearchParams(window.location.search).get('app');
-    if (flag === '1') sessionStorage.setItem(APP_PREVIEW_KEY, '1');
-    if (flag === '0') sessionStorage.removeItem(APP_PREVIEW_KEY);
-    return sessionStorage.getItem(APP_PREVIEW_KEY) === '1';
+    return new URLSearchParams(window.location.search).get('app') === '1';
   } catch {
     return false;
   }
+}
+
+// Clear the flag older builds left behind, which kept the app layout on for
+// the rest of the tab session.
+try {
+  sessionStorage.removeItem('mo_app_preview');
+} catch {
+  // storage blocked: nothing to clean
 }
 
 // Best effort: X adds "TwitterAndroid" / "Twitter for iPhone", Telegram adds
