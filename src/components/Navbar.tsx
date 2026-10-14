@@ -1,12 +1,16 @@
 import React from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Smartphone } from 'lucide-react';
+import { useInstallState } from '../lib/pwa';
 
 interface NavbarProps {
   activeTab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator';
   setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator') => void;
+  onInstall: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onInstall }) => {
+  const { installed } = useInstallState();
+
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FFFFFF] border-b border-[#D8D8D8] select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -109,6 +113,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             <span className="font-bold text-[#050505]">01—08 NOV 2026</span>
             <span>MUMBAI, INDIA</span>
           </div>
+
+          {!installed && (
+            <button
+              type="button"
+              onClick={onInstall}
+              className="hidden md:inline-flex items-center gap-1.5 border border-[#000000] hover:bg-[#F2F2F2] px-3.5 py-2 rounded-full font-mono font-bold text-xs tracking-wide transition-colors"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>GET THE APP</span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('timeline')}

@@ -2,15 +2,23 @@
 <html lang="en" class="dark scroll-smooth">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-64.png" />
+    <!-- viewport-fit=cover lets the app draw under the iPhone home indicator; fixed bars pad with env(safe-area-inset-*) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+
+    <!-- Installed app (iOS reads these instead of the web manifest) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Mumbai Onchain" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     
     <!-- Primary Meta Tags -->
     <title>MUMBAI // ONCHAIN WEEK 2026</title>
     <meta name="title" content="MUMBAI // ONCHAIN WEEK 2026 — Personal Web3 Command Center" />
     <meta name="description" content="A personal Web3 event command center tracking Devcon 8, India Blockchain Week, ETHGlobal Mumbai, and ecosystem side events across Mumbai." />
     <meta name="author" content="Najish Anjum" />
-    <meta name="theme-color" content="#050505" />
+    <meta name="theme-color" content="#FFFFFF" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />

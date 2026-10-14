@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAppStore } from './lib/store';
 import { usePeopleStore } from './lib/usePeopleStore';
 import { useSnapStore } from './lib/useSnapStore';
@@ -26,9 +26,21 @@ import { AddSnapModal } from './components/AddSnapModal';
 import { LiveMatchToast } from './components/LiveMatchToast';
 import { Footer } from './components/Footer';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
+import { InstallBanner } from './components/InstallBanner';
+import { InstallSheet } from './components/InstallSheet';
+import { PwaStatus } from './components/PwaStatus';
+import { AppShell } from './app/AppShell';
+import { ProfileEditorSheet } from './app/ProfileEditorSheet';
+import { isAppMode } from './lib/pwa';
 import { AlertCircle, Camera, ArrowRight } from 'lucide-react';
 
 export function App() {
+  const [appMode] = useState(isAppMode);
+  const [isAskOpen, setIsAskOpen] = useState(false);
+  const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const openInstall = useCallback(() => setIsInstallOpen(true), []);
+  const closeInstall = useCallback(() => setIsInstallOpen(false), []);
+
   const {
     events,
     notes,
@@ -110,20 +122,149 @@ export function App() {
     return true;
   });
 
+  const isSelectedPersonMe = Boolean(
+    selectedPerson && (selectedPerson.isCurrentUser || (myProfile && myProfile.id === selectedPerson.id))
+  );
+
+  // Drawers, modals and floating helpers used by both the website and the app.
+  const sharedOverlays = (
+    <>
+      {/* Website drawers. The app shows its own EventSheet / PersonSheet. */}
+      {!appMode && (
+        <>
+          {/* Event Details Right Drawer with People Match & Snaps */}
+          <EventDrawer
+            event={selectedEvent}
+            note={selectedEventId ? notes[selectedEventId] : undefined}
+            onClose={() => setSelectedEventId(null)}
+            onUpdateStatus={updateEventStatus}
+            onSaveNote={saveEventNote}
+            onOpenPersonProfile={(personId) => setSelectedPersonId(personId)}
+          />
+
+          {/* Community Profile Drawer (4 Tabs: OVERVIEW, SNAPS, EVENTS, MATCH, NETWORK) */}
+          <ProfileDrawer
+            person={selectedPerson}
+            connectionStatus={selectedPersonId ? getConnectionStatus(selectedPersonId) : 'NOT_CONNECTED'}
+            isCurrentUser={isSelectedPersonMe}
+            events={events}
+            onClose={() => setSelectedPersonId(null)}
+            onCycleConnection={cycleConnection}
+            onEditProfile={() => setIsEditModalOpen(true)}
+            onSelectEvent={(id) => setSelectedEventId(id)}
+          />
+        </>
+      )}
+
+      {/* Create / edit profile: the app's own sheet, or the website modal */}
+      {appMode ? (
+        <ProfileEditorSheet
+          isOpen={isEditModalOpen}
+          currentProfile={myProfile}
+          events={events}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={saveMyProfile}
+        />
+      ) : (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          currentProfile={myProfile}
+          events={events}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={saveMyProfile}
+        />
+      )}
+
+      {/* Lightbox Snap Viewer */}
+      <SnapViewerModal
+        snap={activeSnapForViewer}
+        onClose={() => setActiveSnapForViewer(null)}
+        onOpenProfile={(personId) => setSelectedPersonId(personId)}
+      />
+
+      {/* Add Snap Modal */}
+      <AddSnapModal
+        isOpen={isAddSnapModalOpen}
+        events={events}
+        preselectedEventId={preselectedEventIdForSnap}
+        onClose={() => setIsAddSnapModalOpen(false)}
+      />
+
+      {/* Non-intrusive Live Match Toast. Website only: in the app it covered
+          half the screen and matched against seed profiles before the user
+          had a profile of their own. */}
+      {!appMode && (
+        <LiveMatchToast
+          onOpenProfile={(personId) => setSelectedPersonId(personId)}
+        />
+      )}
+
+      {/* MUMBAI ONCHAIN AI ASSISTANT. The app opens it from Today's quick
+          actions instead of a floating pill over the content. */}
+      <AskMumbaiAssistant
+        events={events}
+        people={people}
+        myProfile={myProfile}
+        connections={connections}
+        notes={notes}
+        onSelectEvent={(id) => setSelectedEventId(id)}
+        onSelectPerson={(id) => setSelectedPersonId(id)}
+        hideLauncher={appMode}
+        open={appMode ? isAskOpen : undefined}
+        onOpenChange={appMode ? setIsAskOpen : undefined}
+      />
+    </>
+  );
+
+  // Installed app (or ?app=1): a focused app layout instead of the landing page.
+  if (appMode) {
+    return (
+      <div className="app min-h-dvh">
+        <PwaStatus />
+        <AppShell
+          events={events}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onOpenEvent={(id) => setSelectedEventId(id)}
+          selectedEvent={selectedEvent}
+          onCloseEvent={() => setSelectedEventId(null)}
+          selectedPerson={selectedPerson}
+          isSelectedPersonMe={isSelectedPersonMe}
+          onClosePerson={() => setSelectedPersonId(null)}
+          people={people}
+          myProfile={myProfile}
+          onEditProfile={() => setIsEditModalOpen(true)}
+          onSelectPerson={(id) => setSelectedPersonId(id)}
+          onAddSnap={() => setIsAddSnapModalOpen(true)}
+          onAsk={() => setIsAskOpen(true)}
+          cycleConnection={cycleConnection}
+          getConnectionStatus={getConnectionStatus}
+        />
+        {sharedOverlays}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#050505] tech-grid">
       
+      {/* Offline strip + "new version ready" toast */}
+      <PwaStatus />
+
       {/* Desktop Navigation */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onInstall={openInstall}
       />
+
+      <InstallBanner onOpen={openInstall} />
 
       {/* Top Event Telemetry Stream */}
       <MarqueeTicker />
 
       {/* Main Content View Switcher */}
-      <main className="flex-1 pb-20 md:pb-12">
+      <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-12">
         {activeTab === 'home' && (
           <div className="space-y-12">
             <Hero
@@ -306,72 +447,14 @@ export function App() {
         )}
       </main>
 
-      {/* Event Details Right Drawer with People Match & Snaps */}
-      <EventDrawer
-        event={selectedEvent}
-        note={selectedEventId ? notes[selectedEventId] : undefined}
-        onClose={() => setSelectedEventId(null)}
-        onUpdateStatus={updateEventStatus}
-        onSaveNote={saveEventNote}
-        onOpenPersonProfile={(personId) => setSelectedPersonId(personId)}
-      />
+      {sharedOverlays}
 
-      {/* Community Profile Drawer (4 Tabs: OVERVIEW, SNAPS, EVENTS, MATCH, NETWORK) */}
-      <ProfileDrawer
-        person={selectedPerson}
-        connectionStatus={selectedPersonId ? getConnectionStatus(selectedPersonId) : 'NOT_CONNECTED'}
-        isCurrentUser={Boolean(selectedPerson && (selectedPerson.isCurrentUser || (myProfile && myProfile.id === selectedPerson.id)))}
-        events={events}
-        onClose={() => setSelectedPersonId(null)}
-        onCycleConnection={cycleConnection}
-        onEditProfile={() => setIsEditModalOpen(true)}
-        onSelectEvent={(id) => setSelectedEventId(id)}
-      />
-
-      {/* Global Edit / Create Profile Modal with Skills, Building, Privacy */}
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        currentProfile={myProfile}
-        events={events}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={saveMyProfile}
-      />
-
-      {/* Lightbox Snap Viewer */}
-      <SnapViewerModal
-        snap={activeSnapForViewer}
-        onClose={() => setActiveSnapForViewer(null)}
-        onOpenProfile={(personId) => setSelectedPersonId(personId)}
-      />
-
-      {/* Add Snap Modal */}
-      <AddSnapModal
-        isOpen={isAddSnapModalOpen}
-        events={events}
-        preselectedEventId={preselectedEventIdForSnap}
-        onClose={() => setIsAddSnapModalOpen(false)}
-      />
-
-      {/* Non-intrusive Live Match Toast */}
-      <LiveMatchToast
-        onOpenProfile={(personId) => setSelectedPersonId(personId)}
-      />
+      <InstallSheet isOpen={isInstallOpen} onClose={closeInstall} />
 
       {/* Mobile Navigation */}
       <MobileNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-      />
-
-      {/* MUMBAI ONCHAIN AI ASSISTANT (Floating Chatbot across entire website) */}
-      <AskMumbaiAssistant
-        events={events}
-        people={people}
-        myProfile={myProfile}
-        connections={connections}
-        notes={notes}
-        onSelectEvent={(id) => setSelectedEventId(id)}
-        onSelectPerson={(id) => setSelectedPersonId(id)}
       />
 
       {/* Footer */}

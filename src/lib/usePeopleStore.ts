@@ -242,6 +242,11 @@ function usePeopleStoreState() {
   const saveMyProfile = useCallback(async (profileData: Partial<PersonProfile>) => {
     const id = myProfile?.id || `user-profile-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const newProfile: PersonProfile = {
+      // Keep every field the editor sends (headline, skills, interests,
+      // Telegram, website…). Only the columns below exist in Supabase today,
+      // but the rest must at least survive on this device.
+      ...myProfile,
+      ...profileData,
       id,
       name: profileData.name || 'Anonymous Builder',
       city: profileData.city || 'Mumbai',
