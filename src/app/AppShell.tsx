@@ -16,7 +16,9 @@ import { ScheduleScreen } from './ScheduleScreen';
 import { MeScreen } from './MeScreen';
 import { istDateKey, WEEK_DAYS, WEEK_START, type AppTab } from './time';
 
-type StoreTab = 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator';
+const ROLE_KEY = 'mo_app_role';
+
+type StoreTab ='home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator';
 
 // The app's tabs reuse the store's tab state so deep links (?tab=people,
 // manifest shortcuts, scanned profile QR codes) work in both layouts.
@@ -114,6 +116,24 @@ export const AppShell: React.FC<AppShellProps> = ({
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [tab]);
+
+  // The whole app wears the user's badge colour (see index.css). Remembered so
+  // the next launch paints in it straight away (index.html reads it).
+  const role = myProfile?.category?.toLowerCase() ?? null;
+  useEffect(() => {
+    const root = document.documentElement;
+    try {
+      if (role) {
+        root.setAttribute('data-app-role', role);
+        localStorage.setItem(ROLE_KEY, role);
+      } else {
+        root.removeAttribute('data-app-role');
+        localStorage.removeItem(ROLE_KEY);
+      }
+    } catch {
+      // storage blocked: the colour still applies for this session
+    }
+  }, [role]);
 
   // Show the status-bar scrim only once content has scrolled under the clock.
   const [scrolled, setScrolled] = useState(false);

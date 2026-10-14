@@ -4,7 +4,7 @@ export type ThemePref = 'dark' | 'light' | 'system';
 
 // Same key the inline script in index.html reads before first paint.
 const KEY = 'mo_app_theme';
-const BG = { dark: '#0D1316', light: '#EEF2F2' } as const;
+const BG = { dark: '#0E1013', light: '#F2F3F5' } as const;
 
 function readPref(): ThemePref {
   try {

@@ -26,9 +26,10 @@
 }
 
 /* ── Installed app design tokens: "Lanyard" ───────────────────────────────
-   A conference lanyard at night: deep slate, a teal strap for actions, warm
-   amber for saved things, and a paper badge. Colour comes from the badges:
-   each role gets its own band colour (--role-*), as on real event badges.
+   A conference lanyard at night: neutral charcoal, a paper badge, and one
+   accent taken from the Mumbai Onchain logo that follows the user's role
+   (data-app-role on <html>, set from their profile): the whole app wears
+   their badge colour, as on colour-coded event badges.
    The app runs edge-to-edge on iPhone (status bar style black-translucent):
    the background shows behind the clock, and --app-statusbar is the scrim
    that keeps the clock readable over scrolled content.
@@ -38,64 +39,85 @@
    keeps its own white design. */
 :root,
 html[data-app-theme='dark'] {
-  --app-bg: #0D1316;
-  --app-surface: #151E22;
-  --app-pressed: #1C282D;
-  --app-segment: #1A2529;
-  --app-ink: #E6EEF0;
-  --app-muted: #8FA2A8;
-  --app-faint: #5D6F75;
+  --app-bg: #0E1013;
+  --app-surface: #171A1F;
+  --app-pressed: #1E2228;
+  --app-segment: #1C2026;
+  --app-ink: #ECEEF1;
+  --app-muted: #98A0AB;
+  --app-faint: #5F6772;
   --app-line: rgba(255, 255, 255, 0.07);
-  --app-primary: #3FD0C9;
-  --app-on-primary: #06201F;
-  --app-primary-soft: rgba(63, 208, 201, 0.14);
-  --app-live: #FF7A66;
-  --app-live-soft: rgba(255, 122, 102, 0.14);
-  --app-saved: #FFC15E;
-  --app-saved-soft: rgba(255, 193, 94, 0.14);
+  --app-primary: var(--role-attendee);
+  --app-on-primary: #0E1013;
+  --app-primary-soft: color-mix(in srgb, var(--app-primary) 16%, transparent);
+  --app-live: #FF5C7A;
+  --app-live-soft: rgba(255, 92, 122, 0.15);
+  /* Saved things wear the role colour too. */
+  --app-saved: var(--app-primary);
+  --app-saved-soft: var(--app-primary-soft);
   --app-glow: none;
-  --app-statusbar: rgba(13, 19, 22, 0.6);
+  --app-statusbar: rgba(14, 16, 19, 0.6);
   /* The badge itself: paper, whatever the theme. */
-  --app-badge: #F1F5F5;
-  --app-badge-ink: #0D1316;
-  --app-badge-muted: #45555B;
-  --app-clip: #9AA8AD;
+  --app-badge: #F6F4EF;
+  --app-badge-ink: #111317;
+  --app-badge-muted: #4F555E;
+  --app-clip: #A7ADB5;
 }
 html[data-app-theme='light'] {
-  --app-bg: #EEF2F2;
+  --app-bg: #F2F3F5;
   --app-surface: #FFFFFF;
-  --app-pressed: #E6ECEC;
-  --app-segment: #E1E8E8;
-  --app-ink: #0D1316;
-  --app-muted: #4D5E64;
-  --app-faint: #93A3A8;
-  --app-line: #DCE4E5;
-  --app-primary: #0B7D78;
+  --app-pressed: #EAECEF;
+  --app-segment: #E4E7EB;
+  --app-ink: #111317;
+  --app-muted: #555D68;
+  --app-faint: #9AA1AB;
+  --app-line: #E1E4E8;
+  --app-primary: var(--role-attendee-deep);
   --app-on-primary: #FFFFFF;
-  --app-primary-soft: #DDF1F0;
-  --app-live: #D2452F;
-  --app-live-soft: #FBE6E2;
-  --app-saved: #A35F00;
-  --app-saved-soft: #FCEFD9;
+  --app-primary-soft: color-mix(in srgb, var(--app-primary) 12%, #FFFFFF);
+  --app-live: #D12A50;
+  --app-live-soft: #FCE4EA;
+  --app-saved: var(--app-primary);
+  --app-saved-soft: var(--app-primary-soft);
   --app-glow: none;
   /* iOS keeps the clock white in an edge-to-edge app, so Light puts a dark
      strip behind it. */
-  --app-statusbar: #0D1316;
+  --app-statusbar: #111317;
   --app-badge: #FFFFFF;
-  --app-badge-ink: #0D1316;
-  --app-badge-muted: #45555B;
-  --app-clip: #7E8E93;
+  --app-badge-ink: #111317;
+  --app-badge-muted: #4F555E;
+  --app-clip: #8A929C;
 }
-/* Badge band colours by role. They sit on the paper badge, so one set works
-   in both themes, always with dark text on top. */
+/* Role colours, from the logo: blue and purple petals, the orange and yellow
+   flame, the sea under the Gateway and the Gateway's cream stone. The bright
+   set is for dark mode and the badge bands (dark text on top); the deep set
+   is for light mode (white text on top). */
 :root {
-  --role-builder: #3FD0C9;
-  --role-founder: #FFC15E;
-  --role-student: #B6E34A;
-  --role-volunteer: #FF8F7A;
-  --role-attendee: #A9B8FF;
-  --role-other: #D9C7A3;
+  --role-builder: #4C8DFF;
+  --role-founder: #FF7A1F;
+  --role-student: #FFC93A;
+  --role-volunteer: #A875FF;
+  --role-attendee: #4FC3F7;
+  --role-other: #F2D9BC;
+  --role-builder-deep: #1F63D6;
+  --role-founder-deep: #B84A00;
+  --role-student-deep: #845F00;
+  --role-volunteer-deep: #6E36D9;
+  --role-attendee-deep: #0A6CA3;
+  --role-other-deep: #7A5A33;
 }
+html[data-app-role='builder'] { --app-primary: var(--role-builder); }
+html[data-app-role='founder'] { --app-primary: var(--role-founder); }
+html[data-app-role='student'] { --app-primary: var(--role-student); }
+html[data-app-role='volunteer'] { --app-primary: var(--role-volunteer); }
+html[data-app-role='attendee'] { --app-primary: var(--role-attendee); }
+html[data-app-role='other'] { --app-primary: var(--role-other); }
+html[data-app-theme='light'][data-app-role='builder'] { --app-primary: var(--role-builder-deep); }
+html[data-app-theme='light'][data-app-role='founder'] { --app-primary: var(--role-founder-deep); }
+html[data-app-theme='light'][data-app-role='student'] { --app-primary: var(--role-student-deep); }
+html[data-app-theme='light'][data-app-role='volunteer'] { --app-primary: var(--role-volunteer-deep); }
+html[data-app-theme='light'][data-app-role='attendee'] { --app-primary: var(--role-attendee-deep); }
+html[data-app-theme='light'][data-app-role='other'] { --app-primary: var(--role-other-deep); }
 html[data-app-theme='dark'] { color-scheme: dark; }
 html[data-app-theme='light'] { color-scheme: light; }
 /* Overscroll and the area behind sheets match the app, not the website. */

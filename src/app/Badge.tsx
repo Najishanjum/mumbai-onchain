@@ -62,15 +62,9 @@ export function LanyardBadge({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Strap and clip */}
-      <div className="w-[30px] h-11 bg-[var(--app-primary)] flex items-center justify-center overflow-hidden" aria-hidden="true">
-        <span className="app-mono [writing-mode:vertical-rl] text-[9px] font-semibold tracking-[0.2em] text-[var(--app-on-primary)]">
-          ONCHAIN
-        </span>
-      </div>
-      <div className="w-[22px] h-[18px] -mt-0.5 rounded-[4px] bg-[var(--app-clip)]" aria-hidden="true" />
+      <Lanyard />
 
-      <div className="badge-stage mt-1" style={{ width: s.w, height: s.h }}>
+      <div className="badge-stage" style={{ width: s.w, height: s.h }}>
         <button
           type="button"
           onClick={toggle}
@@ -80,16 +74,15 @@ export function LanyardBadge({
         >
           <div className="badge-face rounded-[18px] bg-[var(--app-badge)] border border-black/5 overflow-hidden flex flex-col items-center text-center">
             <span className="w-11 h-2 rounded-full bg-[var(--app-badge-ink)] mt-3" aria-hidden="true" />
-            <span className="app-mono mt-3 text-[10px] font-semibold tracking-[0.12em]">MUMBAI ONCHAIN WEEK</span>
+            <BadgeHeader />
             <PersonAvatar
               name={person.name}
               avatarUrl={person.avatar}
               size="xl"
-              className={`mt-4 rounded-full! border-0! ${s.avatar}`}
+              className={`mt-3 rounded-full! border-0! ${s.avatar}`}
             />
             <span className={`app-title mt-3 px-4 leading-tight line-clamp-2 ${s.name}`}>{person.name}</span>
             {handle && <span className="mt-0.5 px-4 text-[14px] text-[var(--app-badge-muted)] truncate max-w-full">{handle}</span>}
-            <span className="app-mono mt-2 text-[11px] text-[var(--app-badge-muted)]">31 Oct – 7 Nov · Mumbai</span>
             <span
               className="mt-auto w-full h-12 flex items-center justify-center text-[17px] font-extrabold tracking-[0.14em] text-[var(--app-badge-ink)]"
               style={{ background: roleColor(person.category) }}
@@ -123,12 +116,11 @@ export function LanyardBadge({
 export function BlankBadge({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="w-[30px] h-11 bg-[var(--app-primary)]" aria-hidden="true" />
-      <div className="w-[22px] h-[18px] -mt-0.5 rounded-[4px] bg-[var(--app-clip)]" aria-hidden="true" />
+      <Lanyard />
       <button
         type="button"
         onClick={onCreate}
-        className="app-press mt-1 w-[224px] h-[260px] rounded-[18px] border-2 border-dashed border-[var(--app-faint)] bg-[var(--app-surface)] flex flex-col items-center justify-center gap-2 px-6 text-center"
+        className="app-press w-[224px] h-[260px] rounded-[18px] border-2 border-dashed border-[var(--app-faint)] bg-[var(--app-surface)] flex flex-col items-center justify-center gap-2 px-6 text-center"
       >
         <span className="app-mono text-[10px] font-semibold tracking-[0.12em] text-[var(--app-muted)]">MUMBAI ONCHAIN WEEK</span>
         <span className="app-title text-[22px] leading-tight">Make your badge</span>
@@ -137,6 +129,57 @@ export function BlankBadge({ onCreate }: { onCreate: () => void }) {
           Create profile
         </span>
       </button>
+    </div>
+  );
+}
+
+const STRAP_TEXT = 'MUMBAI ONCHAIN WEEK · '.repeat(4);
+
+/** One side of the lanyard: role-coloured webbing printed with the event name. */
+function Strap({ side }: { side: 'left' | 'right' }) {
+  return (
+    <div
+      className="absolute bottom-0 w-[26px] h-[124px] origin-bottom overflow-hidden bg-[var(--app-primary)] border-x border-black/15 flex justify-center"
+      style={{
+        left: side === 'left' ? 'calc(50% - 25px)' : 'calc(50% - 1px)',
+        transform: `rotate(${side === 'left' ? -15 : 15}deg)`,
+      }}
+    >
+      <span className="app-mono [writing-mode:vertical-rl] whitespace-nowrap text-[9px] font-semibold tracking-[0.18em] leading-[26px] text-[var(--app-on-primary)]">
+        {STRAP_TEXT}
+      </span>
+    </div>
+  );
+}
+
+/** The branded lanyard: two printed straps, a crimp and a swivel clasp. */
+export function Lanyard() {
+  return (
+    <div className="flex flex-col items-center" aria-hidden="true">
+      <div className="relative w-[180px] h-[112px]">
+        <Strap side="left" />
+        <Strap side="right" />
+      </div>
+      <svg width="28" height="44" viewBox="0 0 28 44" className="-mt-1 text-[var(--app-clip)]">
+        <rect x="5" y="0" width="18" height="10" rx="3" fill="currentColor" />
+        <circle cx="14" cy="17" r="5" fill="none" stroke="currentColor" strokeWidth="3" />
+        <path d="M14 22v4" stroke="currentColor" strokeWidth="3" />
+        <path d="M9 26h10a2 2 0 0 1 2 2v6a7 7 0 0 1-14 0v-6a2 2 0 0 1 2-2z" fill="currentColor" />
+        <path d="M14 40v4" stroke="currentColor" strokeWidth="3" />
+      </svg>
+    </div>
+  );
+}
+
+/** Event branding at the top of the badge, under the slot. */
+function BadgeHeader() {
+  return (
+    <div className="w-full mt-2.5 px-4 pb-3 flex items-center gap-2.5 border-b border-dashed border-black/10">
+      <img src="/icons/icon-192.png" alt="" className="w-10 h-10 rounded-full shrink-0" />
+      <span className="flex flex-col items-start leading-tight text-left">
+        <span className="text-[14px] font-extrabold tracking-[0.02em]">MUMBAI ONCHAIN</span>
+        <span className="app-mono text-[10px] text-[var(--app-badge-muted)]">WEEK 2026 · 31 OCT – 7 NOV</span>
+      </span>
     </div>
   );
 }

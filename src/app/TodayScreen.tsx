@@ -9,19 +9,15 @@ import { BellButton, NotificationsSheet, useReminders } from './NotificationsShe
 import { eventCover } from './covers';
 import {
   dayLabel,
-  dayNumber,
   directionsUrl,
   endsAt,
-  eventDays,
   greeting,
   hasEnded,
   isLive,
   istDateKey,
   sortByStart,
   startsIn,
-  weekdayShort,
   WEEK_DAYS,
-  WEEK_START,
   type AppTab,
 } from './time';
 
@@ -63,7 +59,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   isSaved,
   toggleSaved,
   onOpenEvent,
-  onOpenDay,
   goTo,
   myProfile,
   people,
@@ -87,29 +82,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const next = mine[0] ?? upcoming[0];
   const nextIsMine = Boolean(mine[0]);
 
-  const countByDay = useMemo(() => {
-    const m = new Map<string, { all: number; saved: number }>();
-    for (const e of events) {
-      for (const d of eventDays(e)) {
-        const c = m.get(d) ?? { all: 0, saved: 0 };
-        c.all += 1;
-        if (isSaved(e.id)) c.saved += 1;
-        m.set(d, c);
-      }
-    }
-    return m;
-  }, [events, isSaved]);
-
-  const daysToWeek = Math.ceil(
-    (new Date(`${WEEK_START}T00:00:00+05:30`).getTime() - now.getTime()) / 86_400_000
-  );
   const weekIndex = WEEK_DAYS.indexOf(today);
-  const weekStatus =
-    weekIndex >= 0
-      ? `Day ${weekIndex + 1} of ${WEEK_DAYS.length}`
-      : daysToWeek > 0
-        ? `Starts in ${daysToWeek} day${daysToWeek === 1 ? '' : 's'}`
-        : 'That’s a wrap. See you next year';
 
   const others = people.filter((p) => p.id !== myProfile?.id);
   const [notesOpen, setNotesOpen] = useState(false);
@@ -121,7 +94,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       <header className="px-5 pt-3 pb-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="app-label">
-            {now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })} · {weekStatus}
+            {now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}
+            {weekIndex >= 0 ? ` · Day ${weekIndex + 1} of ${WEEK_DAYS.length}` : ''}
           </p>
           <h1 className="app-title text-[30px] leading-tight mt-0.5">
             {greeting(now)}
@@ -176,45 +150,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         onOpenEvent={onOpenEvent}
         onCreateProfile={onCreateProfile}
       />
-
-      {/* Week strip */}
-      <section aria-label="Mumbai Onchain Week" className="mb-7">
-        <div className="px-5 mb-2.5 flex items-baseline justify-between">
-          <span className="text-[15px] font-semibold">Mumbai Onchain Week</span>
-          <span className="text-[14px] text-[var(--app-muted)]">{weekStatus}</span>
-        </div>
-        <div className="app-scroll-x flex gap-2 overflow-x-auto px-5 pb-1">
-          {WEEK_DAYS.map((d) => {
-            const c = countByDay.get(d);
-            const isToday = d === today;
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => onOpenDay(d)}
-                aria-label={`${dayLabel(d, today)}: ${c?.all ?? 0} events${c?.saved ? `, ${c.saved} saved` : ''}`}
-                className={`app-press shrink-0 w-[54px] rounded-2xl py-2.5 flex flex-col items-center gap-1 border ${
-                  isToday
-                    ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)] border-[var(--app-primary)]'
-                    : 'bg-[var(--app-surface)] border-[var(--app-line)]'
-                }`}
-              >
-                <span className={`text-[12px] font-medium ${isToday ? 'text-[var(--app-on-primary)]/70' : 'text-[var(--app-muted)]'}`}>
-                  {weekdayShort(d)}
-                </span>
-                <span className="text-[19px] font-bold leading-none">{dayNumber(d)}</span>
-                <span className="flex gap-0.5 h-1.5 items-center" aria-hidden="true">
-                  {c?.saved ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--app-saved)]" />
-                  ) : c?.all ? (
-                    <span className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-[var(--app-on-primary)]/50' : 'bg-[var(--app-faint)]'}`} />
-                  ) : null}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
 
       {/* Happening now */}
       {liveNow.length > 0 && (

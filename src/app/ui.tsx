@@ -106,7 +106,7 @@ export function CoverThumb({
           className={`absolute left-1/2 -translate-x-1/2 bottom-0 h-6 px-2.5 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap border-2 border-[var(--app-surface)] ${
             badge.tone === 'live'
               ? 'bg-[var(--app-live)] text-white'
-              : 'bg-[var(--app-saved)] text-[var(--app-bg)]'
+              : 'bg-[var(--app-saved)] text-[var(--app-on-primary)]'
           }`}
         >
           {badge.tone === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-white" aria-hidden="true" />}

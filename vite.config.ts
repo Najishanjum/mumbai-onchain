@@ -144,8 +144,8 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           orientation: 'portrait',
           // Launch splash + title bar match the app's default dark theme.
-          background_color: '#0D1316',
-          theme_color: '#0D1316',
+          background_color: '#0E1013',
+          theme_color: '#0E1013',
           categories: ['events', 'social', 'travel'],
           icons: [
             { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

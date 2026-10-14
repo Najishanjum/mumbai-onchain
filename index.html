@@ -24,6 +24,8 @@
           var pref = localStorage.getItem('mo_app_theme') || 'dark';
           var dark = pref === 'system' ? matchMedia('(prefers-color-scheme: dark)').matches : pref !== 'light';
           document.documentElement.setAttribute('data-app-theme', dark ? 'dark' : 'light');
+          var role = localStorage.getItem('mo_app_role');
+          if (role) document.documentElement.setAttribute('data-app-role', role);
         } catch (e) {}
       })();
     </script>
