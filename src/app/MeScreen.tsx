@@ -1,5 +1,5 @@
 import React from 'react';
-import { QrCode, ScanLine, Camera, Pencil, Share2, Bookmark, UserPlus, Globe } from 'lucide-react';
+import { QrCode, ScanLine, Camera, Pencil, Share2, Bookmark, UserPlus, Send } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { GroupedList, RowLink } from './ui';
@@ -111,9 +111,15 @@ export const MeScreen: React.FC<MeScreenProps> = ({
         <GroupedList>
           <RowLink icon={<Share2 className={icon} />} label="Share the app" onClick={shareApp} />
           <RowLink
-            icon={<Globe className={icon} />}
-            label="mumbaionchain.xyz"
-            onClick={() => window.open('https://mumbaionchain.xyz', '_blank', 'noopener,noreferrer')}
+            icon={<span className="text-[15px] font-bold leading-none" aria-hidden="true">𝕏</span>}
+            label="Follow on X"
+            detail="@Mumbai_onchain"
+            onClick={() => window.open('https://x.com/Mumbai_onchain', '_blank', 'noopener,noreferrer')}
+          />
+          <RowLink
+            icon={<Send className={`${icon} text-[#0088CC]`} />}
+            label="Join the Telegram"
+            onClick={() => window.open('https://t.me/+Yi25K6W8KMo0MDZl', '_blank', 'noopener,noreferrer')}
           />
         </GroupedList>
       </div>
