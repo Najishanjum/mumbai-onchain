@@ -85,7 +85,7 @@ function mapDbRowToSnap(row: DbSnapRow, peopleMap: Map<string, PersonProfile>, m
 }
 
 export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { myProfile, people } = usePeopleStore();
+  const { myProfile, people, authUser } = usePeopleStore();
   const [isSyncingSnaps, setIsSyncingSnaps] = useState<boolean>(false);
 
   // Map of people for rapid author lookup
@@ -315,6 +315,11 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
       0.82
     );
 
+    // The database only accepts snaps from a signed-in owner with a profile.
+    if (isSupabaseConfigured() && supabase && (!authUser || !myProfile)) {
+      throw new Error('Sign in and create your pass to post snaps.');
+    }
+
     const authorId = myProfile?.id || 'me-user';
     const authorName = myProfile?.name || 'You';
     const authorAvatar = myProfile?.avatar || '';
@@ -322,7 +327,8 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const authorCity = myProfile?.city || 'Mumbai';
 
     const snapId = `snap-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    const storageFilePath = `${authorId}/${Date.now()}-${Math.random().toString(36).substring(2, 6)}.webp`;
+    // Storage rules only allow uploads into the account's own folder.
+    const storageFilePath = `${authUser?.id ?? authorId}/${Date.now()}-${Math.random().toString(36).substring(2, 6)}.webp`;
 
     let finalImageUrl = compressed.dataUrl;
     let finalThumbnailUrl = compressed.thumbnailUrl;
@@ -340,7 +346,9 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
 
         if (uploadError) {
-          console.warn('Supabase Storage notice (using optimized image):', uploadError.message);
+          // Don't fall back to storing the photo as text in the row: it would
+          // only ever show on this phone. Tell the user instead.
+          throw new Error('Couldn’t upload the photo. Check your connection and try again.');
         } else {
           // Retrieve public permanent URL from Supabase Storage
           const { data: { publicUrl } } = supabase.storage
@@ -353,7 +361,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } catch (storageErr) {
-        console.warn('Supabase Storage exception handled:', storageErr);
+        throw storageErr instanceof Error ? storageErr : new Error('Couldn’t upload the photo.');
       }
     }
 
@@ -385,6 +393,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error: dbError } = await supabase.from('snaps').insert([
           {
             id: newSnap.id,
+            owner_id: authUser?.id,
             user_id: newSnap.authorId,
             image_url: newSnap.imageUrl,
             thumbnail_url: newSnap.thumbnailUrl,
@@ -402,10 +411,12 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ]);
 
         if (dbError) {
-          console.warn('Supabase DB snaps insert notice:', dbError.message);
+          console.error('Supabase snaps insert failed:', dbError.message);
+          // The photo is uploaded but nobody else would see the snap; say so.
+          throw new Error('Couldn’t post the snap. Try again in a moment.');
         }
       } catch (dbErr) {
-        console.warn('Supabase DB insert exception handled:', dbErr);
+        throw dbErr instanceof Error ? dbErr : new Error('Couldn’t post the snap.');
       }
     }
 
@@ -413,7 +424,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSnaps(prev => [newSnap, ...prev]);
     setIsAddSnapModalOpenState(false);
     return newSnap;
-  }, [myProfile]);
+  }, [myProfile, authUser]);
 
   // Delete a snap: Owner only. Removes from Supabase DB, Supabase Storage, and local state
   const deleteSnap = useCallback(async (snapId: string): Promise<boolean> => {
@@ -485,13 +496,12 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [reaction]: Math.max(0, currentCount + delta),
           };
 
-          // Optimistically update Supabase DB if available
+          // Counts change through react_to_snap, the only write the database
+          // allows on someone else's snap (signed-in users only).
           if (isSupabaseConfigured() && supabase) {
             supabase
-              .from('snaps')
-              .update({ reactions: nextReactions })
-              .eq('id', snapId)
-              .then();
+              .rpc('react_to_snap', { p_snap_id: snapId, p_reaction: reaction, p_delta: delta })
+              .then(({ error }) => error && console.warn('Reaction not saved:', error.message));
           }
 
           return {

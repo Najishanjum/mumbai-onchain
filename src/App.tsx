@@ -33,6 +33,8 @@ import { AppShell } from './app/AppShell';
 import { ProfileEditorSheet } from './app/ProfileEditorSheet';
 import { SnapViewer } from './app/SnapViewer';
 import { AddSnapSheet } from './app/AddSnapSheet';
+import { SignInSheet } from './app/SignInSheet';
+import { isSupabaseConfigured } from './lib/supabase';
 import { isAppMode } from './lib/pwa';
 import { useAppTheme } from './lib/useAppTheme';
 import { AlertCircle, Camera, ArrowRight } from 'lucide-react';
@@ -71,6 +73,9 @@ export function App() {
     saveMyProfile,
     cycleConnection,
     getConnectionStatus,
+    authUser,
+    accountReady,
+    signOut,
   } = usePeopleStore();
 
   const {
@@ -81,6 +86,39 @@ export function App() {
     setActiveSnapForViewer,
     setIsAddSnapModalOpen,
   } = useSnapStore();
+
+  // ── Sign-in gate ──────────────────────────────────────────────────────
+  // Profiles and snaps can only be saved by a signed-in owner. Every way
+  // into "create/edit profile" or "add snap" (website or app) goes through
+  // sign-in first, then continues to what the person was doing.
+  const [signInFor, setSignInFor] = useState<null | 'profile' | 'snap' | 'account'>(null);
+  const cloud = isSupabaseConfigured();
+
+  useEffect(() => {
+    if (!cloud || authUser) return;
+    if (isEditModalOpen) {
+      setIsEditModalOpen(false);
+      setSignInFor('profile');
+    } else if (isAddSnapModalOpen) {
+      setIsAddSnapModalOpen(false);
+      setSignInFor('snap');
+    }
+  }, [cloud, authUser, isEditModalOpen, isAddSnapModalOpen, setIsEditModalOpen, setIsAddSnapModalOpen]);
+
+  // Once signed in and the account's profile is loaded (or attached), carry on.
+  useEffect(() => {
+    if (!signInFor || !authUser || !accountReady) return;
+    if (signInFor === 'profile') setIsEditModalOpen(true);
+    if (signInFor === 'snap') setIsAddSnapModalOpen(true);
+    setSignInFor(null);
+  }, [signInFor, authUser, accountReady, setIsEditModalOpen, setIsAddSnapModalOpen]);
+
+  const signInReason =
+    signInFor === 'profile'
+      ? 'to save your pass on every device'
+      : signInFor === 'snap'
+        ? 'to post snaps'
+        : undefined;
 
   // Handle URL deep-linking for scanned QR codes and shared profile links
   useEffect(() => {
@@ -133,6 +171,8 @@ export function App() {
   // Drawers, modals and floating helpers used by both the website and the app.
   const sharedOverlays = (
     <>
+      <SignInSheet isOpen={Boolean(signInFor) && !authUser} onClose={() => setSignInFor(null)} reason={signInReason} />
+
       {/* Website drawers. The app shows its own EventSheet / PersonSheet. */}
       {!appMode && (
         <>
@@ -254,6 +294,9 @@ export function App() {
           onSelectPerson={(id) => setSelectedPersonId(id)}
           onAddSnap={() => setIsAddSnapModalOpen(true)}
           onAsk={() => setIsAskOpen(true)}
+          accountEmail={authUser?.email ?? null}
+          onSignIn={() => setSignInFor('account')}
+          onSignOut={signOut}
           getConnectionStatus={getConnectionStatus}
         />
         {sharedOverlays}

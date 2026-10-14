@@ -61,6 +61,9 @@ interface AppShellProps {
   onSelectPerson: (id: string) => void;
   onAddSnap: () => void;
   onAsk: () => void;
+  accountEmail: string | null;
+  onSignIn: () => void;
+  onSignOut: () => void;
   getConnectionStatus: (id: string) => ConnectionStatus;
 }
 
@@ -86,6 +89,9 @@ export const AppShell: React.FC<AppShellProps> = ({
   onSelectPerson,
   onAddSnap,
   onAsk,
+  accountEmail,
+  onSignIn,
+  onSignOut,
   getConnectionStatus,
 }) => {
   const { setConnectionStatus } = usePeopleStore();
@@ -186,6 +192,9 @@ export const AppShell: React.FC<AppShellProps> = ({
             onScan={() => setIsScannerOpen(true)}
             onAddSnap={onAddSnap}
             onOpenPlan={() => goTo('schedule')}
+            accountEmail={accountEmail}
+            onSignIn={onSignIn}
+            onSignOut={onSignOut}
           />
         )}
       </main>
