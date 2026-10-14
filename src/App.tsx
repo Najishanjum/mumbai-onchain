@@ -34,10 +34,12 @@ import { ProfileEditorSheet } from './app/ProfileEditorSheet';
 import { SnapViewer } from './app/SnapViewer';
 import { AddSnapSheet } from './app/AddSnapSheet';
 import { isAppMode } from './lib/pwa';
+import { useAppTheme } from './lib/useAppTheme';
 import { AlertCircle, Camera, ArrowRight } from 'lucide-react';
 
 export function App() {
   const [appMode] = useState(isAppMode);
+  useAppTheme(appMode);
   const [isAskOpen, setIsAskOpen] = useState(false);
   const [isInstallOpen, setIsInstallOpen] = useState(false);
   const openInstall = useCallback(() => setIsInstallOpen(true), []);

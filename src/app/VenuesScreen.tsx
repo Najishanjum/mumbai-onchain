@@ -82,7 +82,7 @@ export const VenuesScreen: React.FC<VenuesScreenProps> = ({ events, isSaved, tog
               href={directionsUrl(selected.sample)}
               target="_blank"
               rel="noopener noreferrer"
-              className="app-press shrink-0 h-10 px-4 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold inline-flex items-center gap-1.5"
+              className="app-press shrink-0 h-10 px-4 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold inline-flex items-center gap-1.5"
             >
               <Navigation className="w-4 h-4" aria-hidden="true" /> Go
             </a>
@@ -104,11 +104,11 @@ export const VenuesScreen: React.FC<VenuesScreenProps> = ({ events, isSaved, tog
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 aria-expanded={isOpen}
-                className="app-press w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[#F7F6F2]"
+                className="app-press w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[var(--app-pressed)]"
               >
                 <span
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    isOpen ? 'bg-[var(--app-ink)] text-white' : 'bg-[var(--app-bg)]'
+                    isOpen ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : 'bg-[var(--app-bg)]'
                   }`}
                 >
                   <MapPin className="w-5 h-5" aria-hidden="true" />
@@ -147,7 +147,7 @@ export const VenuesScreen: React.FC<VenuesScreenProps> = ({ events, isSaved, tog
             <button
               type="button"
               onClick={() => goTo('schedule')}
-              className="app-press w-full flex items-center gap-3 px-4 py-3.5 text-left bg-[var(--app-surface)] active:bg-[#F7F6F2]"
+              className="app-press w-full flex items-center gap-3 px-4 py-3.5 text-left bg-[var(--app-surface)] active:bg-[var(--app-pressed)]"
             >
               <span className="w-10 h-10 rounded-xl bg-[var(--app-bg)] flex items-center justify-center shrink-0">
                 <HelpCircle className="w-5 h-5 text-[var(--app-muted)]" aria-hidden="true" />

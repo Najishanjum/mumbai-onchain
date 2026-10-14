@@ -1,8 +1,15 @@
 import React from 'react';
-import { QrCode, ScanLine, Camera, Pencil, Share2, Bookmark, UserPlus, Send } from 'lucide-react';
+import { QrCode, ScanLine, Camera, Pencil, Share2, Bookmark, UserPlus, Send, Moon, Sun, SunMoon } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
+import { setThemePref, useAppTheme, type ThemePref } from '../lib/useAppTheme';
 import { GroupedList, RowLink } from './ui';
+
+const THEME_OPTIONS: { id: ThemePref; label: string; Icon: typeof Moon }[] = [
+  { id: 'dark', label: 'Dark', Icon: Moon },
+  { id: 'light', label: 'Light', Icon: Sun },
+  { id: 'system', label: 'System', Icon: SunMoon },
+];
 
 interface MeScreenProps {
   myProfile: PersonProfile | null;
@@ -38,6 +45,8 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   onOpenPlan,
 }) => {
   const icon = 'w-[18px] h-[18px]';
+  // App already applies the theme; this only reads the current choice.
+  const { pref: themePref } = useAppTheme(false);
   return (
     <div className="pb-6">
       <header className="px-5 pt-3 pb-4">
@@ -69,7 +78,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
             <button
               type="button"
               onClick={onShowPass}
-              className="app-press h-11 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold inline-flex items-center justify-center gap-2"
+              className="app-press h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold inline-flex items-center justify-center gap-2"
             >
               <QrCode className="w-4 h-4" aria-hidden="true" /> My pass
             </button>
@@ -94,7 +103,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
           <button
             type="button"
             onClick={onEditProfile}
-            className="app-press mt-4 h-11 px-6 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold"
+            className="app-press mt-4 h-11 px-6 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold"
           >
             Create profile
           </button>
@@ -107,6 +116,35 @@ export const MeScreen: React.FC<MeScreenProps> = ({
           <RowLink icon={<ScanLine className={icon} />} label="Scan someone's pass" onClick={onScan} />
           <RowLink icon={<Camera className={icon} />} label="Add a snap" onClick={onAddSnap} />
         </GroupedList>
+
+        <section aria-labelledby="appearance-title" className="mx-4">
+          <h2 id="appearance-title" className="px-1 mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+            Appearance
+          </h2>
+          <div role="radiogroup" aria-labelledby="appearance-title" className="grid grid-cols-3 gap-2">
+            {THEME_OPTIONS.map(({ id, label, Icon }) => {
+              const on = themePref === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setThemePref(id)}
+                  className={`app-press h-[72px] rounded-2xl border flex flex-col items-center justify-center gap-1.5 text-[14px] font-semibold ${
+                    on
+                      ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)] border-[var(--app-primary)]'
+                      : 'bg-[var(--app-surface)] border-[var(--app-line)]'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" aria-hidden="true" />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="px-1 mt-2 text-[13px] text-[var(--app-muted)]">System follows your phone’s light or dark setting.</p>
+        </section>
 
         <GroupedList>
           <RowLink icon={<Share2 className={icon} />} label="Share the app" onClick={shareApp} />

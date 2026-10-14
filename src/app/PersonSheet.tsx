@@ -83,7 +83,7 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
               <button
                 type="button"
                 onClick={onShowPass}
-                className="app-press h-12 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold inline-flex items-center justify-center gap-2"
+                className="app-press h-12 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold inline-flex items-center justify-center gap-2"
               >
                 <QrCode className="w-[18px] h-[18px]" aria-hidden="true" /> My pass
               </button>
@@ -101,7 +101,7 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
               onClick={() => setConnectionStatus(person.id, added ? 'NOT_CONNECTED' : 'CONNECTED')}
               aria-pressed={added}
               className={`app-press h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 ${
-                added ? 'bg-[var(--app-surface)] border border-[var(--app-line)] text-[var(--app-muted)]' : 'bg-[var(--app-ink)] text-white'
+                added ? 'bg-[var(--app-surface)] border border-[var(--app-line)] text-[var(--app-muted)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
               }`}
             >
               {added ? <Check className="w-[18px] h-[18px]" /> : <UserPlus className="w-[18px] h-[18px]" />}
@@ -183,7 +183,7 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
                   key={e.id}
                   type="button"
                   onClick={() => onOpenEvent(e.id)}
-                  className="app-press w-full flex items-baseline gap-3 px-4 py-3 text-left active:bg-[#F7F6F2]"
+                  className="app-press w-full flex items-baseline gap-3 px-4 py-3 text-left active:bg-[var(--app-pressed)]"
                 >
                   <span className="w-[72px] shrink-0 text-[13px] font-semibold text-[var(--app-muted)]">
                     {dayLabel(e.startDate)}

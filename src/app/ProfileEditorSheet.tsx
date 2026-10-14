@@ -69,9 +69,9 @@ function toDraft(p: PersonProfile | null): Draft {
 
 const label = 'block text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)] mb-1.5';
 const input =
-  'w-full h-12 px-4 rounded-xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-ink)] placeholder:text-[var(--app-faint)]';
+  'w-full h-12 px-4 rounded-xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]';
 const textarea =
-  'w-full px-4 py-3 rounded-xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] leading-relaxed outline-none focus:border-[var(--app-ink)] placeholder:text-[var(--app-faint)] resize-none';
+  'w-full px-4 py-3 rounded-xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] leading-relaxed outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)] resize-none';
 
 function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -116,7 +116,7 @@ function ToggleChips({
               onClick={() => onToggle(o)}
               aria-pressed={on}
               className={`app-press h-9 px-3.5 rounded-full text-[14px] font-medium inline-flex items-center gap-1 border ${
-                on ? 'bg-[var(--app-ink)] text-white border-[var(--app-ink)]' : 'bg-[var(--app-surface)] border-[var(--app-line)]'
+                on ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)] border-[var(--app-primary)]' : 'bg-[var(--app-surface)] border-[var(--app-line)]'
               }`}
             >
               {on && <Check className="w-3.5 h-3.5" aria-hidden="true" />}
@@ -241,7 +241,7 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
           type="button"
           onClick={save}
           disabled={!dirty && Boolean(currentProfile)}
-          className="app-press h-9 px-4 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold disabled:opacity-35"
+          className="app-press h-9 px-4 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold disabled:opacity-35"
         >
           {currentProfile ? 'Save' : 'Create'}
         </button>
@@ -259,7 +259,7 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
             />
             {photoBusy && (
               <span className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-                <Loader2 className="w-7 h-7 text-white animate-spin" aria-label="Processing photo" />
+                <Loader2 className="w-7 h-7 text-[var(--app-on-primary)] animate-spin" aria-label="Processing photo" />
               </span>
             )}
           </div>
@@ -324,7 +324,7 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
                   aria-pressed={draft.category === r}
                   className={`app-press h-9 px-3.5 rounded-full text-[14px] font-medium border ${
                     draft.category === r
-                      ? 'bg-[var(--app-ink)] text-white border-[var(--app-ink)]'
+                      ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)] border-[var(--app-primary)]'
                       : 'bg-[var(--app-surface)] border-[var(--app-line)]'
                   }`}
                 >
@@ -528,11 +528,11 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
                   type="button"
                   onClick={() => toggleIn('attendingEvents', e.id)}
                   aria-pressed={on}
-                  className="app-press w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[#F7F6F2]"
+                  className="app-press w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--app-pressed)]"
                 >
                   <span
                     className={`w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center ${
-                      on ? 'bg-[var(--app-ink)] border-[var(--app-ink)] text-white' : 'border-[var(--app-line)]'
+                      on ? 'bg-[var(--app-primary)] border-[var(--app-primary)] text-[var(--app-on-primary)]' : 'border-[var(--app-line)]'
                     }`}
                   >
                     {on && <Check className="w-3.5 h-3.5" aria-hidden="true" />}

@@ -85,7 +85,7 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
         </div>
 
         <div className="px-5 pb-3">
-          <div role="tablist" aria-label="Which events" className="grid grid-cols-2 p-1 rounded-xl bg-[#E8E6E0]">
+          <div role="tablist" aria-label="Which events" className="grid grid-cols-2 p-1 rounded-xl bg-[var(--app-segment)]">
             {(['all', 'mine'] as View[]).map((v) => (
               <button
                 key={v}
@@ -118,10 +118,10 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
                   aria-pressed={active}
                   aria-label={dayLabel(d, today)}
                   className={`app-press shrink-0 w-12 py-1.5 rounded-xl flex flex-col items-center ${
-                    active ? 'bg-[var(--app-ink)] text-white' : d === today ? 'text-[var(--app-live)]' : ''
+                    active ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : d === today ? 'text-[var(--app-live)]' : ''
                   }`}
                 >
-                  <span className={`text-[11px] font-semibold uppercase ${active ? 'text-white/70' : 'text-[var(--app-muted)]'}`}>
+                  <span className={`text-[11px] font-semibold uppercase ${active ? 'text-[var(--app-on-primary)]/70' : 'text-[var(--app-muted)]'}`}>
                     {weekdayShort(d)}
                   </span>
                   <span className="text-[18px] font-bold leading-tight">{dayNumber(d)}</span>

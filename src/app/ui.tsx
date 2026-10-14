@@ -84,7 +84,7 @@ export function EventRow({
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen())}
-      className="app-press flex items-center gap-3 pl-5 pr-3 py-3 bg-[var(--app-surface)] active:bg-[#F7F6F2] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-saved)] focus-visible:ring-inset"
+      className="app-press flex items-center gap-3 pl-5 pr-3 py-3 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-saved)] focus-visible:ring-inset"
     >
       <div className="w-[52px] shrink-0 self-start pt-0.5">
         {showDate && <div className="text-[12px] font-semibold text-[var(--app-muted)] leading-tight">{showDate}</div>}
@@ -190,7 +190,7 @@ export function Sheet({
         className="app app-sheet relative w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-12px)] overflow-y-auto overscroll-contain rounded-t-[28px] bg-[var(--app-bg)] outline-none pb-[calc(env(safe-area-inset-bottom)+24px)] transition-transform duration-200"
       >
         <div className="sticky top-0 z-10 flex justify-center pt-2 pb-1 pointer-events-none">
-          <span className="w-10 h-1.5 rounded-full bg-black/20" aria-hidden="true" />
+          <span className="w-10 h-1.5 rounded-full bg-[var(--app-faint)]/60" aria-hidden="true" />
         </div>
         <button
           type="button"
@@ -239,7 +239,7 @@ export function RowLink({
     <button
       type="button"
       onClick={onClick}
-      className="app-press w-full flex items-center gap-3 px-4 py-3.5 text-left bg-[var(--app-surface)] active:bg-[#F7F6F2]"
+      className="app-press w-full flex items-center gap-3 px-4 py-3.5 text-left bg-[var(--app-surface)] active:bg-[var(--app-pressed)]"
     >
       <span className="w-8 h-8 rounded-lg bg-[var(--app-bg)] flex items-center justify-center shrink-0">{icon}</span>
       <span className="flex-1 text-[16px] font-medium">{label}</span>

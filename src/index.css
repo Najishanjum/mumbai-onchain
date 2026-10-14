@@ -25,26 +25,64 @@
   }
 }
 
-/* ── Installed app design tokens ──────────────────────────────────────────
-   System font (SF Pro / Roboto): native feel, nothing to download on venue data.
-   Accent colours come from the logo: lotus orange, Arabian Sea blue. */
-.app {
-  --app-bg: #F4F3EF;
+/* ── Installed app design tokens: "Devcon Dusk" ───────────────────────────
+   Deep purple night with electric violet and teal glow, from the Devcon 8
+   key visual (shared with Solana Summit's indigo and IBW's navy).
+   Dark is the default; the Me tab offers Light and System. useAppTheme sets
+   data-app-theme on <html>, and index.html sets it before first paint so the
+   installed app never flashes white. Only the app uses these; the website
+   keeps its own white design. */
+:root,
+html[data-app-theme='dark'] {
+  --app-bg: #140A2B;
+  --app-surface: #1F1240;
+  --app-pressed: #291852;
+  --app-segment: #2A1A55;
+  --app-ink: #F3EEFF;
+  --app-muted: #B1A4D2;
+  --app-faint: #7A6CA3;
+  --app-line: rgba(255, 255, 255, 0.09);
+  --app-primary: #7C4DFF;
+  --app-on-primary: #FFFFFF;
+  --app-live: #FF6B81;
+  --app-live-soft: rgba(255, 107, 129, 0.16);
+  --app-saved: #33D1E6;
+  --app-saved-soft: rgba(51, 209, 230, 0.15);
+  --app-glow: radial-gradient(120% 50% at 50% -10%, rgba(124, 77, 255, 0.22), transparent 65%);
+}
+html[data-app-theme='light'] {
+  --app-bg: #F5F3FA;
   --app-surface: #FFFFFF;
-  --app-ink: #121216;
-  --app-muted: #6C6B73;
-  --app-faint: #A3A2A8;
-  --app-line: #E5E2DA;
-  --app-live: #EC5B13;
-  --app-live-soft: #FDECE2;
-  --app-saved: #2F63F0;
-  --app-saved-soft: #E7EDFE;
+  --app-pressed: #F0ECF8;
+  --app-segment: #E8E3F3;
+  --app-ink: #1A1033;
+  --app-muted: #625A7D;
+  --app-faint: #A39BBB;
+  --app-line: #E4DFF0;
+  --app-primary: #6A3DF0;
+  --app-on-primary: #FFFFFF;
+  --app-live: #D93A55;
+  --app-live-soft: #FDE7EB;
+  --app-saved: #0A8FA8;
+  --app-saved-soft: #DDF4F8;
+  --app-glow: radial-gradient(120% 50% at 50% -10%, rgba(106, 61, 240, 0.08), transparent 65%);
+}
+html[data-app-theme='dark'] { color-scheme: dark; }
+html[data-app-theme='light'] { color-scheme: light; }
+/* Overscroll and the area behind sheets match the app, not the website. */
+html[data-app-theme] body { background: var(--app-bg); }
+
+.app {
   --app-tabbar-h: 58px;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, Roboto, 'Segoe UI', sans-serif;
   background: var(--app-bg);
   color: var(--app-ink);
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+}
+main.app-main {
+  background-image: var(--app-glow);
+  background-repeat: no-repeat;
 }
 .app-title {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, Roboto, sans-serif;

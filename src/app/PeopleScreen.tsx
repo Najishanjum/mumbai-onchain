@@ -47,7 +47,7 @@ function AddButton({ added, onToggle, name }: { added: boolean; onToggle: () => 
       aria-pressed={added}
       aria-label={added ? `Remove ${name} from my people` : `Add ${name} to my people`}
       className={`app-press shrink-0 h-8 px-3.5 rounded-full text-[14px] font-semibold inline-flex items-center gap-1 ${
-        added ? 'bg-[var(--app-bg)] text-[var(--app-muted)]' : 'bg-[var(--app-ink)] text-white'
+        added ? 'bg-[var(--app-bg)] text-[var(--app-muted)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
       }`}
     >
       {added ? <Check className="w-4 h-4" aria-hidden="true" /> : <UserPlus className="w-4 h-4" aria-hidden="true" />}
@@ -117,7 +117,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
       </header>
 
       <div className="px-5 pb-4">
-        <div role="tablist" aria-label="People or snaps" className="grid grid-cols-2 p-1 rounded-xl bg-[#E8E6E0]">
+        <div role="tablist" aria-label="People or snaps" className="grid grid-cols-2 p-1 rounded-xl bg-[var(--app-segment)]">
           {(['people', 'snaps'] as View[]).map((v) => (
             <button
               key={v}
@@ -142,12 +142,12 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
             <button
               type="button"
               onClick={onShowPass}
-              className="app-press mx-4 mb-5 w-[calc(100%-2rem)] flex items-center gap-3 p-3.5 rounded-2xl bg-[var(--app-ink)] text-white text-left"
+              className="app-press mx-4 mb-5 w-[calc(100%-2rem)] flex items-center gap-3 p-3.5 rounded-2xl bg-[var(--app-primary)] text-[var(--app-on-primary)] text-left"
             >
               <PersonAvatar name={myProfile.name} avatarUrl={myProfile.avatar} size="md" className="rounded-full! border-0! w-11! h-11!" />
               <span className="flex-1 min-w-0">
                 <span className="block text-[16px] font-semibold truncate">Show my pass</span>
-                <span className="block text-[14px] text-white/65">They scan it and add you instantly</span>
+                <span className="block text-[14px] text-[var(--app-on-primary)]/65">They scan it and add you instantly</span>
               </span>
               <QrCode className="w-7 h-7 shrink-0" aria-hidden="true" />
             </button>
@@ -225,7 +225,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
                 aria-pressed={filter === id}
                 className={`app-press shrink-0 h-8 px-3.5 rounded-full text-[14px] font-medium border ${
                   filter === id
-                    ? 'bg-[var(--app-ink)] text-white border-[var(--app-ink)]'
+                    ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)] border-[var(--app-primary)]'
                     : 'bg-[var(--app-surface)] border-[var(--app-line)]'
                 }`}
               >
@@ -245,7 +245,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
                   tabIndex={0}
                   onClick={() => onSelectPerson(p.id)}
                   onKeyDown={(e) => e.key === 'Enter' && onSelectPerson(p.id)}
-                  className="app-press flex items-center gap-3 px-4 py-3 bg-[var(--app-surface)] active:bg-[#F7F6F2] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--app-saved)]"
+                  className="app-press flex items-center gap-3 px-4 py-3 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--app-saved)]"
                 >
                   <PersonAvatar name={p.name} avatarUrl={p.avatar} size="md" className="rounded-full! border-0! w-11! h-11!" />
                   <div className="flex-1 min-w-0">
@@ -278,7 +278,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
             <button
               type="button"
               onClick={onAddSnap}
-              className="app-press w-full h-11 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold inline-flex items-center justify-center gap-2"
+              className="app-press w-full h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold inline-flex items-center justify-center gap-2"
             >
               <Camera className="w-4 h-4" aria-hidden="true" /> Add a snap
             </button>

@@ -62,12 +62,12 @@ function PassBody({ person, onClose }: { person: PersonProfile; onClose: () => v
     <Sheet open onClose={onClose} label="My pass">
       <div className="px-5 pt-4">
         {/* The pass: white card, built to be held up and scanned */}
-        <div className="rounded-[28px] bg-white border border-[var(--app-line)] shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden">
+        <div className="rounded-[28px] bg-white text-[#1A1033] border border-black/5 shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden">
           <div className="px-5 pt-5 pb-4 flex items-center gap-3">
             <PersonAvatar name={person.name} avatarUrl={person.avatar} size="md" className="rounded-full! border-0! w-14! h-14!" />
             <div className="min-w-0">
               <div className="app-title text-[20px] font-bold leading-tight truncate">{person.name}</div>
-              <div className="text-[14px] text-[var(--app-muted)] truncate">
+              <div className="text-[14px] text-[#625A7D] truncate">
                 {person.headline || [person.category, person.city].filter(Boolean).join(' · ')}
               </div>
             </div>
@@ -79,7 +79,7 @@ function PassBody({ person, onClose }: { person: PersonProfile; onClose: () => v
               <div className="w-full aspect-square rounded-xl bg-[var(--app-bg)]" />
             )}
           </div>
-          <div className="px-5 py-4 border-t border-dashed border-[var(--app-line)] flex items-center justify-between">
+          <div className="px-5 py-4 border-t border-dashed border-black/10 flex items-center justify-between">
             <span className="text-[14px] font-semibold">Scan to add me</span>
             <img src="/icons/favicon-64.png" alt="Mumbai Onchain" className="w-7 h-7" />
           </div>

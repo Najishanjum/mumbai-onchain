@@ -157,11 +157,11 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 aria-label={`${dayLabel(d, today)}: ${c?.all ?? 0} events${c?.saved ? `, ${c.saved} saved` : ''}`}
                 className={`app-press shrink-0 w-[54px] rounded-2xl py-2.5 flex flex-col items-center gap-1 border ${
                   isToday
-                    ? 'bg-[var(--app-ink)] text-white border-[var(--app-ink)]'
+                    ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)] border-[var(--app-primary)]'
                     : 'bg-[var(--app-surface)] border-[var(--app-line)]'
                 }`}
               >
-                <span className={`text-[12px] font-medium ${isToday ? 'text-white/70' : 'text-[var(--app-muted)]'}`}>
+                <span className={`text-[12px] font-medium ${isToday ? 'text-[var(--app-on-primary)]/70' : 'text-[var(--app-muted)]'}`}>
                   {weekdayShort(d)}
                 </span>
                 <span className="text-[19px] font-bold leading-none">{dayNumber(d)}</span>
@@ -169,7 +169,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                   {c?.saved ? (
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--app-saved)]" />
                   ) : c?.all ? (
-                    <span className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-white/50' : 'bg-[var(--app-faint)]'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-[var(--app-on-primary)]/50' : 'bg-[var(--app-faint)]'}`} />
                   ) : null}
                 </span>
               </button>
@@ -237,7 +237,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="app-press flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold"
+                  className="app-press flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold"
                 >
                   <Navigation className="w-4 h-4" aria-hidden="true" />
                   Directions
@@ -299,7 +299,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             <button
               type="button"
               onClick={() => goTo('schedule')}
-              className="app-press mt-4 h-11 px-6 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold"
+              className="app-press mt-4 h-11 px-6 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold"
             >
               Browse {events.length} events
             </button>

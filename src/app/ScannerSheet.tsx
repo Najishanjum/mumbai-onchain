@@ -201,7 +201,7 @@ function Scanner({ onClose, people, getConnectionStatus, onAdd, onOpenPerson }: 
                     type="button"
                     onClick={() => onAdd(person.id)}
                     disabled={added}
-                    className="app-press h-12 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold inline-flex items-center justify-center gap-2 disabled:bg-[var(--app-bg)] disabled:text-[var(--app-muted)]"
+                    className="app-press h-12 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold inline-flex items-center justify-center gap-2 disabled:bg-[var(--app-bg)] disabled:text-[var(--app-muted)]"
                   >
                     {added ? <Check className="w-[18px] h-[18px]" /> : <UserPlus className="w-[18px] h-[18px]" />}
                     {added ? 'Added' : 'Add'}

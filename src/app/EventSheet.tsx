@@ -102,7 +102,7 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
             onClick={() => toggleSaved(event.id)}
             aria-pressed={saved}
             className={`app-press h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 ${
-              saved ? 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]' : 'bg-[var(--app-ink)] text-white'
+              saved ? 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
             }`}
           >
             <Bookmark className="w-[18px] h-[18px]" fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
@@ -170,7 +170,7 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
                   key={p.id}
                   type="button"
                   onClick={() => onOpenPerson(p.id)}
-                  className="app-press w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[#F7F6F2]"
+                  className="app-press w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--app-pressed)]"
                 >
                   <PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" />
                   <span className="flex-1 min-w-0">

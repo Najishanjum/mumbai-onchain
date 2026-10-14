@@ -101,7 +101,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
               onClose();
               onCreateProfile();
             }}
-            className="app-press mt-5 h-12 px-6 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold"
+            className="app-press mt-5 h-12 px-6 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold"
           >
             Create my pass
           </button>
@@ -121,7 +121,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
           type="button"
           onClick={post}
           disabled={!file || busy}
-          className="app-press h-9 px-4 rounded-full bg-[var(--app-ink)] text-white text-[15px] font-semibold disabled:opacity-35 inline-flex items-center gap-1.5"
+          className="app-press h-9 px-4 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold disabled:opacity-35 inline-flex items-center gap-1.5"
         >
           {busy && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
           {busy ? 'Posting' : 'Post'}
@@ -180,7 +180,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
               type="button"
               onClick={() => setEventId(e.id)}
               aria-pressed={eventId === e.id}
-              className="app-press w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[#F7F6F2]"
+              className="app-press w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--app-pressed)]"
             >
               <span className="flex-1 min-w-0">
                 <span className="block text-[15px] font-semibold truncate">{e.title}</span>
