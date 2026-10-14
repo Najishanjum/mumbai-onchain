@@ -11,8 +11,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Mumbai Onchain" />
-    <!-- iOS reads this once at launch, so it can't follow the in-app theme switch; black suits both. -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <!-- Edge-to-edge on iPhone: the app draws behind the clock (status text stays white).
+         iOS reads this once at launch; Light theme puts a dark strip behind the clock (.app-statusbar). -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <script>
       // Installed app only: apply the saved theme before first paint so launch
       // doesn't flash the website's white. Must match src/lib/useAppTheme.ts.

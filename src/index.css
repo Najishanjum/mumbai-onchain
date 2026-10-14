@@ -25,30 +25,34 @@
   }
 }
 
-/* ── Installed app design tokens: "Devcon Dusk" ───────────────────────────
-   Deep purple night with electric violet and teal glow, from the Devcon 8
-   key visual (shared with Solana Summit's indigo and IBW's navy).
+/* ── Installed app design tokens: "Obsidian Violet" ───────────────────────
+   Near-black with a hint of violet; Devcon 8's electric violet for actions
+   and as a glow at the top, a soft periwinkle for saved things.
+   The app runs edge-to-edge on iPhone (status bar style black-translucent):
+   the background shows behind the clock, and --app-statusbar is the scrim
+   that keeps the clock readable over scrolled content.
    Dark is the default; the Me tab offers Light and System. useAppTheme sets
    data-app-theme on <html>, and index.html sets it before first paint so the
    installed app never flashes white. Only the app uses these; the website
    keeps its own white design. */
 :root,
 html[data-app-theme='dark'] {
-  --app-bg: #140A2B;
-  --app-surface: #1F1240;
-  --app-pressed: #291852;
-  --app-segment: #2A1A55;
-  --app-ink: #F3EEFF;
-  --app-muted: #B1A4D2;
-  --app-faint: #7A6CA3;
-  --app-line: rgba(255, 255, 255, 0.09);
+  --app-bg: #0B0911;
+  --app-surface: #16131F;
+  --app-pressed: #1F1B2B;
+  --app-segment: #1E1A29;
+  --app-ink: #F2EFF8;
+  --app-muted: #A29DB3;
+  --app-faint: #6B6680;
+  --app-line: rgba(255, 255, 255, 0.07);
   --app-primary: #7C4DFF;
   --app-on-primary: #FFFFFF;
   --app-live: #FF6B81;
-  --app-live-soft: rgba(255, 107, 129, 0.16);
-  --app-saved: #33D1E6;
-  --app-saved-soft: rgba(51, 209, 230, 0.15);
-  --app-glow: radial-gradient(120% 50% at 50% -10%, rgba(124, 77, 255, 0.22), transparent 65%);
+  --app-live-soft: rgba(255, 107, 129, 0.14);
+  --app-saved: #8FA8FF;
+  --app-saved-soft: rgba(143, 168, 255, 0.14);
+  --app-glow: radial-gradient(130% 55% at 50% -12%, rgba(124, 77, 255, 0.3), rgba(124, 77, 255, 0.06) 45%, transparent 70%);
+  --app-statusbar: rgba(11, 9, 17, 0.55);
 }
 html[data-app-theme='light'] {
   --app-bg: #F5F3FA;
@@ -63,9 +67,12 @@ html[data-app-theme='light'] {
   --app-on-primary: #FFFFFF;
   --app-live: #D93A55;
   --app-live-soft: #FDE7EB;
-  --app-saved: #0A8FA8;
-  --app-saved-soft: #DDF4F8;
-  --app-glow: radial-gradient(120% 50% at 50% -10%, rgba(106, 61, 240, 0.08), transparent 65%);
+  --app-saved: #4A6FD8;
+  --app-saved-soft: #E6ECFB;
+  --app-glow: radial-gradient(130% 45% at 50% -12%, rgba(106, 61, 240, 0.1), transparent 70%);
+  /* iOS keeps the clock white in an edge-to-edge app, so Light puts a dark
+     violet strip behind it. */
+  --app-statusbar: linear-gradient(180deg, #1A1033, #2A1A55);
 }
 html[data-app-theme='dark'] { color-scheme: dark; }
 html[data-app-theme='light'] { color-scheme: light; }
@@ -83,6 +90,20 @@ html[data-app-theme] body { background: var(--app-bg); }
 main.app-main {
   background-image: var(--app-glow);
   background-repeat: no-repeat;
+}
+/* Sits behind the iPhone clock (0px tall elsewhere) so scrolled content
+   never runs under the status text. */
+.app-statusbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--app-statusbar);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  z-index: 45;
+  pointer-events: none;
 }
 .app-title {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, Roboto, sans-serif;

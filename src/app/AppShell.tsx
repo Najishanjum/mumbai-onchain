@@ -113,6 +113,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <>
+      <div className="app-statusbar" aria-hidden="true" />
       <main className="app-main min-h-dvh pt-[env(safe-area-inset-top)] pb-[calc(var(--app-tabbar-h)+env(safe-area-inset-bottom)+16px)]">
         {tab === 'today' && (
           <TodayScreen

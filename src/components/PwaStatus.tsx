@@ -52,7 +52,7 @@ export const PwaStatus: React.FC = () => {
       {!online && (
         <div
           role="status"
-          className="bg-[#FEF3C7] border-b border-[#000000] text-[#000000] text-[13px] px-4 py-1.5 flex items-center justify-center gap-2"
+          className="relative z-50 bg-[#FEF3C7] border-b border-[#000000] text-[#000000] text-[13px] px-4 pb-1.5 pt-[calc(0.375rem+env(safe-area-inset-top))] flex items-center justify-center gap-2"
         >
           <WifiOff className="w-3.5 h-3.5" aria-hidden="true" />
           You're offline. The schedule still works; people and snaps update when you reconnect.
