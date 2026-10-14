@@ -3,6 +3,7 @@
 export const EVENT_COVERS: Record<string, string> = {
   'devcon-8-india': '/images/events/devcon-8-india.webp',
   'india-blockchain-week-2026': '/images/events/india-blockchain-week-2026.webp',
+  'a36-global-residency-mumbai': '/images/events/a36-global-residency-mumbai.webp',
   'mip-20-road-to-devcon': '/images/events/mip-20-road-to-devcon.webp',
   'tokeniq-2026': '/images/events/tokeniq-2026.webp',
   'tokeniq-tradewar': '/images/events/tokeniq-tradewar.webp',

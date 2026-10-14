@@ -105,7 +105,7 @@ export const INITIAL_EVENTS: EventItem[] = [
     address: 'Mumbai, India',
     latitude: 19.0760,
     longitude: 72.8777,
-    officialUrl: 'https://www.krew3.site/events/a36-global-residency-mumbai',
+    officialUrl: 'https://luma.com/g3oz48ck',
     mapUrl: 'https://maps.google.com/?q=Mumbai+India',
     status: 'INTERESTED',
     priority: 'NORMAL',
