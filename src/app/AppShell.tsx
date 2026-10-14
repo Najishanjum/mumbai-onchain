@@ -6,8 +6,9 @@ import { PeopleScreen } from './PeopleScreen';
 import { VenuesScreen } from './VenuesScreen';
 import { EventSheet } from './EventSheet';
 import { PersonSheet } from './PersonSheet';
-import { ProfileQrModal } from '../components/ProfileQrModal';
-import { ProfileScannerModal } from '../components/ProfileScannerModal';
+import { PassSheet } from './PassSheet';
+import { ScannerSheet } from './ScannerSheet';
+import { usePeopleStore } from '../lib/usePeopleStore';
 import { useSavedEvents } from '../lib/useSavedEvents';
 import { isRealPerson } from '../lib/samples';
 import { TodayScreen } from './TodayScreen';
@@ -60,7 +61,6 @@ interface AppShellProps {
   onSelectPerson: (id: string) => void;
   onAddSnap: () => void;
   onAsk: () => void;
-  cycleConnection: (id: string) => void;
   getConnectionStatus: (id: string) => ConnectionStatus;
 }
 
@@ -86,9 +86,9 @@ export const AppShell: React.FC<AppShellProps> = ({
   onSelectPerson,
   onAddSnap,
   onAsk,
-  cycleConnection,
   getConnectionStatus,
 }) => {
+  const { setConnectionStatus } = usePeopleStore();
   const tab = toApp[activeTab] ?? 'today';
   const realPeople = people.filter(isRealPerson);
   const { savedIds, isSaved, toggleSaved } = useSavedEvents();
@@ -229,24 +229,17 @@ export const AppShell: React.FC<AppShellProps> = ({
         onShowPass={showPass}
       />
 
-      <ProfileQrModal
-        person={myProfile}
-        isOpen={isPassOpen}
-        onClose={() => setIsPassOpen(false)}
-        connectionStatus="NOT_CONNECTED"
-        onCycleConnection={cycleConnection}
-        isCurrentUser
-      />
-      <ProfileScannerModal
+      <PassSheet person={myProfile} isOpen={isPassOpen} onClose={() => setIsPassOpen(false)} />
+      <ScannerSheet
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         people={realPeople}
-        onSelectPerson={(id) => {
+        getConnectionStatus={getConnectionStatus}
+        onAdd={(id) => setConnectionStatus(id, 'CONNECTED')}
+        onOpenPerson={(id) => {
           setIsScannerOpen(false);
           onSelectPerson(id);
         }}
-        onCycleConnection={cycleConnection}
-        getConnectionStatus={getConnectionStatus}
       />
     </>
   );

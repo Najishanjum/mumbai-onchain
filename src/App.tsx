@@ -31,6 +31,8 @@ import { InstallSheet } from './components/InstallSheet';
 import { PwaStatus } from './components/PwaStatus';
 import { AppShell } from './app/AppShell';
 import { ProfileEditorSheet } from './app/ProfileEditorSheet';
+import { SnapViewer } from './app/SnapViewer';
+import { AddSnapSheet } from './app/AddSnapSheet';
 import { isAppMode } from './lib/pwa';
 import { AlertCircle, Camera, ArrowRight } from 'lucide-react';
 
@@ -175,20 +177,33 @@ export function App() {
         />
       )}
 
-      {/* Lightbox Snap Viewer */}
-      <SnapViewerModal
-        snap={activeSnapForViewer}
-        onClose={() => setActiveSnapForViewer(null)}
-        onOpenProfile={(personId) => setSelectedPersonId(personId)}
-      />
-
-      {/* Add Snap Modal */}
-      <AddSnapModal
-        isOpen={isAddSnapModalOpen}
-        events={events}
-        preselectedEventId={preselectedEventIdForSnap}
-        onClose={() => setIsAddSnapModalOpen(false)}
-      />
+      {/* Snap viewer + Add snap: app sheets, or the website modals */}
+      {appMode ? (
+        <>
+          <SnapViewer onOpenPerson={(personId) => setSelectedPersonId(personId)} />
+          <AddSnapSheet
+            isOpen={isAddSnapModalOpen}
+            events={events}
+            preselectedEventId={preselectedEventIdForSnap}
+            onClose={() => setIsAddSnapModalOpen(false)}
+            onCreateProfile={() => setIsEditModalOpen(true)}
+          />
+        </>
+      ) : (
+        <>
+          <SnapViewerModal
+            snap={activeSnapForViewer}
+            onClose={() => setActiveSnapForViewer(null)}
+            onOpenProfile={(personId) => setSelectedPersonId(personId)}
+          />
+          <AddSnapModal
+            isOpen={isAddSnapModalOpen}
+            events={events}
+            preselectedEventId={preselectedEventIdForSnap}
+            onClose={() => setIsAddSnapModalOpen(false)}
+          />
+        </>
+      )}
 
       {/* Non-intrusive Live Match Toast. Website only: in the app it covered
           half the screen and matched against seed profiles before the user
@@ -237,7 +252,6 @@ export function App() {
           onSelectPerson={(id) => setSelectedPersonId(id)}
           onAddSnap={() => setIsAddSnapModalOpen(true)}
           onAsk={() => setIsAskOpen(true)}
-          cycleConnection={cycleConnection}
           getConnectionStatus={getConnectionStatus}
         />
         {sharedOverlays}
