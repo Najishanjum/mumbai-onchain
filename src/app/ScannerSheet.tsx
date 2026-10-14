@@ -224,7 +224,7 @@ function Scanner({ onClose, people, getConnectionStatus, onAdd, onOpenPerson }: 
                     href={result.raw}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-3 inline-block text-[15px] font-medium text-[var(--app-saved)]"
+                    className="mt-3 inline-block text-[15px] font-medium text-[var(--app-primary)]"
                   >
                     Open this link
                   </a>
@@ -237,7 +237,7 @@ function Scanner({ onClose, people, getConnectionStatus, onAdd, onOpenPerson }: 
                 setResult(null);
                 setHint(null);
               }}
-              className="mt-3 w-full h-11 text-[15px] font-medium text-[var(--app-saved)] inline-flex items-center justify-center gap-1.5"
+              className="mt-3 w-full h-11 text-[15px] font-medium text-[var(--app-primary)] inline-flex items-center justify-center gap-1.5"
             >
               <RefreshCw className="w-4 h-4" aria-hidden="true" /> Scan another
             </button>

@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import QRCode from 'qrcode';
+import React, { useState } from 'react';
 import { Check, Contact, Copy, Share2 } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
-import { PersonAvatar } from '../components/PersonAvatar';
 import { Sheet } from './ui';
+import { LanyardBadge } from './Badge';
 import { profileUrl, vCard } from './qr';
 
 interface PassSheetProps {
@@ -14,15 +13,9 @@ interface PassSheetProps {
 
 function PassBody({ person, onClose }: { person: PersonProfile; onClose: () => void }) {
   const url = profileUrl(person.id);
-  const [qr, setQr] = useState('');
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    // High error correction so a scratched or dim phone screen still scans.
-    QRCode.toDataURL(url, { width: 560, margin: 1, errorCorrectionLevel: 'H', color: { dark: '#121216', light: '#FFFFFF' } })
-      .then(setQr)
-      .catch(() => setQr(''));
-  }, [url]);
+  // Opened to be scanned, so it starts on the QR side.
+  const [flipped, setFlipped] = useState(true);
 
   async function share() {
     try {
@@ -56,37 +49,15 @@ function PassBody({ person, onClose }: { person: PersonProfile; onClose: () => v
   }
 
   const action =
-    'app-press flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[13px] font-medium';
+    'app-press flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[13px] font-semibold';
 
   return (
     <Sheet open onClose={onClose} label="My pass">
-      <div className="px-5 pt-4">
-        {/* The pass: white card, built to be held up and scanned */}
-        <div className="rounded-[28px] bg-white text-[#1A1033] border border-black/5 shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden">
-          <div className="px-5 pt-5 pb-4 flex items-center gap-3">
-            <PersonAvatar name={person.name} avatarUrl={person.avatar} size="md" className="rounded-full! border-0! w-14! h-14!" />
-            <div className="min-w-0">
-              <div className="app-title text-[20px] font-bold leading-tight truncate">{person.name}</div>
-              <div className="text-[14px] text-[#625A7D] truncate">
-                {person.headline || [person.category, person.city].filter(Boolean).join(' · ')}
-              </div>
-            </div>
-          </div>
-          <div className="px-8 pb-2">
-            {qr ? (
-              <img src={qr} alt={`QR code for ${person.name}'s profile`} className="w-full aspect-square" />
-            ) : (
-              <div className="w-full aspect-square rounded-xl bg-[var(--app-bg)]" />
-            )}
-          </div>
-          <div className="px-5 py-4 border-t border-dashed border-black/10 flex items-center justify-between">
-            <span className="text-[14px] font-semibold">Scan to add me</span>
-            <img src="/icons/favicon-64.png" alt="Mumbai Onchain" className="w-7 h-7" />
-          </div>
-        </div>
+      <div className="px-5 pt-2">
+        <LanyardBadge person={person} size="lg" flipped={flipped} onFlip={setFlipped} />
 
-        <p className="mt-3 text-center text-[14px] text-[var(--app-muted)]">
-          Turn your screen brightness up if their camera struggles.
+        <p className="mt-4 text-center text-[14px] text-[var(--app-muted)]">
+          {flipped ? 'Turn your screen brightness up if their camera struggles.' : 'Tap the badge to show your QR.'}
         </p>
 
         <div className="mt-5 grid grid-cols-3 gap-2">

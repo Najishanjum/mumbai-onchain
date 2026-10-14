@@ -88,8 +88,8 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
     return (
       <Sheet open onClose={onClose} label="Add a snap">
         <div className="px-6 pt-10 pb-4 text-center">
-          <span className="mx-auto w-16 h-16 rounded-full bg-[var(--app-saved-soft)] flex items-center justify-center">
-            <Camera className="w-7 h-7 text-[var(--app-saved)]" aria-hidden="true" />
+          <span className="mx-auto w-16 h-16 rounded-full bg-[var(--app-primary-soft)] flex items-center justify-center">
+            <Camera className="w-7 h-7 text-[var(--app-primary)]" aria-hidden="true" />
           </span>
           <h2 className="app-title mt-4 text-[22px] font-bold">Create your pass first</h2>
           <p className="mt-1 text-[15px] text-[var(--app-muted)] max-w-[30ch] mx-auto">
@@ -113,7 +113,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
   return (
     <Sheet open onClose={onClose} label="Add a snap" hideClose dismissible={!file && !busy}>
       <div className="sticky top-0 z-30 -mt-[22px] pt-3 pb-3 px-4 bg-[var(--app-bg)]/95 backdrop-blur-md flex items-center gap-2 border-b border-[var(--app-line)]">
-        <button type="button" onClick={onClose} disabled={busy} className="h-10 px-2 text-[16px] text-[var(--app-saved)] disabled:opacity-40">
+        <button type="button" onClick={onClose} disabled={busy} className="h-10 px-2 text-[16px] text-[var(--app-primary)] disabled:opacity-40">
           Cancel
         </button>
         <h2 className="flex-1 text-center text-[17px] font-semibold">New snap</h2>
@@ -157,7 +157,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
 
         {error && <p className="mt-3 text-[14px] text-[var(--app-live)]">{error}</p>}
 
-        <label htmlFor="snap-caption" className="mt-6 block text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)] mb-1.5">
+        <label htmlFor="snap-caption" className="mt-6 block app-label mb-1.5">
           Caption
         </label>
         <textarea
@@ -172,7 +172,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
           {caption.length}/{MAX_CAPTION}
         </div>
 
-        <div className="mt-4 text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)] mb-2">Where</div>
+        <div className="mt-4 app-label mb-2">Where</div>
         <div className="rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
           {choices.map((e) => (
             <button
@@ -188,14 +188,14 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
                   {isLive(e) ? 'Happening now' : dayLabel(e.startDate)}
                 </span>
               </span>
-              {eventId === e.id && <Check className="w-5 h-5 text-[var(--app-saved)]" aria-hidden="true" />}
+              {eventId === e.id && <Check className="w-5 h-5 text-[var(--app-primary)]" aria-hidden="true" />}
             </button>
           ))}
         </div>
 
         {taggable.length > 0 && (
           <>
-            <div className="mt-6 text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)] mb-2">
+            <div className="mt-6 app-label mb-2">
               Who’s in it{tagged.length ? ` · ${tagged.length}` : ''}
             </div>
             <div className="app-scroll-x flex gap-3 overflow-x-auto pb-1">
@@ -210,10 +210,10 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
                     aria-label={`${on ? 'Untag' : 'Tag'} ${p.name}`}
                     className="app-press shrink-0 w-16 flex flex-col items-center gap-1"
                   >
-                    <span className={`relative rounded-full p-0.5 ${on ? 'ring-2 ring-[var(--app-saved)]' : ''}`}>
+                    <span className={`relative rounded-full p-0.5 ${on ? 'ring-2 ring-[var(--app-primary)]' : ''}`}>
                       <PersonAvatar name={p.name} avatarUrl={p.avatar} size="md" className="rounded-full! border-0! w-12! h-12!" />
                       {on && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--app-saved)] text-white flex items-center justify-center">
+                        <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] flex items-center justify-center">
                           <Check className="w-3 h-3" aria-hidden="true" />
                         </span>
                       )}

@@ -213,11 +213,17 @@ export const AppShell: React.FC<AppShellProps> = ({
                 onClick={() => goTo(id)}
                 aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center justify-center gap-[3px] ${
-                  active ? 'text-[var(--app-ink)]' : 'text-[var(--app-faint)]'
+                  active ? 'text-[var(--app-ink)]' : 'text-[var(--app-muted)]'
                 }`}
               >
-                <Icon className="w-6 h-6" strokeWidth={active ? 2.3 : 1.8} aria-hidden="true" />
-                <span className={`text-[11px] ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+                <span
+                  className={`w-14 h-8 rounded-full flex items-center justify-center ${
+                    active ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : ''
+                  }`}
+                >
+                  <Icon className="w-[22px] h-[22px]" strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" />
+                </span>
+                <span className={`text-[11px] ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
               </button>
             );
           })}

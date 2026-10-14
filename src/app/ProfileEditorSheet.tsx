@@ -67,7 +67,7 @@ function toDraft(p: PersonProfile | null): Draft {
   };
 }
 
-const label = 'block text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)] mb-1.5';
+const label = 'block app-label mb-1.5';
 const input =
   'w-full h-12 px-4 rounded-xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]';
 const textarea =
@@ -233,7 +233,7 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
     <Sheet open onClose={onClose} label={currentProfile ? 'Edit profile' : 'Create your pass'} hideClose dismissible={!dirty}>
       {/* Header */}
       <div className="sticky top-0 z-30 -mt-[22px] pt-3 pb-3 px-4 bg-[var(--app-bg)]/95 backdrop-blur-md flex items-center gap-2 border-b border-[var(--app-line)]">
-        <button type="button" onClick={onClose} className="h-10 px-2 text-[16px] text-[var(--app-saved)]">
+        <button type="button" onClick={onClose} className="h-10 px-2 text-[16px] text-[var(--app-primary)]">
           Cancel
         </button>
         <h2 className="flex-1 text-center text-[17px] font-semibold">{currentProfile ? 'Edit profile' : 'Create your pass'}</h2>
@@ -514,7 +514,7 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
             <button
               type="button"
               onClick={() => setDraft((d) => ({ ...d, attendingEvents: [...d.attendingEvents, ...unsavedPlan] }))}
-              className="app-press w-full h-11 rounded-full bg-[var(--app-saved-soft)] text-[var(--app-saved)] text-[15px] font-semibold"
+              className="app-press w-full h-11 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] text-[15px] font-semibold"
             >
               Add my {unsavedPlan.length} saved event{unsavedPlan.length === 1 ? '' : 's'}
             </button>
@@ -549,7 +549,7 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
             <button
               type="button"
               onClick={() => setShowAllEvents(true)}
-              className="w-full h-10 text-[15px] font-medium text-[var(--app-saved)]"
+              className="w-full h-10 text-[15px] font-medium text-[var(--app-primary)]"
             >
               Show all {sortedEvents.length} events
             </button>

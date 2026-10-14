@@ -93,7 +93,7 @@ function SignInBody({ onClose, reason }: Omit<SignInSheetProps, 'isOpen'>) {
               setStep('email');
               setError(null);
             }}
-            className="mb-4 -ml-1 h-9 inline-flex items-center gap-1 text-[15px] text-[var(--app-saved)]"
+            className="mb-4 -ml-1 h-9 inline-flex items-center gap-1 text-[15px] text-[var(--app-primary)]"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Different email
           </button>
@@ -209,7 +209,7 @@ function SignInBody({ onClose, reason }: Omit<SignInSheetProps, 'isOpen'>) {
               type="button"
               onClick={requestCode}
               disabled={resendIn > 0 || busy}
-              className="mt-3 h-10 text-[15px] font-medium text-[var(--app-saved)] disabled:text-[var(--app-faint)]"
+              className="mt-3 h-10 text-[15px] font-medium text-[var(--app-primary)] disabled:text-[var(--app-faint)]"
             >
               {resendIn > 0 ? `Send a new code in ${resendIn}s` : 'Send a new code'}
             </button>

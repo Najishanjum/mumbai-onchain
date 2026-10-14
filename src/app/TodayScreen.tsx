@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Camera, MapPin, Navigation, QrCode, ScanLine, Sparkles, CalendarPlus, UserPlus } from 'lucide-react';
+import { Camera, MapPin, MessagesSquare, Navigation, QrCode, ScanLine, CalendarPlus, UserPlus } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } from './ui';
+import { BlankBadge, LanyardBadge } from './Badge';
+import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
 import { eventCover } from './covers';
 import {
   dayLabel,
@@ -110,35 +112,70 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         : 'That’s a wrap. See you next year';
 
   const others = people.filter((p) => p.id !== myProfile?.id);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now);
 
   return (
     <div className="pb-6">
       {/* Header */}
-      <header className="px-5 pt-3 pb-4 flex items-start justify-between gap-3">
+      <header className="px-5 pt-3 pb-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[14px] font-medium text-[var(--app-muted)]">
-            {now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })}
+          <p className="app-label">
+            {now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })} · {weekStatus}
           </p>
-          <h1 className="app-title text-[30px] font-bold leading-tight mt-0.5">
+          <h1 className="app-title text-[30px] leading-tight mt-0.5">
             {greeting(now)}
             {firstName ? `, ${firstName}` : ''}
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => goTo('me')}
-          aria-label="Your profile"
-          className="app-press mt-1 shrink-0 rounded-full overflow-hidden"
-        >
-          {myProfile ? (
-            <PersonAvatar name={myProfile.name} avatarUrl={myProfile.avatar} size="md" className="rounded-full! border-0! w-10! h-10!" />
-          ) : (
-            <span className="w-10 h-10 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] flex items-center justify-center">
-              <UserPlus className="w-5 h-5 text-[var(--app-muted)]" />
-            </span>
-          )}
-        </button>
+        <BellButton
+          unread={unread}
+          onClick={() => {
+            setNotesOpen(true);
+            markSeen();
+          }}
+        />
       </header>
+
+      {/* Badge on its lanyard: tap to spin it round to the QR */}
+      <section aria-label="Your badge" className="mb-4">
+        {myProfile ? (
+          <>
+            <LanyardBadge person={myProfile} />
+            <p className="mt-3 text-center text-[13px] text-[var(--app-muted)]">Tap your badge to show your QR</p>
+          </>
+        ) : (
+          <BlankBadge onCreate={onCreateProfile} />
+        )}
+      </section>
+
+      {/* Quick actions */}
+      <section aria-label="Quick actions" className="mb-7 px-4 grid grid-cols-4 gap-2">
+        {[
+          { label: 'Share pass', icon: QrCode, onClick: myProfile ? onShowPass : onCreateProfile },
+          { label: 'Scan', icon: ScanLine, onClick: onScan },
+          { label: 'Add snap', icon: Camera, onClick: onAddSnap },
+          { label: 'Ask', icon: MessagesSquare, onClick: onAsk },
+        ].map(({ label, icon: Icon, onClick }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={onClick}
+            className="app-press flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)]"
+          >
+            <Icon className="w-[22px] h-[22px] text-[var(--app-primary)]" strokeWidth={1.9} aria-hidden="true" />
+            <span className="text-[13px] font-semibold">{label}</span>
+          </button>
+        ))}
+      </section>
+
+      <NotificationsSheet
+        isOpen={notesOpen}
+        onClose={() => setNotesOpen(false)}
+        reminders={reminders}
+        onOpenEvent={onOpenEvent}
+        onCreateProfile={onCreateProfile}
+      />
 
       {/* Week strip */}
       <section aria-label="Mumbai Onchain Week" className="mb-7">
@@ -246,26 +283,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         </section>
       )}
 
-      {/* Quick actions */}
-      <section aria-label="Quick actions" className="mb-7 px-4 grid grid-cols-4 gap-2">
-        {[
-          { label: 'My pass', icon: QrCode, onClick: myProfile ? onShowPass : onCreateProfile },
-          { label: 'Scan', icon: ScanLine, onClick: onScan },
-          { label: 'Add snap', icon: Camera, onClick: onAddSnap },
-          { label: 'Ask', icon: Sparkles, onClick: onAsk },
-        ].map(({ label, icon: Icon, onClick }) => (
-          <button
-            key={label}
-            type="button"
-            onClick={onClick}
-            className="app-press flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)]"
-          >
-            <Icon className="w-[22px] h-[22px]" strokeWidth={1.9} aria-hidden="true" />
-            <span className="text-[13px] font-medium">{label}</span>
-          </button>
-        ))}
-      </section>
-
       {/* Your plan */}
       <section className="mb-7">
         <SectionHeader
@@ -288,7 +305,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           </GroupedList>
         ) : (
           <div className="mx-4 rounded-2xl border border-dashed border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-center">
-            <CalendarPlus className="w-7 h-7 mx-auto text-[var(--app-saved)]" aria-hidden="true" />
+            <CalendarPlus className="w-7 h-7 mx-auto text-[var(--app-primary)]" aria-hidden="true" />
             <p className="mt-2 text-[16px] font-semibold">Build your week</p>
             <p className="mt-1 text-[15px] text-[var(--app-muted)]">
               Save events and they show up here, with what's next first.
@@ -316,9 +333,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           <button
             type="button"
             onClick={onCreateProfile}
-            className="app-press mx-4 mb-3 w-[calc(100%-2rem)] flex items-center gap-3 p-4 rounded-2xl bg-[var(--app-saved-soft)] text-left"
+            className="app-press mx-4 mb-3 w-[calc(100%-2rem)] flex items-center gap-3 p-4 rounded-2xl bg-[var(--app-primary-soft)] text-left"
           >
-            <UserPlus className="w-6 h-6 text-[var(--app-saved)] shrink-0" aria-hidden="true" />
+            <UserPlus className="w-6 h-6 text-[var(--app-primary)] shrink-0" aria-hidden="true" />
             <span className="flex-1">
               <span className="block text-[16px] font-semibold">Create your profile</span>
               <span className="block text-[14px] text-[var(--app-muted)]">So people you meet can find and add you.</span>

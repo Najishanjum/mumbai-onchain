@@ -1,6 +1,6 @@
 import React from 'react';
 // lucide 1.x dropped brand logos, so GitHub/LinkedIn use neutral icons.
-import { Briefcase, Check, CodeXml, Globe, Pencil, QrCode, Send, Sparkles, UserPlus } from 'lucide-react';
+import { Briefcase, Check, CodeXml, Globe, Pencil, QrCode, Send, UserPlus } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -9,6 +9,7 @@ import { calculateMatchScore } from '../lib/matchingEngine';
 import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { Chip, Sheet } from './ui';
+import { roleColor } from './Badge';
 import { dayLabel, sortByStart } from './time';
 
 interface PersonSheetProps {
@@ -41,7 +42,7 @@ function socialLinks(p: PersonProfile) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-7">
-      <h3 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)]">{title}</h3>
+      <h3 className="app-label">{title}</h3>
       <div className="mt-2">{children}</div>
     </section>
   );
@@ -73,8 +74,14 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
         <PersonAvatar name={person.name} avatarUrl={person.avatar} size="xl" className="rounded-full! border-0! w-24! h-24!" />
         <h2 className="app-title mt-3 text-[26px] font-bold leading-tight">{person.name}</h2>
         {person.headline && <p className="mt-1 text-[16px] leading-snug max-w-[32ch]">{person.headline}</p>}
-        <p className="mt-1 text-[15px] text-[var(--app-muted)]">
-          {[person.category, person.city].filter(Boolean).join(' · ')}
+        <p className="mt-2 flex items-center gap-2 text-[15px] text-[var(--app-muted)]">
+          <span
+            className="h-6 px-2.5 rounded-md text-[12px] font-extrabold tracking-[0.08em] text-[#0D1316] inline-flex items-center"
+            style={{ background: roleColor(person.category) }}
+          >
+            {(person.category || 'Attendee').toUpperCase()}
+          </span>
+          {person.city}
         </p>
 
         <div className="mt-5 w-full grid grid-cols-1 gap-2">
@@ -131,10 +138,10 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
       <div className="px-5">
         {reasons.length > 0 && (
           <Section title="Why you should meet">
-            <ul className="rounded-2xl bg-[var(--app-saved-soft)] p-4 space-y-1.5">
+            <ul className="rounded-2xl bg-[var(--app-primary-soft)] p-4 space-y-1.5">
               {reasons.map((r) => (
                 <li key={r} className="flex gap-2 text-[15px]">
-                  <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[var(--app-saved)]" aria-hidden="true" />
+                  <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--app-primary)]" aria-hidden="true" />
                   {r}
                 </li>
               ))}

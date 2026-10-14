@@ -142,14 +142,14 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
 
         {event.description && (
           <section className="mt-7">
-            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)]">About</h3>
+            <h3 className="app-label">About</h3>
             <p className="mt-2 text-[16px] leading-relaxed">{event.description}</p>
           </section>
         )}
 
         {event.devconTracks && event.devconTracks.length > 0 && (
           <section className="mt-7">
-            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)]">Tracks</h3>
+            <h3 className="app-label">Tracks</h3>
             <div className="mt-2 flex flex-wrap gap-2">
               {event.devconTracks.map((t) => (
                 <Chip key={t}>{t}</Chip>
@@ -159,7 +159,7 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
         )}
 
         <section className="mt-7">
-          <h3 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+          <h3 className="app-label">
             Going{going.length ? ` · ${going.length}` : ''}
           </h3>
           {going.length > 0 ? (
@@ -188,11 +188,11 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
 
         <section className="mt-7">
           <div className="flex items-baseline justify-between">
-            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)]">Snaps</h3>
+            <h3 className="app-label">Snaps</h3>
             <button
               type="button"
               onClick={() => setIsAddSnapModalOpen(true, event.id)}
-              className="text-[15px] font-medium text-[var(--app-saved)] inline-flex items-center gap-1"
+              className="text-[15px] font-medium text-[var(--app-primary)] inline-flex items-center gap-1"
             >
               <Camera className="w-4 h-4" aria-hidden="true" /> Add
             </button>

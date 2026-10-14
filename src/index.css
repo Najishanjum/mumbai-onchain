@@ -25,9 +25,10 @@
   }
 }
 
-/* ── Installed app design tokens: "Obsidian Violet" ───────────────────────
-   Near-black with a hint of violet; Devcon 8's electric violet for actions
-   and as a glow at the top, a soft periwinkle for saved things.
+/* ── Installed app design tokens: "Lanyard" ───────────────────────────────
+   A conference lanyard at night: deep slate, a teal strap for actions, warm
+   amber for saved things, and a paper badge. Colour comes from the badges:
+   each role gets its own band colour (--role-*), as on real event badges.
    The app runs edge-to-edge on iPhone (status bar style black-translucent):
    the background shows behind the clock, and --app-statusbar is the scrim
    that keeps the clock readable over scrolled content.
@@ -37,42 +38,63 @@
    keeps its own white design. */
 :root,
 html[data-app-theme='dark'] {
-  --app-bg: #0B0911;
-  --app-surface: #16131F;
-  --app-pressed: #1F1B2B;
-  --app-segment: #1E1A29;
-  --app-ink: #F2EFF8;
-  --app-muted: #A29DB3;
-  --app-faint: #6B6680;
+  --app-bg: #0D1316;
+  --app-surface: #151E22;
+  --app-pressed: #1C282D;
+  --app-segment: #1A2529;
+  --app-ink: #E6EEF0;
+  --app-muted: #8FA2A8;
+  --app-faint: #5D6F75;
   --app-line: rgba(255, 255, 255, 0.07);
-  --app-primary: #7C4DFF;
-  --app-on-primary: #FFFFFF;
-  --app-live: #FF6B81;
-  --app-live-soft: rgba(255, 107, 129, 0.14);
-  --app-saved: #8FA8FF;
-  --app-saved-soft: rgba(143, 168, 255, 0.14);
-  --app-glow: radial-gradient(130% 55% at 50% -12%, rgba(124, 77, 255, 0.3), rgba(124, 77, 255, 0.06) 45%, transparent 70%);
-  --app-statusbar: rgba(11, 9, 17, 0.55);
+  --app-primary: #3FD0C9;
+  --app-on-primary: #06201F;
+  --app-primary-soft: rgba(63, 208, 201, 0.14);
+  --app-live: #FF7A66;
+  --app-live-soft: rgba(255, 122, 102, 0.14);
+  --app-saved: #FFC15E;
+  --app-saved-soft: rgba(255, 193, 94, 0.14);
+  --app-glow: none;
+  --app-statusbar: rgba(13, 19, 22, 0.6);
+  /* The badge itself: paper, whatever the theme. */
+  --app-badge: #F1F5F5;
+  --app-badge-ink: #0D1316;
+  --app-badge-muted: #45555B;
+  --app-clip: #9AA8AD;
 }
 html[data-app-theme='light'] {
-  --app-bg: #F5F3FA;
+  --app-bg: #EEF2F2;
   --app-surface: #FFFFFF;
-  --app-pressed: #F0ECF8;
-  --app-segment: #E8E3F3;
-  --app-ink: #1A1033;
-  --app-muted: #625A7D;
-  --app-faint: #A39BBB;
-  --app-line: #E4DFF0;
-  --app-primary: #6A3DF0;
+  --app-pressed: #E6ECEC;
+  --app-segment: #E1E8E8;
+  --app-ink: #0D1316;
+  --app-muted: #4D5E64;
+  --app-faint: #93A3A8;
+  --app-line: #DCE4E5;
+  --app-primary: #0B7D78;
   --app-on-primary: #FFFFFF;
-  --app-live: #D93A55;
-  --app-live-soft: #FDE7EB;
-  --app-saved: #4A6FD8;
-  --app-saved-soft: #E6ECFB;
-  --app-glow: radial-gradient(130% 45% at 50% -12%, rgba(106, 61, 240, 0.1), transparent 70%);
+  --app-primary-soft: #DDF1F0;
+  --app-live: #D2452F;
+  --app-live-soft: #FBE6E2;
+  --app-saved: #A35F00;
+  --app-saved-soft: #FCEFD9;
+  --app-glow: none;
   /* iOS keeps the clock white in an edge-to-edge app, so Light puts a dark
-     violet strip behind it. */
-  --app-statusbar: linear-gradient(180deg, #1A1033, #2A1A55);
+     strip behind it. */
+  --app-statusbar: #0D1316;
+  --app-badge: #FFFFFF;
+  --app-badge-ink: #0D1316;
+  --app-badge-muted: #45555B;
+  --app-clip: #7E8E93;
+}
+/* Badge band colours by role. They sit on the paper badge, so one set works
+   in both themes, always with dark text on top. */
+:root {
+  --role-builder: #3FD0C9;
+  --role-founder: #FFC15E;
+  --role-student: #B6E34A;
+  --role-volunteer: #FF8F7A;
+  --role-attendee: #A9B8FF;
+  --role-other: #D9C7A3;
 }
 html[data-app-theme='dark'] { color-scheme: dark; }
 html[data-app-theme='light'] { color-scheme: light; }
@@ -80,8 +102,8 @@ html[data-app-theme='light'] { color-scheme: light; }
 html[data-app-theme] body { background: var(--app-bg); }
 
 .app {
-  --app-tabbar-h: 58px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, Roboto, 'Segoe UI', sans-serif;
+  --app-tabbar-h: 64px;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background: var(--app-bg);
   color: var(--app-ink);
   font-variant-numeric: tabular-nums;
@@ -123,8 +145,19 @@ html[data-app-theme='light'] .app-statusbar {
   .app-statusbar { transition: none; }
 }
 .app-title {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, Roboto, sans-serif;
-  letter-spacing: -0.02em;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+/* Small labels in the badge's typewriter voice: dates, times, section names. */
+.app-mono {
+  font-family: 'Red Hat Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.app-label {
+  font-family: 'Red Hat Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-muted);
 }
 .app-press {
   transition: transform 120ms ease, background-color 120ms ease;
@@ -156,6 +189,28 @@ html[data-app-theme='light'] .app-statusbar {
 @media (prefers-reduced-motion: reduce) {
   .app-press, .app-press:active { transition: none; transform: none; }
   .app-sheet, .app-backdrop { animation: none; }
+}
+
+/* Lanyard badge: hangs a touch crooked from its clip and spins on the strap
+   to show the QR on the back. */
+.badge-stage { perspective: 1400px; }
+.badge-card {
+  position: relative;
+  transform-style: preserve-3d;
+  transform-origin: 50% 0;
+  transform: rotateY(0deg) rotate(-1.5deg);
+  transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.badge-card.is-flipped { transform: rotateY(180deg) rotate(1.5deg); }
+.badge-face {
+  position: absolute;
+  inset: 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.badge-face.is-back { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .badge-card { transition: none; }
 }
 
 /* Custom technical drafting background grid (as seen on reference screenshot) */

@@ -15,9 +15,9 @@ export function SectionHeader({
 }) {
   return (
     <div className="flex items-baseline justify-between px-5 mb-2.5">
-      <h2 className="app-title text-[20px] font-bold">{title}</h2>
+      <h2 className="app-title text-[20px]">{title}</h2>
       {action && onAction && (
-        <button type="button" onClick={onAction} className="text-[15px] font-medium text-[var(--app-saved)] py-1 -my-1">
+        <button type="button" onClick={onAction} className="text-[15px] font-semibold text-[var(--app-primary)] py-1 -my-1">
           {action}
         </button>
       )}
@@ -57,30 +57,22 @@ export function SaveButton({
 
 export function LiveDot() {
   return (
-    <span className="relative inline-flex w-2 h-2" aria-hidden="true">
-      <span className="absolute inset-0 rounded-full bg-[var(--app-live)] opacity-60 motion-safe:animate-ping" />
-      <span className="relative w-2 h-2 rounded-full bg-[var(--app-live)]" />
-    </span>
+    <span className="inline-flex w-2.5 h-2.5 rounded-full bg-[var(--app-live)] ring-4 ring-[var(--app-live-soft)]" aria-hidden="true" />
   );
 }
 
-// Generated cover for events without artwork: a gradient picked from the
-// title so each one is stable, with the title set in large type.
-const FALLBACK_GRADIENTS = [
-  'linear-gradient(135deg, #2A1656 0%, #7C4DFF 100%)',
-  'linear-gradient(135deg, #1B1233 0%, #4B2A9E 55%, #8FA8FF 100%)',
-  'linear-gradient(135deg, #3B1030 0%, #B83A6A 60%, #FF6B81 100%)',
-  'linear-gradient(135deg, #0F1A3D 0%, #2F55C8 60%, #8FA8FF 100%)',
-];
+// Generated cover for events without artwork: a flat badge-band colour
+// picked from the title so each one is stable, with the title in dark type.
+const FALLBACK_COLORS = ['var(--role-builder)', 'var(--role-founder)', 'var(--role-attendee)', 'var(--role-volunteer)', 'var(--role-student)'];
 
 function FallbackCover({ title, big = false }: { title: string; big?: boolean }) {
   const hash = [...title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0);
   return (
     <div
-      className="w-full h-full flex items-end p-2.5"
-      style={{ background: FALLBACK_GRADIENTS[Math.abs(hash) % FALLBACK_GRADIENTS.length] }}
+      className="w-full h-full flex items-end p-2.5 text-[#0D1316]"
+      style={{ background: FALLBACK_COLORS[Math.abs(hash) % FALLBACK_COLORS.length] }}
     >
-      <span className={`text-white font-bold leading-[1.05] line-clamp-3 ${big ? 'text-[28px] p-3' : 'text-[12px]'}`}>
+      <span className={`font-extrabold leading-[1.05] tracking-tight line-clamp-3 ${big ? 'text-[28px] p-3' : 'text-[12px]'}`}>
         {title}
       </span>
     </div>
@@ -178,7 +170,7 @@ export function EventRow({
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen())}
-      className="app-press flex gap-3.5 pl-4 pr-2 py-3.5 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-saved)] focus-visible:ring-inset"
+      className="app-press flex gap-3.5 pl-4 pr-2 py-3.5 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-primary)] focus-visible:ring-inset"
     >
       <CoverThumb src={eventCover(event)} title={event.title} badge={badge} />
       <div className="flex-1 min-w-0 pt-0.5">
@@ -186,7 +178,7 @@ export function EventRow({
         <div className="mt-0.5 text-[16px] font-semibold leading-snug line-clamp-2">{event.title}</div>
         <div className="mt-1.5 flex items-center gap-1.5 text-[14px] text-[var(--app-muted)] min-w-0">
           <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">{whenShort(event, showDate)}</span>
+          <span className="app-mono text-[13px] truncate">{whenShort(event, showDate)}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-1.5 text-[14px] text-[var(--app-muted)] min-w-0">
           <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />

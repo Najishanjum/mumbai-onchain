@@ -4,6 +4,7 @@ import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { setThemePref, useAppTheme, type ThemePref } from '../lib/useAppTheme';
 import { GroupedList, RowLink } from './ui';
+import { roleColor } from './Badge';
 
 const THEME_OPTIONS: { id: ThemePref; label: string; Icon: typeof Moon }[] = [
   { id: 'dark', label: 'Dark', Icon: Moon },
@@ -71,12 +72,17 @@ export const MeScreen: React.FC<MeScreenProps> = ({
             />
             <div className="min-w-0 flex-1">
               <h2 className="app-title text-[22px] font-bold leading-tight truncate">{myProfile.name}</h2>
-              <p className="text-[15px] text-[var(--app-muted)]">
-                {myProfile.category}
-                {myProfile.city ? ` · ${myProfile.city}` : ''}
+              <p className="mt-1 flex items-center gap-2 text-[15px] text-[var(--app-muted)]">
+                <span
+                  className="h-6 px-2.5 rounded-md text-[12px] font-extrabold tracking-[0.08em] text-[#0D1316] inline-flex items-center"
+                  style={{ background: roleColor(myProfile.category) }}
+                >
+                  {myProfile.category.toUpperCase()}
+                </span>
+                {myProfile.city}
               </p>
               {myProfile.xHandle && (
-                <p className="text-[15px] text-[var(--app-saved)] truncate">@{myProfile.xHandle.replace(/^@/, '')}</p>
+                <p className="text-[15px] text-[var(--app-primary)] truncate">@{myProfile.xHandle.replace(/^@/, '')}</p>
               )}
             </div>
           </div>
@@ -100,8 +106,8 @@ export const MeScreen: React.FC<MeScreenProps> = ({
         </section>
       ) : (
         <section className="mx-4 mb-6 rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-6 text-center">
-          <span className="mx-auto w-16 h-16 rounded-full bg-[var(--app-saved-soft)] flex items-center justify-center">
-            <UserPlus className="w-7 h-7 text-[var(--app-saved)]" aria-hidden="true" />
+          <span className="mx-auto w-16 h-16 rounded-full bg-[var(--app-primary-soft)] flex items-center justify-center">
+            <UserPlus className="w-7 h-7 text-[var(--app-primary)]" aria-hidden="true" />
           </span>
           <h2 className="app-title mt-3 text-[22px] font-bold">Make your pass</h2>
           <p className="mt-1 text-[15px] text-[var(--app-muted)] max-w-[30ch] mx-auto">
@@ -125,13 +131,13 @@ export const MeScreen: React.FC<MeScreenProps> = ({
         </GroupedList>
 
         <section aria-labelledby="account-title" className="mx-4">
-          <h2 id="account-title" className="px-1 mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+          <h2 id="account-title" className="px-1 mb-2 app-label">
             Account
           </h2>
           {accountEmail ? (
             <div className="rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
               <div className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-full bg-[var(--app-saved-soft)] text-[var(--app-saved)] flex items-center justify-center shrink-0">
+                <span className="w-9 h-9 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] flex items-center justify-center shrink-0">
                   <Mail className="w-[18px] h-[18px]" aria-hidden="true" />
                 </span>
                 <div className="flex-1 min-w-0">
@@ -193,7 +199,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
         </section>
 
         <section aria-labelledby="appearance-title" className="mx-4">
-          <h2 id="appearance-title" className="px-1 mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--app-muted)]">
+          <h2 id="appearance-title" className="px-1 mb-2 app-label">
             Appearance
           </h2>
           <div role="radiogroup" aria-labelledby="appearance-title" className="grid grid-cols-3 gap-2">

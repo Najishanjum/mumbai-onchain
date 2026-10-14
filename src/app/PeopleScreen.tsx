@@ -7,6 +7,7 @@ import { calculateMatchScore } from '../lib/matchingEngine';
 import { isRealPerson, isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { GroupedList } from './ui';
+import { roleColor } from './Badge';
 
 interface PeopleScreenProps {
   onShowPass: () => void;
@@ -155,9 +156,9 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
             <button
               type="button"
               onClick={onCreateProfile}
-              className="app-press mx-4 mb-5 w-[calc(100%-2rem)] flex items-center gap-3 p-4 rounded-2xl bg-[var(--app-saved-soft)] text-left"
+              className="app-press mx-4 mb-5 w-[calc(100%-2rem)] flex items-center gap-3 p-4 rounded-2xl bg-[var(--app-primary-soft)] text-left"
             >
-              <UserPlus className="w-6 h-6 text-[var(--app-saved)] shrink-0" aria-hidden="true" />
+              <UserPlus className="w-6 h-6 text-[var(--app-primary)] shrink-0" aria-hidden="true" />
               <span className="flex-1">
                 <span className="block text-[16px] font-semibold">Create your pass</span>
                 <span className="block text-[14px] text-[var(--app-muted)]">
@@ -184,7 +185,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
                   >
                     <PersonAvatar name={person.name} avatarUrl={person.avatar} size="lg" className="rounded-full! border-0!" />
                     <span className="mt-2 text-[15px] font-semibold w-full truncate">{person.name}</span>
-                    <span className="text-[13px] text-[var(--app-muted)] w-full truncate">{person.category}</span>
+                    <span className="mt-1 h-5 px-2 rounded text-[11px] font-extrabold tracking-[0.08em] text-[#0D1316] inline-flex items-center" style={{ background: roleColor(person.category) }}>{person.category.toUpperCase()}</span>
                     <span className="mt-2 text-[13px] leading-snug text-[var(--app-ink)] line-clamp-2 min-h-[2.5em]">
                       {match.reasons[0]}
                     </span>
@@ -245,9 +246,11 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
                   tabIndex={0}
                   onClick={() => onSelectPerson(p.id)}
                   onKeyDown={(e) => e.key === 'Enter' && onSelectPerson(p.id)}
-                  className="app-press flex items-center gap-3 px-4 py-3 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--app-saved)]"
+                  className="app-press flex items-center gap-3 px-4 py-3 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--app-primary)]"
                 >
-                  <PersonAvatar name={p.name} avatarUrl={p.avatar} size="md" className="rounded-full! border-0! w-11! h-11!" />
+                  <span className="shrink-0 rounded-full p-[3px]" style={{ boxShadow: `inset 0 0 0 2px ${roleColor(p.category)}` }}>
+                    <PersonAvatar name={p.name} avatarUrl={p.avatar} size="md" className="rounded-full! border-0! w-10! h-10!" />
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[16px] font-semibold truncate">{p.name}</div>
                     <div className="text-[14px] text-[var(--app-muted)] truncate">{subtitle(p)}</div>
