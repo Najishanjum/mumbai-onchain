@@ -55,7 +55,8 @@ html[data-app-theme='dark'] {
   /* Saved things wear the role colour too. */
   --app-saved: var(--app-primary);
   --app-saved-soft: var(--app-primary-soft);
-  --app-glow: none;
+  /* A soft wash of the role colour at the top of every screen. */
+  --app-glow: radial-gradient(130% 55% at 50% -12%, color-mix(in srgb, var(--app-primary) 30%, transparent), color-mix(in srgb, var(--app-primary) 6%, transparent) 45%, transparent 70%);
   --app-statusbar: rgba(14, 16, 19, 0.6);
   /* The badge itself: paper, whatever the theme. */
   --app-badge: #F6F4EF;
@@ -79,7 +80,7 @@ html[data-app-theme='light'] {
   --app-live-soft: #FCE4EA;
   --app-saved: var(--app-primary);
   --app-saved-soft: var(--app-primary-soft);
-  --app-glow: none;
+  --app-glow: radial-gradient(130% 45% at 50% -12%, color-mix(in srgb, var(--app-primary) 14%, transparent), transparent 70%);
   /* iOS keeps the clock white in an edge-to-edge app, so Light puts a dark
      strip behind it. */
   --app-statusbar: #111317;

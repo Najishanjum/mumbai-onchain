@@ -112,10 +112,14 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       </header>
 
       {/* Badge on its lanyard: tap to spin it round to the QR */}
-      <section aria-label="Your badge" className="mb-4">
+      {/* Fills the first screen on its own; the rest of Today is a scroll away. */}
+      <section
+        aria-label="Your badge"
+        className="mb-6 flex flex-col items-center justify-center min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-var(--app-tabbar-h)-112px)]"
+      >
         {myProfile ? (
           <>
-            <LanyardBadge person={myProfile} />
+            <LanyardBadge person={myProfile} size="lg" />
             <p className="mt-3 text-center text-[13px] text-[var(--app-muted)]">Tap your badge to show your QR</p>
           </>
         ) : (
