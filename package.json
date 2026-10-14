@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "covers": "node scripts/fetch-event-covers.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

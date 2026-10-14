@@ -3,7 +3,8 @@ import { Camera, MapPin, Navigation, QrCode, ScanLine, Sparkles, CalendarPlus, U
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
-import { EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } from './ui';
+import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } from './ui';
+import { eventCover } from './covers';
 import {
   dayLabel,
   dayNumber,
@@ -210,11 +211,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(next.id)}
             className="app-press mx-4 rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] overflow-hidden cursor-pointer"
           >
-            {next.imageUrl && (
-              <div className="h-36 bg-[var(--app-bg)]">
-                <img src={next.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-              </div>
-            )}
+            <CoverHero src={eventCover(next)} title={next.title} height={190} />
             <div className="p-4">
               <div className="flex items-center gap-2 text-[14px] font-semibold text-[var(--app-live)]">
                 <span>{dayLabel(next.startDate, today)}</span>

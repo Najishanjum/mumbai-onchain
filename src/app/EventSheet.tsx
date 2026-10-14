@@ -7,7 +7,8 @@ import { downloadICSFile, getGoogleCalendarUrl } from '../lib/calendar';
 import { detectPlatform } from '../lib/pwa';
 import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
-import { Chip, LiveDot, Sheet } from './ui';
+import { Chip, CoverHero, LiveDot, Sheet } from './ui';
+import { eventCover } from './covers';
 import { dayLabel, directionsUrl, isLive, startsIn, VENUE_TBA } from './time';
 
 interface EventSheetProps {
@@ -50,14 +51,12 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
 
   return (
     <Sheet open onClose={onClose} label={event.title}>
-      {event.imageUrl && (
-        <div className="mx-4 mt-8 h-44 bg-[var(--app-line)] rounded-2xl overflow-hidden">
-          <img src={event.imageUrl} alt="" className="w-full h-full object-cover" />
-        </div>
-      )}
+      <div className="mx-4 mt-8 rounded-[22px] overflow-hidden border border-[var(--app-line)]">
+        <CoverHero src={eventCover(event)} title={event.title} height={300} />
+      </div>
 
-      <div className="px-5 pt-3">
-        <div className="flex flex-wrap items-center gap-2 pr-10">
+      <div className="px-5 pt-4">
+        <div className="flex flex-wrap items-center gap-2">
           <Chip>{event.category}</Chip>
           {live && (
             <Chip tone="live">

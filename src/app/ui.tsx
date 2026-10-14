@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bookmark, ChevronRight, MapPin, X } from 'lucide-react';
+import { Bookmark, ChevronRight, Clock, MapPin, X } from 'lucide-react';
 import type { EventItem } from '../types/event';
-import { isLive, timeRange } from './time';
+import { isLive, VENUE_TBA } from './time';
+import { eventCover } from './covers';
 
 export function SectionHeader({
   title,
@@ -63,7 +64,99 @@ export function LiveDot() {
   );
 }
 
-/** One line in a list of events: time · title/venue · save. */
+// Generated cover for events without artwork: a gradient picked from the
+// title so each one is stable, with the title set in large type.
+const FALLBACK_GRADIENTS = [
+  'linear-gradient(135deg, #2A1656 0%, #7C4DFF 100%)',
+  'linear-gradient(135deg, #1B1233 0%, #4B2A9E 55%, #8FA8FF 100%)',
+  'linear-gradient(135deg, #3B1030 0%, #B83A6A 60%, #FF6B81 100%)',
+  'linear-gradient(135deg, #0F1A3D 0%, #2F55C8 60%, #8FA8FF 100%)',
+];
+
+function FallbackCover({ title, big = false }: { title: string; big?: boolean }) {
+  const hash = [...title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0);
+  return (
+    <div
+      className="w-full h-full flex items-end p-2.5"
+      style={{ background: FALLBACK_GRADIENTS[Math.abs(hash) % FALLBACK_GRADIENTS.length] }}
+    >
+      <span className={`text-white font-bold leading-[1.05] line-clamp-3 ${big ? 'text-[28px] p-3' : 'text-[12px]'}`}>
+        {title}
+      </span>
+    </div>
+  );
+}
+
+/** Square cover thumbnail with an optional status pill, Luma style. */
+export function CoverThumb({
+  src,
+  title,
+  badge,
+  size = 84,
+}: {
+  src: string | null;
+  title: string;
+  badge?: { label: string; tone: 'live' | 'saved' } | null;
+  size?: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className="relative shrink-0 self-start" style={{ width: size, height: size + (badge ? 8 : 0) }}>
+      <div className="w-full rounded-[14px] overflow-hidden bg-[var(--app-segment)]" style={{ height: size }}>
+        {src && !failed ? (
+          <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} className="w-full h-full object-cover" />
+        ) : (
+          <FallbackCover title={title} />
+        )}
+      </div>
+      {badge && (
+        <span
+          className={`absolute left-1/2 -translate-x-1/2 bottom-0 h-6 px-2.5 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap border-2 border-[var(--app-surface)] ${
+            badge.tone === 'live'
+              ? 'bg-[var(--app-live)] text-white'
+              : 'bg-[var(--app-saved)] text-[var(--app-bg)]'
+          }`}
+        >
+          {badge.tone === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-white" aria-hidden="true" />}
+          {badge.label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Big cover for the event sheet and Today's next-event card. Square Luma art
+ * and wide website banners both show uncropped, over a blurred copy of
+ * themselves that fills the frame.
+ */
+export function CoverHero({ src, title, height = 260 }: { src: string | null; title: string; height?: number }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div style={{ height }} className="overflow-hidden">
+        <FallbackCover title={title} big />
+      </div>
+    );
+  }
+  return (
+    <div className="relative overflow-hidden bg-[var(--app-segment)]" style={{ height }}>
+      <img src={src} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-70" />
+      <img src={src} alt={`${title} cover`} onError={() => setFailed(true)} className="relative w-full h-full object-contain" />
+    </div>
+  );
+}
+
+function whenShort(e: EventItem, showDate?: string): string {
+  if (e.startDate !== e.endDate) {
+    const f = (d: string) => new Date(`${d}T12:00:00+05:30`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
+    return `${f(e.startDate)} – ${f(e.endDate)}`;
+  }
+  const time = e.startTime === 'TBA' ? 'Time TBA' : e.startTime;
+  return showDate ? `${showDate}, ${time}` : time;
+}
+
+/** One event in a list, Luma style: cover · host, title, time, place · save. */
 export function EventRow({
   event,
   saved,
@@ -78,34 +171,31 @@ export function EventRow({
   showDate?: string;
 }) {
   const live = isLive(event);
+  const badge = live ? { label: 'Now', tone: 'live' as const } : saved ? { label: 'Saved', tone: 'saved' as const } : null;
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen())}
-      className="app-press flex items-center gap-3 pl-5 pr-3 py-3 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-saved)] focus-visible:ring-inset"
+      className="app-press flex gap-3.5 pl-4 pr-2 py-3.5 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-saved)] focus-visible:ring-inset"
     >
-      <div className="w-[52px] shrink-0 self-start pt-0.5">
-        {showDate && <div className="text-[12px] font-semibold text-[var(--app-muted)] leading-tight">{showDate}</div>}
-        <div className="text-[15px] font-semibold leading-tight">
-          {event.startTime === 'TBA' ? 'TBA' : event.startTime}
+      <CoverThumb src={eventCover(event)} title={event.title} badge={badge} />
+      <div className="flex-1 min-w-0 pt-0.5">
+        <div className="text-[13px] text-[var(--app-muted)] truncate">{event.organizer}</div>
+        <div className="mt-0.5 text-[16px] font-semibold leading-snug line-clamp-2">{event.title}</div>
+        <div className="mt-1.5 flex items-center gap-1.5 text-[14px] text-[var(--app-muted)] min-w-0">
+          <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+          <span className="truncate">{whenShort(event, showDate)}</span>
         </div>
-        {live && (
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--app-live)]">
-            <LiveDot /> Now
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-[16px] font-semibold leading-snug line-clamp-2">{event.title}</div>
-        <div className="mt-0.5 flex items-center gap-1 text-[14px] text-[var(--app-muted)] min-w-0">
+        <div className="mt-0.5 flex items-center gap-1.5 text-[14px] text-[var(--app-muted)] min-w-0">
           <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">{event.location}</span>
-          {event.startDate !== event.endDate && <span className="shrink-0">· {timeRange(event).split(' · ')[1]}</span>}
+          <span className="truncate">{event.location === VENUE_TBA ? 'Venue TBA' : event.location}</span>
         </div>
       </div>
-      <SaveButton saved={saved} onToggle={onToggleSave} title={event.title} />
+      <div className="self-start">
+        <SaveButton saved={saved} onToggle={onToggleSave} title={event.title} />
+      </div>
     </div>
   );
 }
