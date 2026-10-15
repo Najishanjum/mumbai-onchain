@@ -4,7 +4,7 @@ import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } from './ui';
-import { BlankBadge, LanyardBadge } from './Badge';
+import { BlankBadge, LanyardBadge, Mandala } from './Badge';
 import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
 import { StoriesRow } from './Stories';
 import { eventCover } from './covers';
@@ -188,8 +188,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       {/* Fills the first screen on its own; the rest of Today is a scroll away. */}
       <section
         aria-label="Your badge"
-        className="mb-6 flex flex-col items-center justify-center min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-var(--app-tabbar-h)-112px)]"
+        className="relative overflow-x-clip mb-6 flex flex-col items-center justify-center min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-var(--app-tabbar-h)-112px)]"
       >
+        <Mandala className="absolute left-1/2 top-[60%] -translate-x-1/2 -translate-y-1/2 w-[440px] h-[440px] z-[-1] pointer-events-none" />
         {myProfile ? (
           <>
             <LanyardBadge person={myProfile} size="lg" />

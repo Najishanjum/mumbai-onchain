@@ -302,3 +302,52 @@ export function BlankBadge({ onCreate }: { onCreate: () => void }) {
     </div>
   );
 }
+
+/** One ring of pointed petals between two radii, for the mandala. */
+function petalRing(count: number, r1: number, r2: number, w: number): string {
+  const mid = (r1 + r2) / 2;
+  const petal = (a: number) => {
+    const rad = (a * Math.PI) / 180;
+    const pt = (x: number, y: number) => {
+      const rx = x * Math.cos(rad) - y * Math.sin(rad);
+      const ry = x * Math.sin(rad) + y * Math.cos(rad);
+      return `${rx.toFixed(1)} ${ry.toFixed(1)}`;
+    };
+    return `M${pt(0, -r1)}Q${pt(w, -mid)} ${pt(0, -r2)}Q${pt(-w, -mid)} ${pt(0, -r1)}Z`;
+  };
+  return Array.from({ length: count }, (_, i) => petal((360 / count) * i)).join('');
+}
+
+const MANDALA = {
+  outer: petalRing(24, 148, 188, 13),
+  middle: petalRing(16, 98, 150, 20),
+  inner: petalRing(12, 52, 100, 18),
+  core: petalRing(8, 18, 50, 12),
+  dots: Array.from({ length: 36 }, (_, i) => {
+    const a = (i * 10 * Math.PI) / 180;
+    return { x: +(Math.sin(a) * 197).toFixed(1), y: +(-Math.cos(a) * 197).toFixed(1) };
+  }),
+};
+
+/** A faint mandala in the role colour, turning very slowly behind the badge. */
+export function Mandala({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="-205 -205 410 410" className={`app-mandala ${className}`} aria-hidden="true">
+      <g fill="none" stroke="currentColor" strokeWidth="1.3">
+        <path d={MANDALA.outer} />
+        <path d={MANDALA.middle} />
+        <path d={MANDALA.inner} />
+        <path d={MANDALA.core} />
+        <circle r="150" />
+        <circle r="100" />
+        <circle r="52" />
+        <circle r="14" />
+      </g>
+      <g fill="currentColor">
+        {MANDALA.dots.map((d, i) => (
+          <circle key={i} cx={d.x} cy={d.y} r="2.2" />
+        ))}
+      </g>
+    </svg>
+  );
+}

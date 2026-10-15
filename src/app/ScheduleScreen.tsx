@@ -28,6 +28,20 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
   const [searching, setSearching] = useState(false);
   const today = istDateKey();
   const dayRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    // The header is stuck once the line just above it has scrolled under the clock.
+    const io = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting), {
+      // Roughly the status bar on a notched iPhone.
+      rootMargin: '-64px 0px 0px 0px',
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // Every day that has at least one event, plus the core week.
   const days = useMemo(() => {
@@ -52,8 +66,14 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
 
   return (
     <div className="pb-6">
-      {/* Sticky header: title, view toggle, day picker */}
-      <div className="sticky top-[env(safe-area-inset-top)] z-20 bg-[var(--app-bg)]/95 backdrop-blur-md">
+      {/* Sticky header: title, view toggle, day picker. Clear at rest so the
+          jaali shows through; solid only once it is stuck over the list. */}
+      <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
+      <div
+        className={`sticky top-[env(safe-area-inset-top)] z-20 transition-colors ${
+          stuck ? 'bg-[var(--app-bg)]/95 backdrop-blur-md' : ''
+        }`}
+      >
         <div className="px-5 pt-3 pb-3 flex items-center gap-3">
           {searching ? (
             <div className="flex-1 flex items-center gap-2 h-10 px-3 rounded-xl bg-[var(--app-surface)] border border-[var(--app-line)]">
