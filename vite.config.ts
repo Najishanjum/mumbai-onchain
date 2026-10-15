@@ -165,7 +165,7 @@ export default defineConfig(({ mode }) => {
           // index.html is deliberately NOT precached: a cache-first page kept
           // serving the old <head> (e.g. the iOS status-bar setting) after a
           // deploy, and iOS reads that when the app is added to the home screen.
-          globPatterns: ['**/*.{js,css}', 'icons/*.png', 'brand/*.webp'],
+          globPatterns: ['**/*.{js,css}', 'icons/*.png', 'brand/*.webp', 'intro/*.webp'],
           // The plugin adds a cache-first NavigationRoute by default; the
           // NetworkFirst rule below replaces it.
           navigateFallback: null,

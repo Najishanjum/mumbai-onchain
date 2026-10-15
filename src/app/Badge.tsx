@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import type { PersonCategory, PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { profileUrl } from './qr';
+import { useAppPrefs } from '../lib/useAppPrefs';
 
 function roleKey(category: PersonCategory | string | undefined): string {
   const key = (category || 'other').toLowerCase();
@@ -198,6 +199,7 @@ export function LanyardBadge({
   onFlip?: (next: boolean) => void;
 }) {
   const [own, setOwn] = useState(false);
+  const design = useAppPrefs().design;
   const flipped = flippedProp ?? own;
   const s = SIZES[size];
   const qr = usePassQr(person.id);
@@ -216,6 +218,12 @@ export function LanyardBadge({
     if (flippedProp === undefined) setOwn(next);
     onFlip?.(next);
   };
+
+  if (design === 'devcon') {
+    return (
+      <DevconBadge person={person} size={size} flipped={flipped} onToggle={toggle} qr={qr} color={color} roleVars={roleVars} handle={handle} />
+    );
+  }
 
   return (
     <div className="badge-print flex flex-col items-center" style={roleVars}>
@@ -274,6 +282,160 @@ export function LanyardBadge({
             <span className="h-9 pl-1 pr-3.5 rounded-full bg-white flex items-center gap-2">
               <img src="/icons/icon-192.png" alt="" className="w-7 h-7 rounded-full" />
               <span className="text-[12px] font-extrabold tracking-[0.02em]">Mumbai Onchain Week</span>
+            </span>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Devcon pass (Appearance → Badge design) ──────────────────────────────
+// The Devcon 8 look: a prism header from the role colour through Devcon pink,
+// lavender and mint, a round photo, the name large on two lines and a dashed
+// footer like a ticket stub. Same size, flip and QR as the classic card.
+/** Venue photo: "Jio World Centre in Mumbai" by DesiBoy101, CC BY 4.0 (Wikimedia Commons). */
+export const VENUE = {
+  src: '/brand/venue-jwc.webp',
+  credit: 'Venue photo: Jio World Centre by DesiBoy101, CC BY 4.0',
+};
+
+const prism = (color: string) => `linear-gradient(135deg, ${color} 0%, #FF9EC7 42%, #B7A4FF 72%, #8FF0D2 100%)`;
+
+/** A steady four-digit pass number from the person's id. */
+function passNumber(id: string): string {
+  return String(Math.floor(seeded(id)() * 9000) + 1000);
+}
+
+function DevconLanyard({ color, height }: { color: string; height: number }) {
+  const strap = 'absolute bottom-0 w-[30px] origin-bottom overflow-hidden flex justify-center';
+  const print = (
+    <span className="[writing-mode:vertical-rl] whitespace-nowrap text-[11px] font-extrabold leading-[30px] tracking-[0.04em]" style={{ color: INK }}>
+      MUMBAI ONCHAIN · DEVCON WEEK · MUMBAI ONCHAIN
+    </span>
+  );
+  return (
+    <div className="flex flex-col items-center" aria-hidden="true">
+      <div className="relative w-[200px]" style={{ height: height - 8 }}>
+        <div className={strap} style={{ height, left: 'calc(50% - 22px)', transform: 'rotate(-15deg)', background: `linear-gradient(180deg, #FF9EC7, ${color})` }}>
+          {print}
+        </div>
+        <div className={strap} style={{ height, left: 'calc(50% - 8px)', transform: 'rotate(15deg)', background: 'linear-gradient(180deg, #8FF0D2, #B7A4FF)' }}>
+          {print}
+        </div>
+      </div>
+      <svg width="28" height="44" viewBox="0 0 28 44" className="-mt-1 text-[var(--app-clip)]">
+        <rect x="1" y="0" width="26" height="11" rx="3" fill="currentColor" />
+        <circle cx="14" cy="17" r="5" fill="none" stroke="currentColor" strokeWidth="3" />
+        <path d="M14 22v4" stroke="currentColor" strokeWidth="3" />
+        <path d="M9 26h10a2 2 0 0 1 2 2v6a7 7 0 0 1-14 0v-6a2 2 0 0 1 2-2z" fill="currentColor" />
+        <path d="M14 40v4" stroke="currentColor" strokeWidth="3" />
+      </svg>
+    </div>
+  );
+}
+
+function DevconBadge({
+  person,
+  size,
+  flipped,
+  onToggle,
+  qr,
+  color,
+  roleVars,
+  handle,
+}: {
+  person: PersonProfile;
+  size: keyof typeof SIZES;
+  flipped: boolean;
+  onToggle: () => void;
+  qr: string;
+  color: string;
+  roleVars: CSSProperties;
+  handle: string;
+}) {
+  const s = SIZES[size];
+  const header = Math.round(s.h * 0.4);
+  const [first, ...rest] = person.name.trim().split(/\s+/);
+  const no = passNumber(person.id);
+
+  return (
+    <div className="badge-print flex flex-col items-center" style={roleVars}>
+      <DevconLanyard color={color} height={s.strap} />
+
+      <div className="badge-stage" style={{ width: s.w, height: s.h }}>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-pressed={flipped}
+          aria-label={flipped ? 'Show the front of your badge' : 'Show your QR code'}
+          className={`badge-card block w-full h-full p-0 border-0 bg-transparent ${flipped ? 'is-flipped' : ''}`}
+        >
+          <div
+            className="badge-face rounded-[18px] overflow-hidden flex flex-col text-left shadow-[0_24px_60px_rgba(0,0,0,0.45)]"
+            style={{ background: CARD, color: CARD_INK }}
+          >
+            {/* The Devcon 8 venue, Jio World Centre, faded into the card below the header. */}
+            <img src={VENUE.src} alt="" className="devcon-venue absolute inset-x-0 w-full object-cover" style={{ top: header, height: `calc(100% - ${header}px)` }} />
+            <div className="relative shrink-0 overflow-hidden" style={{ height: header, background: prism(color), color: INK }}>
+              <svg viewBox="0 0 252 150" preserveAspectRatio="xMaxYMax slice" className="absolute inset-0 w-full h-full" aria-hidden="true">
+                <g fill="none" stroke="#FFFFFF" strokeOpacity="0.45" strokeWidth="1.5">
+                  {[30, 58, 86, 114].map((r) => (
+                    <circle key={r} cx="230" cy="150" r={r} />
+                  ))}
+                </g>
+              </svg>
+              <span className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-[7px] rounded-full bg-[#14161A]/45" aria-hidden="true" />
+              <span className="absolute left-3 top-7 h-7 pl-[3px] pr-2.5 rounded-full bg-white flex items-center gap-1.5">
+                <img src="/icons/icon-192.png" alt="" className="w-[22px] h-[22px] rounded-full" />
+                <span className="text-[11px] font-extrabold">Mumbai Onchain</span>
+              </span>
+              <span className="app-mono absolute right-3.5 top-8 text-[10px] font-semibold text-right leading-[1.4]">
+                DEVCON 8 WEEK
+                <br />
+                3–6 NOV
+              </span>
+            </div>
+            <PersonAvatar
+              name={person.name}
+              avatarUrl={person.avatar}
+              size="xl"
+              className={`relative -mt-11 ml-4 rounded-full! border-4! border-[var(--badge-card)]! ${s.avatar}`}
+            />
+            <div className="relative flex-1 px-[18px] pt-2 pb-3.5 flex flex-col min-h-0">
+              <div className={`app-title leading-[0.95] tracking-[-0.04em] ${size === 'lg' ? 'text-[34px]' : 'text-[30px]'}`}>
+                <div className="truncate">{first}</div>
+                {rest.length > 0 && <div className="truncate">{rest.join(' ')}</div>}
+              </div>
+              <div className="mt-2.5 flex items-center gap-2 min-w-0">
+                <span className="app-mono h-6 px-2.5 rounded-full text-[11px] font-semibold inline-flex items-center shrink-0" style={{ background: color, color: INK }}>
+                  {(person.category || 'Attendee').toUpperCase()}
+                </span>
+                {person.city && (
+                  <span className="text-[13px] font-semibold truncate" style={{ color: CARD_MUTED }}>
+                    {person.city}
+                  </span>
+                )}
+              </div>
+              <div
+                className="app-mono mt-auto pt-2.5 border-t-[1.5px] border-dashed flex justify-between gap-2 text-[10px]"
+                style={{ color: CARD_MUTED, borderColor: 'color-mix(in srgb, var(--badge-muted) 35%, transparent)' }}
+              >
+                <span className="truncate">{handle}</span>
+                <span className="shrink-0">Nº {no}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="badge-face is-back rounded-[18px] flex flex-col items-center justify-center gap-3" style={{ background: prism(color), color: INK }}>
+            {qr ? (
+              <img src={qr} alt={`QR code for ${person.name}'s profile`} className="rounded-2xl bg-white p-2" style={{ width: s.qr, height: s.qr }} />
+            ) : (
+              <span className="rounded-2xl bg-white/70" style={{ width: s.qr, height: s.qr }} />
+            )}
+            <span className="text-[16px] font-extrabold">Scan to connect</span>
+            <span className="app-mono text-[11px] font-semibold">
+              {person.name.toUpperCase()} · Nº {no}
             </span>
           </div>
         </button>

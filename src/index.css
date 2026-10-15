@@ -454,3 +454,159 @@ html[data-app-badge='black'] .badge-print { --badge-accent: var(--badge-c); }
 
 html[data-app-jaali='off'] .app-motif { display: none; }
 html[data-app-mandala='off'] .app-mandala { display: none; }
+
+/* ── Aurora (Appearance → Background, on by default) ─────────────────────
+   World-class dark: near-black, with soft glows of Devcon and IBW colour
+   (saffron, pink, mint) drifting slowly at the top of every screen and
+   fading into black. Neutral cards with hairline borders; the badge and
+   layout stay as they are. .app-scene is the fixed layer in AppShell
+   (src/app/Scene.tsx). */
+html[data-app-theme='dark'][data-app-scene='aurora'] {
+  --app-bg: #0A0A0C;
+  --app-surface: #151518;
+  --app-pressed: #1D1D21;
+  --app-segment: #18181C;
+  --app-ink: #F4F4F6;
+  --app-muted: #A1A1AA;
+  --app-faint: #63636B;
+  --app-line: rgba(255, 255, 255, 0.08);
+  --app-statusbar: rgba(10, 10, 12, 0.6);
+  --aurora-a: rgba(255, 122, 31, 0.55);
+  --aurora-b: rgba(255, 79, 163, 0.45);
+  --aurora-c: rgba(110, 240, 194, 0.32);
+}
+html[data-app-theme='light'][data-app-scene='aurora'] {
+  --aurora-a: rgba(255, 140, 60, 0.35);
+  --aurora-b: rgba(255, 100, 170, 0.28);
+  --aurora-c: rgba(80, 210, 170, 0.25);
+}
+html[data-app-scene='aurora'] { --app-glow: none; }
+/* The aurora replaces the jaali; the switch in Appearance still works on Plain. */
+html[data-app-scene='aurora'] .app-motif { display: none; }
+.app-scene { display: none; }
+html[data-app-scene='aurora'] .app-scene {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: 100lvh;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--app-bg);
+}
+/* Each glow is a soft radial gradient (no blur filter, so it stays smooth on
+   phones) that drifts on its own slow loop; transform-only animation. */
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+.aurora-blob.is-a {
+  width: 120vw; height: 120vw; max-width: 640px; max-height: 640px;
+  left: -45vw; top: -55vw;
+  background: radial-gradient(closest-side, var(--aurora-a), transparent);
+  animation: aurora-a 22s ease-in-out infinite alternate;
+}
+.aurora-blob.is-b {
+  width: 110vw; height: 110vw; max-width: 600px; max-height: 600px;
+  right: -50vw; top: -40vw;
+  background: radial-gradient(closest-side, var(--aurora-b), transparent);
+  animation: aurora-b 26s ease-in-out infinite alternate;
+}
+.aurora-blob.is-c {
+  width: 90vw; height: 90vw; max-width: 500px; max-height: 500px;
+  left: 10vw; top: 5vw;
+  background: radial-gradient(closest-side, var(--aurora-c), transparent);
+  animation: aurora-c 30s ease-in-out infinite alternate;
+}
+@keyframes aurora-a { to { transform: translate(18vw, 10vw) scale(1.1); } }
+@keyframes aurora-b { to { transform: translate(-16vw, 14vw) scale(0.92); } }
+@keyframes aurora-c { to { transform: translate(-12vw, -8vw) scale(1.15); } }
+/* Film grain keeps the gradients from banding and adds a premium texture. */
+html[data-app-scene='aurora'] .app-scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none; }
+}
+/* The scene stands in for the plain background and the role glow. */
+html[data-app-scene='aurora'] .app-root { background: transparent; }
+html[data-app-scene='aurora'] main.app-main { background-image: none; }
+/* Appearance preview shows the same glow. */
+html[data-app-scene='aurora'] .app-scene-preview {
+  background:
+    radial-gradient(60% 50% at 15% 0%, var(--aurora-a), transparent 70%),
+    radial-gradient(55% 45% at 90% 5%, var(--aurora-b), transparent 70%),
+    radial-gradient(45% 40% at 50% 35%, var(--aurora-c), transparent 70%),
+    var(--app-bg);
+}
+
+
+/* The big line mandala off the top-right edge (as in the AF mockup) takes
+   the place of the role-coloured one behind the badge on Today. */
+.app-scene-mandala {
+  /* Line ink: IBW gold into Devcon peach and pink. */
+  --mandala-1: #F2C879;
+  --mandala-2: #F7A38C;
+  --mandala-3: #F2A1C8;
+  position: absolute;
+  right: -400px;
+  top: -330px;
+  width: 780px;
+  height: 780px;
+  opacity: 0.26;
+  will-change: transform;
+  animation: app-mandala-turn 200s linear infinite;
+}
+html[data-app-theme='light'] .app-scene-mandala {
+  --mandala-1: #B8862F;
+  --mandala-2: #C8654B;
+  --mandala-3: #B8507F;
+  opacity: 0.2;
+}
+html[data-app-scene='aurora'] .app-mandala { display: none; }
+html[data-app-mandala='off'] .app-scene-mandala { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .app-scene-mandala { animation: none; }
+}
+/* Keeps the mandala to the top-right corner: it fades out towards the left
+   and down, so the date, greeting and labels sit on clean background. Not
+   rotated itself, so the fade stays put while the mandala turns. */
+.app-scene-mandala-fade {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: radial-gradient(130% 75% at 100% 0%, #000 0%, rgba(0, 0, 0, 0.55) 35%, transparent 70%);
+  mask-image: radial-gradient(130% 75% at 100% 0%, #000 0%, rgba(0, 0, 0, 0.55) 35%, transparent 70%);
+}
+/* Devcon pass: the venue photo sits faintly in the card's white body, fading
+   in from the header so the name and role stay crisp on top. */
+.devcon-venue {
+  opacity: 0.2;
+  filter: saturate(0.7);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 45%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 45%, #000 100%);
+  pointer-events: none;
+}
+html[data-app-theme='light'] .devcon-venue,
+html[data-app-badge='black'] .devcon-venue { opacity: 0.16; }
+/* First-launch intro (src/app/Intro.tsx): the photo drifts in slowly and the
+   glass card rises with each slide. */
+.intro-photo { transform: scale(1.08); transition: transform 6s ease-out; }
+.intro-photo.is-active { transform: scale(1); }
+.intro-card { animation: intro-rise 420ms cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes intro-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro-photo, .intro-photo.is-active { transform: none; transition: none; }
+  .intro-card { animation: none; }
+}

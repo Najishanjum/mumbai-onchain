@@ -6,17 +6,23 @@ const KEY = 'mo_app_prefs';
 
 export type AccentPref = 'role' | 'builder' | 'founder' | 'student' | 'volunteer' | 'attendee' | 'other';
 export type BadgePref = 'auto' | 'white' | 'black';
+export type ScenePref = 'aurora' | 'plain';
+export type CardPref = 'devcon' | 'classic';
 
 export interface AppPrefs {
   /** 'role' follows the profile's role; otherwise one of the logo colours. */
   accent: AccentPref;
   /** 'auto' is white in Dark and black in Light. */
   badge: BadgePref;
+  /** 'aurora' is near-black with drifting Devcon × IBW glows; 'plain' is the bare charcoal. */
+  scene: ScenePref;
+  /** Badge design: 'devcon' is the prism-header pass, 'classic' the logo-pattern card. */
+  design: CardPref;
   jaali: boolean;
   mandala: boolean;
 }
 
-const DEFAULTS: AppPrefs = { accent: 'role', badge: 'auto', jaali: true, mandala: true };
+const DEFAULTS: AppPrefs = { accent: 'role', badge: 'auto', scene: 'aurora', design: 'classic', jaali: true, mandala: true };
 
 function read(): AppPrefs {
   try {
@@ -57,6 +63,7 @@ export function useApplyAppPrefs() {
       value === null ? root.removeAttribute(name) : root.setAttribute(name, value);
     set('data-app-accent', p.accent === 'role' ? null : p.accent);
     set('data-app-badge', p.badge === 'auto' ? null : p.badge);
+    set('data-app-scene', p.scene === 'plain' ? null : 'aurora');
     set('data-app-jaali', p.jaali ? null : 'off');
     set('data-app-mandala', p.mandala ? null : 'off');
   }, [p]);

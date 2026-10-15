@@ -34,6 +34,7 @@ import { InstallSheet } from './components/InstallSheet';
 import { KeepProfileBanner } from './components/KeepProfileBanner';
 import { PwaStatus } from './components/PwaStatus';
 import { AppShell } from './app/AppShell';
+import { Intro } from './app/Intro';
 import { ProfileEditorSheet } from './app/ProfileEditorSheet';
 import { SnapViewer } from './app/SnapViewer';
 import { AddSnapSheet } from './app/AddSnapSheet';
@@ -317,8 +318,9 @@ export function App() {
   // Installed app (or ?app=1): a focused app layout instead of the landing page.
   if (appMode) {
     return (
-      <div className="app relative isolate min-h-dvh">
+      <div className="app app-root relative isolate min-h-dvh">
         <PwaStatus />
+        <Intro />
         <AppShell
           events={events}
           activeTab={activeTab}
