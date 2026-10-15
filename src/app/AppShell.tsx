@@ -15,6 +15,7 @@ import { isRealPerson } from '../lib/samples';
 import { TodayScreen } from './TodayScreen';
 import { ScheduleScreen } from './ScheduleScreen';
 import { MeScreen } from './MeScreen';
+import { AppearanceScreen } from './AppearanceScreen';
 import { istDateKey, WEEK_DAYS, WEEK_START, type AppTab } from './time';
 
 const ROLE_KEY = 'mo_app_role';
@@ -109,6 +110,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [scheduleDay, setScheduleDay] = useState(defaultDay);
   const [isPassOpen, setIsPassOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
 
   const goTo = (next: AppTab) => {
     if (next === tab) {
@@ -254,6 +256,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             accountEmail={accountEmail}
             onSignIn={onSignIn}
             onSignOut={onSignOut}
+            onOpenAppearance={() => setIsAppearanceOpen(true)}
           />
           </div>
         )}
@@ -337,6 +340,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       />
 
       <PassSheet person={myProfile} isOpen={isPassOpen} onClose={() => setIsPassOpen(false)} />
+      <AppearanceScreen open={isAppearanceOpen} onClose={() => setIsAppearanceOpen(false)} myProfile={myProfile} />
       <ScannerSheet
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
