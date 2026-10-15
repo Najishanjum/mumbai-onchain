@@ -26,6 +26,13 @@
           document.documentElement.setAttribute('data-app-theme', dark ? 'dark' : 'light');
           var role = localStorage.getItem('mo_app_role');
           if (role) document.documentElement.setAttribute('data-app-role', role);
+          // Appearance settings from Me; must match src/lib/useAppPrefs.ts.
+          var p = JSON.parse(localStorage.getItem('mo_app_prefs') || '{}');
+          var root = document.documentElement;
+          if (p.accent && p.accent !== 'role') root.setAttribute('data-app-accent', p.accent);
+          if (p.badge === 'white' || p.badge === 'black') root.setAttribute('data-app-badge', p.badge);
+          if (p.jaali === false) root.setAttribute('data-app-jaali', 'off');
+          if (p.mandala === false) root.setAttribute('data-app-mandala', 'off');
         } catch (e) {}
       })();
     </script>

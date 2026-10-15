@@ -423,3 +423,34 @@ html[data-app-theme='light'] .app-mandala { opacity: 0.12; }
 @media (prefers-reduced-motion: reduce) {
   .app-mandala { animation: none; }
 }
+
+/* ── Appearance settings (Me → Appearance, src/lib/useAppPrefs.ts) ────────
+   These come last so they win over the role and theme defaults above. */
+html[data-app-accent='builder'] { --app-primary: var(--role-builder); }
+html[data-app-accent='founder'] { --app-primary: var(--role-founder); }
+html[data-app-accent='student'] { --app-primary: var(--role-student); }
+html[data-app-accent='volunteer'] { --app-primary: var(--role-volunteer); }
+html[data-app-accent='attendee'] { --app-primary: var(--role-attendee); }
+html[data-app-accent='other'] { --app-primary: var(--role-other); }
+html[data-app-theme='light'][data-app-accent='builder'] { --app-primary: var(--role-builder-deep); }
+html[data-app-theme='light'][data-app-accent='founder'] { --app-primary: var(--role-founder-deep); }
+html[data-app-theme='light'][data-app-accent='student'] { --app-primary: var(--role-student-deep); }
+html[data-app-theme='light'][data-app-accent='volunteer'] { --app-primary: var(--role-volunteer-deep); }
+html[data-app-theme='light'][data-app-accent='attendee'] { --app-primary: var(--role-attendee-deep); }
+html[data-app-theme='light'][data-app-accent='other'] { --app-primary: var(--role-other-deep); }
+
+html[data-app-badge='white'] {
+  --badge-card: #F6F5F2;
+  --badge-ink: #121419;
+  --badge-muted: #5A616B;
+}
+html[data-app-badge='black'] {
+  --badge-card: #121419;
+  --badge-ink: #F2F3F5;
+  --badge-muted: #A6ADB7;
+}
+html[data-app-badge='white'] .badge-print { --badge-accent: var(--badge-c-deep); }
+html[data-app-badge='black'] .badge-print { --badge-accent: var(--badge-c); }
+
+html[data-app-jaali='off'] .app-motif { display: none; }
+html[data-app-mandala='off'] .app-mandala { display: none; }

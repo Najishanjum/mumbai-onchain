@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Send, Moon, Sun, SunMoon, Mail, LogIn } from 'lucide-react';
+import { Check, IdCard, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Send, Moon, Sun, SunMoon, Mail, LogIn } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { setThemePref, useAppTheme, type ThemePref } from '../lib/useAppTheme';
+import { setAppPrefs, useAppPrefs, type AccentPref, type BadgePref } from '../lib/useAppPrefs';
 import { GroupedList, RowLink } from './ui';
 import { roleColor } from './Badge';
 
@@ -11,6 +12,48 @@ const THEME_OPTIONS: { id: ThemePref; label: string; Icon: typeof Moon }[] = [
   { id: 'light', label: 'Light', Icon: Sun },
   { id: 'system', label: 'System', Icon: SunMoon },
 ];
+
+const ACCENTS: { id: AccentPref; label: string }[] = [
+  { id: 'role', label: 'My role' },
+  { id: 'builder', label: 'Petal blue' },
+  { id: 'founder', label: 'Flame orange' },
+  { id: 'student', label: 'Sun yellow' },
+  { id: 'volunteer', label: 'Petal purple' },
+  { id: 'attendee', label: 'Sea blue' },
+  { id: 'other', label: 'Gateway cream' },
+];
+
+const BADGES: { id: BadgePref; label: string; card: string[] }[] = [
+  { id: 'auto', label: 'Auto', card: ['#F6F5F2', '#121419'] },
+  { id: 'white', label: 'White', card: ['#F6F5F2'] },
+  { id: 'black', label: 'Black', card: ['#121419'] },
+];
+
+/** A settings row with an iOS-style switch. */
+function ToggleRow({ label, detail, on, onChange }: { label: string; detail: string; on: boolean; onChange: (next: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      className="w-full flex items-center gap-3 px-4 py-3 text-left bg-[var(--app-surface)] active:bg-[var(--app-pressed)]"
+    >
+      <span className="flex-1 min-w-0">
+        <span className="block text-[16px] font-medium">{label}</span>
+        <span className="block text-[13px] text-[var(--app-muted)]">{detail}</span>
+      </span>
+      <span
+        className={`relative w-[51px] h-[31px] rounded-full shrink-0 transition-colors ${on ? 'bg-[var(--app-primary)]' : 'bg-[var(--app-segment)]'}`}
+        aria-hidden="true"
+      >
+        <span
+          className={`absolute top-[2px] w-[27px] h-[27px] rounded-full bg-white shadow transition-[left] ${on ? 'left-[22px]' : 'left-[2px]'}`}
+        />
+      </span>
+    </button>
+  );
+}
 
 interface MeScreenProps {
   myProfile: PersonProfile | null;
@@ -53,6 +96,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   const icon = 'w-[18px] h-[18px]';
   // App already applies the theme; this only reads the current choice.
   const { pref: themePref } = useAppTheme(false);
+  const prefs = useAppPrefs();
   return (
     <div className="pb-6">
       <header className="px-5 pt-3 pb-4">
@@ -222,6 +266,80 @@ export const MeScreen: React.FC<MeScreenProps> = ({
             })}
           </div>
           <p className="px-1 mt-2 text-[13px] text-[var(--app-muted)]">System follows your phone’s light or dark setting.</p>
+
+          {/* App colour: your role's colour, or any colour from the logo */}
+          <h3 id="accent-title" className="app-label px-1 mt-5 mb-2">App colour</h3>
+          <div role="radiogroup" aria-labelledby="accent-title" className="grid grid-cols-4 gap-x-2 gap-y-3">
+            {ACCENTS.map(({ id, label }) => {
+              const on = prefs.accent === id;
+              const swatch = id === 'role' ? roleColor(myProfile?.category ?? 'attendee') : `var(--role-${id})`;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setAppPrefs({ accent: id })}
+                  className="app-press flex flex-col items-center gap-1.5"
+                >
+                  <span
+                    className={`w-11 h-11 rounded-full flex items-center justify-center ${
+                      on ? 'ring-2 ring-offset-2 ring-[var(--app-ink)] ring-offset-[var(--app-bg)]' : ''
+                    }`}
+                    style={{ background: swatch }}
+                  >
+                    {id === 'role' && <IdCard className="w-5 h-5 text-[#121419]" aria-hidden="true" />}
+                    {on && id !== 'role' && <Check className="w-5 h-5 text-[#121419]" strokeWidth={3} aria-hidden="true" />}
+                  </span>
+                  <span className={`text-[12px] leading-tight text-center ${on ? 'font-bold' : 'text-[var(--app-muted)]'}`}>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Badge card */}
+          <h3 id="badge-title" className="app-label px-1 mt-5 mb-2">Badge</h3>
+          <div role="radiogroup" aria-labelledby="badge-title" className="grid grid-cols-3 gap-2">
+            {BADGES.map(({ id, label, card }) => {
+              const on = prefs.badge === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setAppPrefs({ badge: id })}
+                  className={`app-press h-[72px] rounded-2xl border flex flex-col items-center justify-center gap-1.5 text-[14px] font-semibold ${
+                    on ? 'border-[var(--app-primary)] bg-[var(--app-primary-soft)]' : 'bg-[var(--app-surface)] border-[var(--app-line)]'
+                  }`}
+                >
+                  <span className="w-5 h-7 rounded-[4px] border border-[var(--app-line)] overflow-hidden flex" aria-hidden="true">
+                    {card.map((c) => (
+                      <span key={c} className="flex-1" style={{ background: c }} />
+                    ))}
+                  </span>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Background touches */}
+          <h3 className="app-label px-1 mt-5 mb-2">Background</h3>
+          <GroupedList>
+            <ToggleRow
+              label="Jaali pattern"
+              detail="The lattice at the top of each screen"
+              on={prefs.jaali}
+              onChange={(jaali) => setAppPrefs({ jaali })}
+            />
+            <ToggleRow
+              label="Mandala"
+              detail="Behind your badge on Today"
+              on={prefs.mandala}
+              onChange={(mandala) => setAppPrefs({ mandala })}
+            />
+          </GroupedList>
         </section>
 
         <GroupedList>

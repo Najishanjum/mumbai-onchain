@@ -9,6 +9,7 @@ import { PersonSheet } from './PersonSheet';
 import { PassSheet } from './PassSheet';
 import { ScannerSheet } from './ScannerSheet';
 import { usePeopleStore } from '../lib/usePeopleStore';
+import { useApplyAppPrefs } from '../lib/useAppPrefs';
 import { useSavedEvents } from '../lib/useSavedEvents';
 import { isRealPerson } from '../lib/samples';
 import { TodayScreen } from './TodayScreen';
@@ -97,6 +98,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   getConnectionStatus,
 }) => {
   const { setConnectionStatus } = usePeopleStore();
+  useApplyAppPrefs();
   const tab = toApp[activeTab] ?? 'today';
   // Tabs stay mounted once opened and are only hidden when you leave, so
   // coming back is instant: no re-decoding photos or rebuilding the badge.
