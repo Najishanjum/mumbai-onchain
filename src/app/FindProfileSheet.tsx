@@ -21,7 +21,7 @@ export function FindProfileSheet({ isOpen, onClose, onSignIn }: { isOpen: boolea
     recheckAccount();
   };
 
-  const askNajish = async () => {
+  const askForHelp = async () => {
     try {
       await navigator.clipboard.writeText(supportMessage(email, myProfile ? `(I now have "${myProfile.name}" in the app)` : undefined));
       setCopied(true);
@@ -104,14 +104,14 @@ export function FindProfileSheet({ isOpen, onClose, onSignIn }: { isOpen: boolea
 
         {authUser && myProfile && !checked && (
           <p className="mt-5 text-[14px] text-[var(--app-muted)]">
-            You already have a profile in the app, so the website one can’t be added on its own. Ask Najish to swap them.
+            You already have a profile in the app, so the website one can’t be added on its own. Ask Nimsara to swap them.
           </p>
         )}
 
         <div className="mt-7 pt-5 border-t border-[var(--app-line)]">
-          <p className="text-[14px] text-[var(--app-muted)]">Lost the browser, or still missing? Najish can move it for you.</p>
-          <button type="button" onClick={askNajish} className={`${button} mt-3 bg-[var(--app-surface)] border border-[var(--app-line)]`}>
-            <MessageCircle className="w-4 h-4" aria-hidden="true" /> {copied ? 'Message copied, paste it to Najish' : 'Message Najish'}
+          <p className="text-[14px] text-[var(--app-muted)]">Lost the browser, or still missing? Nimsara can move it for you.</p>
+          <button type="button" onClick={askForHelp} className={`${button} mt-3 bg-[var(--app-surface)] border border-[var(--app-line)]`}>
+            <MessageCircle className="w-4 h-4" aria-hidden="true" /> {copied ? 'Message copied, paste it to Nimsara' : 'Message Nimsara'}
           </button>
         </div>
       </div>
