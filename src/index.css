@@ -476,9 +476,11 @@ html[data-app-theme='dark'][data-app-scene='aurora'] {
   --aurora-c: rgba(110, 240, 194, 0.32);
 }
 html[data-app-theme='light'][data-app-scene='aurora'] {
-  --aurora-a: rgba(255, 140, 60, 0.35);
-  --aurora-b: rgba(255, 100, 170, 0.28);
-  --aurora-c: rgba(80, 210, 170, 0.25);
+  --app-bg: #FBF7F4;
+  --app-statusbar: rgba(17, 19, 23, 0.7);
+  --aurora-a: rgba(255, 122, 31, 0.8);
+  --aurora-b: rgba(255, 79, 163, 0.68);
+  --aurora-c: rgba(60, 220, 170, 0.6);
 }
 html[data-app-scene='aurora'] { --app-glow: none; }
 /* The aurora replaces the jaali; the switch in Appearance still works on Plain. */
@@ -570,7 +572,7 @@ html[data-app-theme='light'] .app-scene-mandala {
   --mandala-1: #B8862F;
   --mandala-2: #C8654B;
   --mandala-3: #B8507F;
-  opacity: 0.2;
+  opacity: 0.4;
 }
 html[data-app-scene='aurora'] .app-mandala { display: none; }
 html[data-app-mandala='off'] .app-scene-mandala { display: none; }
@@ -610,3 +612,78 @@ html[data-app-badge='black'] .devcon-venue { opacity: 0.16; }
   .intro-photo, .intro-photo.is-active { transform: none; transition: none; }
   .intro-card { animation: none; }
 }
+
+/* Centre button menu (src/app/QuickActions.tsx): the actions spring out in
+   an arc and the logo turns a little while it's open. */
+.quick-action { transition: transform 260ms cubic-bezier(0.3, 1.4, 0.5, 1), opacity 180ms ease; }
+.quick-logo { transition: transform 260ms cubic-bezier(0.3, 1.4, 0.5, 1); }
+.quick-logo.is-open { transform: rotate(-20deg) scale(0.94); }
+.quick-hint { animation: quick-hint 1.6s ease-in-out infinite alternate; }
+@keyframes quick-hint { to { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .quick-action, .quick-logo { transition: opacity 120ms ease; }
+  .quick-logo.is-open { transform: none; }
+  .quick-hint { animation: none; }
+}
+
+/* Map pins (src/app/MapScreen.tsx): a round marker in the category colour
+   with its icon (bed, fork and knife, washing machine…) and a small point
+   underneath; event venues are bigger and carry the logo. */
+.map-pin {
+  position: relative;
+  width: 32px; height: 32px; padding: 0;
+  border-radius: 50%;
+  background: var(--pin);
+  color: #121419;
+  border: 2px solid #0E1013;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform 160ms ease;
+  transform-origin: 50% 100%;
+}
+.map-pin::after {
+  content: '';
+  position: absolute;
+  left: 50%; bottom: -6px;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-bottom: 0;
+  border-top: 6px solid var(--pin);
+}
+.map-pin svg { display: block; }
+.map-pin.is-venue { width: 40px; height: 40px; background: #FFFFFF; border: 3px solid var(--pin); }
+.map-pin.is-venue img { width: 100%; height: 100%; border-radius: 50%; display: block; }
+.map-pin.is-selected { transform: scale(1.3); z-index: 2; }
+html[data-app-theme='light'] .map-pin { border-color: #FFFFFF; }
+.maplibregl-ctrl-attrib { font-size: 10px; }
+/* Aurora roads: multiplied over the white-road map, so roads take the
+   app's Today colours (mint south, through pink, to saffron north) and
+   black land and sea stay black. Only on the dark map. */
+.map-neon {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background: linear-gradient(20deg, #6EF0C2 0%, #8FE8D8 18%, #FF8FC4 42%, #FF4FA3 60%, #FF7A1F 82%, #FFB347 100%);
+}
+/* Light map: dark roads on white land, so screen turns the roads into the
+   same colours while the land stays white. */
+html[data-app-theme='light'] .map-neon { mix-blend-mode: screen; }
+
+/* Status bar on Aurora: a soft fade behind the clock instead of a blurred
+   strip with an edge, so scrolling never shows a black bar. Light mode keeps
+   it on all the time, since the iPhone clock is always white. */
+html[data-app-scene='aurora'] .app-statusbar,
+html[data-app-scene='aurora'][data-app-theme='light'] .app-statusbar {
+  height: calc(env(safe-area-inset-top, 0px) + 28px);
+  background: linear-gradient(to bottom, var(--app-statusbar), transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* The tab bar sits closer to the home indicator: iOS's full bottom inset
+   (34px) left a tall empty strip under the labels. */
+.app { --app-tabbar-pad: max(6px, calc(env(safe-area-inset-bottom, 0px) - 14px)); }

@@ -190,7 +190,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       {/* Fills the first screen on its own; the rest of Today is a scroll away. */}
       <section
         aria-label="Your badge"
-        className="relative overflow-x-clip mb-6 flex flex-col items-center justify-center min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-var(--app-tabbar-h)-112px)]"
+        className="relative overflow-x-clip mb-6 flex flex-col items-center justify-center min-h-[calc(100dvh-env(safe-area-inset-top)-var(--app-tabbar-pad)-var(--app-tabbar-h)-112px)]"
       >
         <Mandala className="absolute left-1/2 top-[60%] -translate-x-1/2 -translate-y-1/2 w-[440px] h-[440px] z-[-1] pointer-events-none" />
         {myProfile ? (
