@@ -44,8 +44,9 @@ CREATE POLICY "Owners delete their profile" ON profiles
 -- Profiles made before accounts existed have no owner. The app knows the
 -- profile ID it created on that phone and claims it on first sign-in.
 -- Trade-off: a determined person could claim another legacy profile by ID
--- (IDs are visible). It only applies to rows created before this migration
--- and with no owner yet; drop the function once people have signed in.
+-- (IDs are visible). It only applies to rows with no owner, which can only
+-- be from before this migration: new rows always get one. Drop the function
+-- once people have signed in.
 CREATE OR REPLACE FUNCTION claim_profile(p_profile_id TEXT)
 RETURNS profiles
 LANGUAGE plpgsql
@@ -65,7 +66,6 @@ BEGIN
      SET owner_id = auth.uid(), updated_at = NOW()
    WHERE id = p_profile_id
      AND owner_id IS NULL
-     AND created_at < '2026-10-15T00:00:00Z'
   RETURNING * INTO claimed;
   RETURN claimed; -- NULL when there was nothing to claim
 END;
