@@ -1,19 +1,9 @@
 import type { SupportedLanguage } from './translations';
 
-const DEFAULT_KEY_B64 = 'QVEuQWI4Uk42S2xnQlVjREk0dXdFSVZCQm41ejRpV0Q4ejVLNGU5aFRRc0dtbUFNVHNTTkE=';
-
-function getGeminiApiKey(): string {
-  const envKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined)?.trim();
-  if (envKey) return envKey;
-  try {
-    if (typeof atob === 'function') {
-      return atob(DEFAULT_KEY_B64);
-    }
-  } catch {}
-  return '';
-}
-
-const GEMINI_API_KEY = getGeminiApiKey();
+// From VITE_GEMINI_API_KEY only (set in Vercel). A key used to be embedded
+// here and shipped to every visitor; without one, Ask answers from the
+// built-in event data instead of calling Gemini.
+const GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined)?.trim() ?? '';
 
 const CANDIDATE_MODELS = [
   'gemini-3.5-flash-lite',
@@ -46,6 +36,7 @@ export async function askGemini(
   },
   lang: SupportedLanguage = 'en'
 ): Promise<string | null> {
+  if (!GEMINI_API_KEY) return null;
   const languageName = LANGUAGE_NAMES[lang] || 'English';
 
   const systemInstruction = `You are "ASK MUMBAI", the intelligent, friendly, and knowledgeable AI assistant for Mumbai Onchain Week 2026 and Devcon 8.
