@@ -26,6 +26,7 @@ import { AddSnapModal } from './components/AddSnapModal';
 import { LiveMatchToast } from './components/LiveMatchToast';
 import { Footer } from './components/Footer';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
+import { AskScreen } from './app/AskScreen';
 import { InstallBanner } from './components/InstallBanner';
 import { InstallSheet } from './components/InstallSheet';
 import { PwaStatus } from './components/PwaStatus';
@@ -256,20 +257,32 @@ export function App() {
         />
       )}
 
-      {/* MUMBAI ONCHAIN AI ASSISTANT. The app opens it from Today's quick
-          actions instead of a floating pill over the content. */}
-      <AskMumbaiAssistant
-        events={events}
-        people={people}
-        myProfile={myProfile}
-        connections={connections}
-        notes={notes}
-        onSelectEvent={(id) => setSelectedEventId(id)}
-        onSelectPerson={(id) => setSelectedPersonId(id)}
-        hideLauncher={appMode}
-        open={appMode ? isAskOpen : undefined}
-        onOpenChange={appMode ? setIsAskOpen : undefined}
-      />
+      {/* MUMBAI ONCHAIN AI ASSISTANT. The app has its own full-screen Ask,
+          opened from the logo button in the tab bar; the website keeps its
+          floating chat. Both share the same engine and chat history. */}
+      {appMode ? (
+        <AskScreen
+          open={isAskOpen}
+          onClose={() => setIsAskOpen(false)}
+          events={events}
+          people={people}
+          myProfile={myProfile}
+          connections={connections}
+          notes={notes}
+          onSelectEvent={(id) => setSelectedEventId(id)}
+          onSelectPerson={(id) => setSelectedPersonId(id)}
+        />
+      ) : (
+        <AskMumbaiAssistant
+          events={events}
+          people={people}
+          myProfile={myProfile}
+          connections={connections}
+          notes={notes}
+          onSelectEvent={(id) => setSelectedEventId(id)}
+          onSelectPerson={(id) => setSelectedPersonId(id)}
+        />
+      )}
     </>
   );
 

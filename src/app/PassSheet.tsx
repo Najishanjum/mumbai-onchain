@@ -56,7 +56,7 @@ function PassBody({ person, onClose }: { person: PersonProfile; onClose: () => v
       <div className="px-5 pt-2">
         <LanyardBadge person={person} size="lg" flipped={flipped} onFlip={setFlipped} />
 
-        <p className="mt-4 text-center text-[14px] text-[var(--app-muted)]">
+        <p className="mt-4 min-h-[42px] px-4 text-center text-[14px] leading-[21px] text-[var(--app-muted)]">
           {flipped ? 'Turn your screen brightness up if their camera struggles.' : 'Tap the badge to show your QR.'}
         </p>
 

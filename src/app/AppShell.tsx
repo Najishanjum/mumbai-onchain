@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, Home, Map as MapIcon, User, Users } from 'lucide-react';
+import { CalendarDays, Home, MessagesSquare, User, Users } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { ConnectionStatus, PersonProfile } from '../types/person';
 import { PeopleScreen } from './PeopleScreen';
@@ -42,8 +42,8 @@ const toStore: Record<AppTab, StoreTab> = {
 const TABS: { id: AppTab; label: string; icon: typeof Home }[] = [
   { id: 'today', label: 'Today', icon: Home },
   { id: 'schedule', label: 'Schedule', icon: CalendarDays },
+  // The Ask logo button sits here, between Schedule and People.
   { id: 'people', label: 'People', icon: Users },
-  { id: 'map', label: 'Venues', icon: MapIcon },
   { id: 'me', label: 'Me', icon: User },
 ];
 
@@ -172,6 +172,30 @@ export const AppShell: React.FC<AppShellProps> = ({
           />
         )}
 
+        {(tab === 'schedule' || tab === 'map') && (
+          <div role="tablist" aria-label="Schedule view" className="mx-4 mt-3 mb-1 grid grid-cols-2 p-1 rounded-full bg-[var(--app-segment)]">
+            {(
+              [
+                { id: 'schedule', label: 'Events' },
+                { id: 'map', label: 'Venues' },
+              ] as const
+            ).map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === v.id}
+                onClick={() => setActiveTab(toStore[v.id])}
+                className={`h-9 rounded-full text-[14px] font-bold ${
+                  tab === v.id ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : 'text-[var(--app-muted)]'
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {tab === 'schedule' && (
           <ScheduleScreen
             events={events}
@@ -224,9 +248,10 @@ export const AppShell: React.FC<AppShellProps> = ({
         className="fixed bottom-0 inset-x-0 z-50 bg-[var(--app-surface)]/92 backdrop-blur-xl border-t border-[var(--app-line)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
       >
         <div className="grid grid-cols-5 h-[var(--app-tabbar-h)] max-w-lg mx-auto">
-          {TABS.map(({ id, label, icon: Icon }) => {
-            const active = id === tab;
-            return (
+          {TABS.map(({ id, label, icon: Icon }, i) => {
+            // Venues lives inside Schedule now, so it lights up Schedule.
+            const active = id === tab || (id === 'schedule' && tab === 'map');
+            const tabButton = (
               <button
                 key={id}
                 type="button"
@@ -245,6 +270,27 @@ export const AppShell: React.FC<AppShellProps> = ({
                 </span>
                 <span className={`text-[11px] ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
               </button>
+            );
+            if (i !== 2) return tabButton;
+            // The round logo in the middle opens Ask.
+            return (
+              <React.Fragment key={id}>
+                <button
+                  type="button"
+                  onClick={onAsk}
+                  aria-label="Ask Mumbai Onchain AI"
+                  className="app-press flex flex-col items-center justify-start"
+                >
+                  <span className="relative -mt-5 w-[60px] h-[60px] rounded-full bg-[var(--app-bg)] p-[3px] shadow-[0_0_0_2px_var(--app-primary),0_6px_18px_color-mix(in_srgb,var(--app-primary)_40%,transparent)]">
+                    <img src="/icons/icon-192.png" alt="" className="w-full h-full rounded-full" />
+                    <span className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] border-2 border-[var(--app-bg)] flex items-center justify-center">
+                      <MessagesSquare className="w-3 h-3" strokeWidth={2.6} aria-hidden="true" />
+                    </span>
+                  </span>
+                  <span className="mt-0.5 text-[11px] font-bold text-[var(--app-ink)]">Ask</span>
+                </button>
+                {tabButton}
+              </React.Fragment>
             );
           })}
         </div>
