@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Bell, CalendarClock, Loader2, Megaphone, UserPlus } from 'lucide-react';
 import { Sheet } from './ui';
+import { ensurePushSubscription } from '../lib/push';
 
 const ASKED_KEY = 'mo_notify_asked';
 
@@ -56,7 +57,13 @@ export function NotifyPrompt({ isOpen, onDone }: { isOpen: boolean; onDone: () =
     try {
       // Must start inside the tap, or iPhone ignores it.
       const result = await Notification.requestPermission();
-      if (result === 'granted') await confirmWithNotification();
+      if (result === 'granted') {
+        await confirmWithNotification();
+        // Get this phone's push address now; it's saved to the account once
+        // they've signed in (lib/push.ts listens for this).
+        await ensurePushSubscription();
+        window.dispatchEvent(new Event('mo:notifications-granted'));
+      }
     } catch {
       // older browsers: nothing to do
     } finally {

@@ -170,6 +170,8 @@ export default defineConfig(({ mode }) => {
           // NetworkFirst rule below replaces it.
           navigateFallback: null,
           cleanupOutdatedCaches: true,
+          // Push notifications: shows them and opens the app on tap (public/push-sw.js).
+          importScripts: ['push-sw.js'],
           runtimeCaching: [
             {
               // Page loads: always the latest when online, the cached copy offline.

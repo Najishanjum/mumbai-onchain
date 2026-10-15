@@ -28,6 +28,7 @@ import { Footer } from './components/Footer';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
 import { AskScreen } from './app/AskScreen';
 import { NotifyPrompt, shouldAskForNotifications } from './app/NotifyPrompt';
+import { usePushSync } from './lib/push';
 import { InstallBanner } from './components/InstallBanner';
 import { InstallSheet } from './components/InstallSheet';
 import { PwaStatus } from './components/PwaStatus';
@@ -185,6 +186,7 @@ export function App() {
   // Joining (create profile or sign in) is the moment to ask for
   // notifications in the app: once, before carrying on with what they tapped.
   const [notifyNext, setNotifyNext] = useState<(() => void) | null>(null);
+  usePushSync(authUser?.id, appMode);
   const beforeJoining = (next: () => void) => {
     if (appMode && !myProfile && shouldAskForNotifications()) setNotifyNext(() => next);
     else next();
