@@ -98,6 +98,10 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => {
   const { setConnectionStatus } = usePeopleStore();
   const tab = toApp[activeTab] ?? 'today';
+  // Tabs stay mounted once opened and are only hidden when you leave, so
+  // coming back is instant: no re-decoding photos or rebuilding the badge.
+  const [visited, setVisited] = useState<Set<AppTab>>(() => new Set([tab]));
+  if (!visited.has(tab)) setVisited(new Set(visited).add(tab));
   const realPeople = people.filter(isRealPerson);
   const { savedIds, isSaved, toggleSaved } = useSavedEvents();
   const [scheduleDay, setScheduleDay] = useState(defaultDay);
@@ -150,7 +154,8 @@ export const AppShell: React.FC<AppShellProps> = ({
     <>
       <div className={`app-statusbar${scrolled ? ' is-scrolled' : ''}`} aria-hidden="true" />
       <main className="app-main min-h-dvh pt-[env(safe-area-inset-top)] pb-[calc(var(--app-tabbar-h)+env(safe-area-inset-bottom)+16px)]">
-        {tab === 'today' && (
+        {visited.has('today') && (
+          <div hidden={tab !== 'today'}>
           <TodayScreen
             events={events}
             isSaved={isSaved}
@@ -170,6 +175,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onCreateProfile={onEditProfile}
             onSelectPerson={onSelectPerson}
           />
+          </div>
         )}
 
         {(tab === 'schedule' || tab === 'map') && (
@@ -196,7 +202,8 @@ export const AppShell: React.FC<AppShellProps> = ({
           </div>
         )}
 
-        {tab === 'schedule' && (
+        {visited.has('schedule') && (
+          <div hidden={tab !== 'schedule'}>
           <ScheduleScreen
             events={events}
             isSaved={isSaved}
@@ -205,9 +212,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             day={scheduleDay}
             onDayChange={setScheduleDay}
           />
+          </div>
         )}
 
-        {tab === 'people' && (
+        {visited.has('people') && (
+          <div hidden={tab !== 'people'}>
           <PeopleScreen
             onShowPass={showPass}
             onScan={() => setIsScannerOpen(true)}
@@ -215,9 +224,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             onSelectPerson={onSelectPerson}
             onAddSnap={onAddSnap}
           />
+          </div>
         )}
 
-        {tab === 'map' && (
+        {visited.has('map') && (
+          <div hidden={tab !== 'map'}>
           <VenuesScreen
             events={events}
             isSaved={isSaved}
@@ -225,9 +236,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             onOpenEvent={onOpenEvent}
             goTo={goTo}
           />
+          </div>
         )}
 
-        {tab === 'me' && (
+        {visited.has('me') && (
+          <div hidden={tab !== 'me'}>
           <MeScreen
             myProfile={myProfile}
             savedCount={savedIds.length}
@@ -239,6 +252,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onSignIn={onSignIn}
             onSignOut={onSignOut}
           />
+          </div>
         )}
       </main>
 

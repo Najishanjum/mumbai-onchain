@@ -16,18 +16,31 @@ export function roleColor(category: PersonCategory | string | undefined): string
 }
 
 /** The person's pass QR as a data URL (high error correction for dim screens). */
+// Made once per person and reused, so the back of the badge is ready instantly.
+const qrCache = new Map<string, string>();
+
 export function usePassQr(personId: string, width = 560): string {
-  const [qr, setQr] = useState('');
+  const key = `${personId}:${width}`;
+  const [qr, setQr] = useState(() => qrCache.get(key) ?? '');
   useEffect(() => {
+    const hit = qrCache.get(key);
+    if (hit) return setQr(hit);
+    let live = true;
     QRCode.toDataURL(profileUrl(personId), {
       width,
       margin: 1,
       errorCorrectionLevel: 'H',
       color: { dark: '#121419', light: '#FFFFFF' },
     })
-      .then(setQr)
-      .catch(() => setQr(''));
-  }, [personId, width]);
+      .then((url) => {
+        qrCache.set(key, url);
+        if (live) setQr(url);
+      })
+      .catch(() => live && setQr(''));
+    return () => {
+      live = false;
+    };
+  }, [key, personId, width]);
   return qr;
 }
 
@@ -124,7 +137,17 @@ const SIZES = {
 export function Lanyard({ color, accent, height = 120 }: { color: string; accent?: string; height?: number }) {
   const strap = 'absolute bottom-0 w-[30px] origin-bottom overflow-hidden flex justify-center';
   const text = '[writing-mode:vertical-rl] whitespace-nowrap text-[12px] font-extrabold leading-[30px]';
-  const words = 'Mumbai Onchain  ◆  '.repeat(4);
+  // The event name printed down the strap, with the logo between each repeat.
+  const print = (ink: string) => (
+    <span className="flex flex-col items-center gap-2 pt-2">
+      {[0, 1, 2, 3].map((i) => (
+        <span key={i} className="flex flex-col items-center gap-2">
+          <span className={text} style={{ color: ink }}>Mumbai Onchain</span>
+          <img src="/icons/icon-192.png" alt="" className="w-5 h-5 rounded-full rotate-90 shrink-0" />
+        </span>
+      ))}
+    </span>
+  );
   return (
     <div className="flex flex-col items-center" aria-hidden="true">
       <div className="relative w-[200px]" style={{ height: height - 8 }}>
@@ -137,13 +160,13 @@ export function Lanyard({ color, accent, height = 120 }: { color: string; accent
             background: `linear-gradient(180deg, color-mix(in srgb, ${color} 55%, ${INK}), ${color})`,
           }}
         >
-          <span className={text} style={{ color: INK }}>{words}</span>
+          {print(INK)}
         </div>
         <div
           className={`${strap} border border-[var(--badge-muted)]/30`}
           style={{ height, left: 'calc(50% - 8px)', transform: 'rotate(15deg)', background: CARD }}
         >
-          <span className={text} style={{ color: accent ?? color }}>{words}</span>
+          {print(accent ?? color)}
         </div>
       </div>
       <svg width="28" height="44" viewBox="0 0 28 44" className="-mt-1 text-[var(--app-clip)]">
