@@ -1,6 +1,8 @@
 -- ====================================================================
 -- MUMBAI ONCHAIN: ACCOUNTS + LOCKED-DOWN ROW LEVEL SECURITY
 -- Run once in the Supabase SQL Editor (or `psql -f`). Safe to re-run.
+-- Needs the snaps table: on a project that never had it, run
+-- supabase/snaps_migration.sql first.
 --
 -- Before: anyone with the public key could edit any profile and delete any
 -- snap or photo; any signed-in user could rewrite the event schedule and
@@ -149,6 +151,16 @@ CREATE POLICY "Owners delete photos" ON storage.objects
 -- (the app loads this table over its built-in list) and read or overwrite
 -- everyone's private notes. Events come from the code; notes stay on the
 -- device until they get a real owner column.
-DROP POLICY IF EXISTS "Owner can modify events" ON events;
-DROP POLICY IF EXISTS "Private notes are viewable by owner only" ON event_notes;
-DROP POLICY IF EXISTS "User event overrides viewable by owner only" ON user_events;
+-- Some projects never created these tables; skip the ones that are missing.
+DO $$
+BEGIN
+  IF to_regclass('public.events') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "Owner can modify events" ON events;
+  END IF;
+  IF to_regclass('public.event_notes') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "Private notes are viewable by owner only" ON event_notes;
+  END IF;
+  IF to_regclass('public.user_events') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "User event overrides viewable by owner only" ON user_events;
+  END IF;
+END $$;
