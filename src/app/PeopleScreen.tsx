@@ -103,6 +103,17 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
     <div className="pb-6">
       <header className="px-5 pt-3 pb-3 flex items-center gap-3">
         <h1 className="app-title flex-1 text-[30px] font-bold">People</h1>
+        {/* Show mine, scan theirs: side by side, as a pair. */}
+        {myProfile && (
+          <button
+            type="button"
+            onClick={onShowPass}
+            aria-label="Show my pass"
+            className="app-press w-10 h-10 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] flex items-center justify-center"
+          >
+            <QrCode className="w-5 h-5" />
+          </button>
+        )}
         <button
           type="button"
           onClick={onScan}
@@ -116,21 +127,9 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
       <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} className="mb-4" />
 
         <>
-          {/* Your pass */}
-          {myProfile ? (
-            <button
-              type="button"
-              onClick={onShowPass}
-              className="app-press mx-4 mb-5 w-[calc(100%-2rem)] flex items-center gap-3 p-3.5 rounded-2xl bg-[var(--app-primary)] text-[var(--app-on-primary)] text-left"
-            >
-              <PersonAvatar name={myProfile.name} avatarUrl={myProfile.avatar} size="md" className="rounded-full! border-0! w-11! h-11!" />
-              <span className="flex-1 min-w-0">
-                <span className="block text-[16px] font-semibold truncate">Show my pass</span>
-                <span className="block text-[14px] text-[var(--app-on-primary)]/65">They scan it and add you instantly</span>
-              </span>
-              <QrCode className="w-7 h-7 shrink-0" aria-hidden="true" />
-            </button>
-          ) : (
+          {/* No pass yet: the full card, since it's how people get started.
+              With a pass, the QR button in the header shows it. */}
+          {!myProfile && (
             <button
               type="button"
               onClick={onCreateProfile}
