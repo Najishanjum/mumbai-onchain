@@ -5,6 +5,7 @@ import { INITIAL_PEOPLE } from '../data/people';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { signOut } from './auth';
 import { requireApp } from './appGate';
+import { storeAvatar } from './avatarStorage';
 
 const PEOPLE_STORAGE_KEY = 'mumbai_onchain_people_profiles_v2';
 const MY_PROFILE_STORAGE_KEY = 'mumbai_onchain_my_profile_v2';
@@ -333,7 +334,15 @@ function usePeopleStoreState() {
     async function attach(client: NonNullable<typeof supabase>, uid: string) {
       const { data: owned } = await client.from('profiles').select('*').eq('owner_id', uid).maybeSingle();
       if (owned) {
-        setMyProfile({ ...mapDbToPerson(owned as DbProfileRow, owned.id), isCurrentUser: true });
+        const profile = { ...mapDbToPerson(owned as DbProfileRow, owned.id), isCurrentUser: true };
+        setMyProfile(profile);
+        // Older profiles kept the photo inside the row; move it to Storage.
+        const avatar = await storeAvatar(client, uid, profile.avatar);
+        if (avatar !== profile.avatar) {
+          const moved = { ...profile, avatar };
+          const { error } = await client.from('profiles').update({ avatar }).eq('id', profile.id);
+          if (!error) setMyProfile(moved);
+        }
         return;
       }
       const local = myProfileRef.current;
@@ -344,7 +353,8 @@ function usePeopleStoreState() {
       const keepId = (claimed as DbProfileRow | null)?.id;
       // Not in the cloud yet, or not claimable: save it as a new owned profile.
       const id = keepId || `user-${uid}`;
-      const profile = { ...local, id, isCurrentUser: true };
+      const avatar = await storeAvatar(client, uid, local.avatar);
+      const profile = { ...local, id, avatar, isCurrentUser: true };
       const { error } = await client.from('profiles').upsert(personToDbRow(profile, uid));
       if (error) console.error('Could not attach profile to account:', error.message);
       setMyProfile(profile);
@@ -391,6 +401,12 @@ function usePeopleStoreState() {
     if (isSupabaseConfigured() && supabase && authUser) {
       try {
         setIsSyncing(true);
+        // A newly chosen photo goes to Storage; the row keeps only its URL.
+        const avatar = await storeAvatar(supabase, authUser.id, newProfile.avatar);
+        if (avatar !== newProfile.avatar) {
+          newProfile.avatar = avatar;
+          setMyProfile({ ...newProfile });
+        }
         const { error } = await supabase.from('profiles').upsert(personToDbRow(newProfile, authUser.id));
         if (error) {
           console.error('Supabase profile save error:', error);

@@ -54,6 +54,9 @@ interface SnapStoreState {
   isOwnerOfSnap: (snap: Snap) => boolean;
 }
 
+// The thumbnail sits next to the photo in Storage: <name>-thumb.webp.
+const thumbPathFor = (path: string) => path.replace(/\.webp$/, '') + '-thumb.webp';
+
 const SnapContext = createContext<SnapStoreState | null>(null);
 
 function mapDbRowToSnap(row: DbSnapRow, peopleMap: Map<string, PersonProfile>, myProfile: PersonProfile | null): Snap {
@@ -357,7 +360,8 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error: uploadError } = await supabase.storage
           .from('snaps')
           .upload(storageFilePath, imageBlob, {
-            contentType: 'image/webp',
+            // Safari can't encode WebP, so this may be a JPEG; label it truthfully.
+            contentType: imageBlob.type || 'image/webp',
             upsert: true,
           });
 
@@ -374,6 +378,17 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (publicUrl) {
             finalImageUrl = publicUrl;
             uploadedStoragePath = storageFilePath;
+            // The thumbnail goes beside the photo instead of into the row as
+            // text. If that upload fails, lists just use the full photo.
+            finalThumbnailUrl = publicUrl;
+            const thumbPath = thumbPathFor(storageFilePath);
+            const thumbBlob = dataUrlToBlob(compressed.thumbnailUrl);
+            const { error: thumbError } = await supabase.storage
+              .from('snaps')
+              .upload(thumbPath, thumbBlob, { contentType: thumbBlob.type || 'image/webp', upsert: true });
+            if (!thumbError) {
+              finalThumbnailUrl = supabase.storage.from('snaps').getPublicUrl(thumbPath).data.publicUrl;
+            }
           }
         }
       } catch (storageErr) {
@@ -476,7 +491,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (target.storagePath) {
           const { error: storageDeleteError } = await supabase.storage
             .from('snaps')
-            .remove([target.storagePath]);
+            .remove([target.storagePath, thumbPathFor(target.storagePath)]);
 
           if (storageDeleteError) {
             console.warn('Supabase storage delete error:', storageDeleteError.message);
