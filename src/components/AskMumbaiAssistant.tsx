@@ -29,6 +29,10 @@ interface AskMumbaiAssistantProps {
   notes: Record<string, any>;
   onSelectEvent: (eventId: string) => void;
   onSelectPerson: (personId: string) => void;
+  /** Controlled mode: the installed app opens the assistant from its own button. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideLauncher?: boolean;
 }
 
 const STORAGE_CHAT_KEY = 'mumbai_onchain_ai_chat_history_v2';
@@ -42,8 +46,17 @@ export const AskMumbaiAssistant: React.FC<AskMumbaiAssistantProps> = ({
   notes,
   onSelectEvent,
   onSelectPerson,
+  open,
+  onOpenChange,
+  hideLauncher = false,
 }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+  const isOpen = open ?? internalOpen;
+  const setIsOpen = (next: boolean | ((prev: boolean) => boolean)) => {
+    const value = typeof next === 'function' ? next(isOpen) : next;
+    if (onOpenChange) onOpenChange(value);
+    else setInternalOpen(value);
+  };
   const [inputValue, setInputValue] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState<boolean>(false);
@@ -212,7 +225,7 @@ export const AskMumbaiAssistant: React.FC<AskMumbaiAssistantProps> = ({
       {/* ────────────────────────────────────────────────────────────────────
           1. SLEEK FLOATING TRIGGER BUTTON (Bottom-Right)
           ──────────────────────────────────────────────────────────────────── */}
-      <div className="fixed bottom-20 right-3.5 sm:bottom-6 sm:right-6 z-40 select-none">
+      <div hidden={hideLauncher} className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3.5 sm:bottom-6 sm:right-6 z-40 select-none">
         <button
           type="button"
           onClick={() => setIsOpen(prev => !prev)}
@@ -237,7 +250,7 @@ export const AskMumbaiAssistant: React.FC<AskMumbaiAssistantProps> = ({
           ──────────────────────────────────────────────────────────────────── */}
       {isOpen && (
         <div
-          className="fixed bottom-20 right-2 sm:bottom-20 sm:right-6 w-[calc(100vw-1rem)] sm:w-[420px] md:w-[450px] h-[560px] max-h-[82vh] z-50 bg-[#0F0F0F] border border-[#262626] text-[#F3F3F3] shadow-2xl rounded-2xl flex flex-col overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-2 sm:bottom-20 sm:right-6 w-[calc(100vw-1rem)] sm:w-[420px] md:w-[450px] h-[560px] max-h-[82vh] z-50 bg-[#0F0F0F] border border-[#262626] text-[#F3F3F3] shadow-2xl rounded-2xl flex flex-col overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150"
           role="dialog"
           aria-label="Ask Mumbai AI Assistant"
         >

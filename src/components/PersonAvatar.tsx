@@ -1,5 +1,40 @@
 import React, { useState } from 'react';
 
+// Profile photos saved as data: URLs are big strings the browser re-decodes
+// every time an <img> mounts, so the photo visibly loads on each screen.
+// Turn each into a blob URL once and keep a decoded copy alive, so every
+// later avatar for that photo paints straight away.
+const blobUrls = new Map<string, string>();
+const decoded = new Map<string, HTMLImageElement>();
+
+function cachedImageUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  let out = trimmed;
+  if (trimmed.startsWith('data:')) {
+    const hit = blobUrls.get(trimmed);
+    if (hit) out = hit;
+    else {
+      try {
+        const [head, body] = trimmed.split(',', 2);
+        const mime = head.match(/^data:([^;]+)/)?.[1] ?? 'image/jpeg';
+        const bytes = head.includes(';base64') ? Uint8Array.from(atob(body), (c) => c.charCodeAt(0)) : new TextEncoder().encode(decodeURIComponent(body));
+        out = URL.createObjectURL(new Blob([bytes], { type: mime }));
+        blobUrls.set(trimmed, out);
+      } catch {
+        out = trimmed;
+      }
+    }
+  }
+  if (!decoded.has(out) && typeof Image !== 'undefined') {
+    const img = new Image();
+    img.src = out;
+    img.decode?.().catch(() => {});
+    decoded.set(out, img);
+  }
+  return out;
+}
+
 interface PersonAvatarProps {
   name: string;
   avatarUrl?: string;
@@ -40,7 +75,8 @@ export const PersonAvatar: React.FC<PersonAvatarProps> = ({
     xl: 'w-24 h-24 text-2xl',
   };
 
-  const hasValidImage = avatarUrl && avatarUrl.trim().length > 0 && !imgError;
+  const src = avatarUrl ? cachedImageUrl(avatarUrl) : '';
+  const hasValidImage = src.length > 0 && !imgError;
 
   return (
     <div
@@ -48,8 +84,9 @@ export const PersonAvatar: React.FC<PersonAvatarProps> = ({
     >
       {hasValidImage ? (
         <img
-          src={avatarUrl}
+          src={src}
           alt={name}
+          decoding="sync"
           onError={() => setImgError(true)}
           className="w-full h-full object-cover"
         />

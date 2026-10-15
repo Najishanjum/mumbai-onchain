@@ -2,15 +2,47 @@
 <html lang="en" class="dark scroll-smooth">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-64.png" />
+    <!-- viewport-fit=cover lets the app draw under the iPhone home indicator; fixed bars pad with env(safe-area-inset-*) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+
+    <!-- Installed app (iOS reads these instead of the web manifest) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Mumbai Onchain" />
+    <!-- Edge-to-edge on iPhone: the app draws behind the clock (status text stays white).
+         iOS reads this once at launch; Light theme puts a dark strip behind the clock (.app-statusbar). -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      // Installed app only: apply the saved theme before first paint so launch
+      // doesn't flash the website's white. Must match src/lib/useAppTheme.ts.
+      (function () {
+        try {
+          var installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+          if (!installed && new URLSearchParams(location.search).get('app') !== '1') return;
+          var pref = localStorage.getItem('mo_app_theme') || 'dark';
+          var dark = pref === 'system' ? matchMedia('(prefers-color-scheme: dark)').matches : pref !== 'light';
+          document.documentElement.setAttribute('data-app-theme', dark ? 'dark' : 'light');
+          var role = localStorage.getItem('mo_app_role');
+          if (role) document.documentElement.setAttribute('data-app-role', role);
+          // Appearance settings from Me; must match src/lib/useAppPrefs.ts.
+          var p = JSON.parse(localStorage.getItem('mo_app_prefs') || '{}');
+          var root = document.documentElement;
+          if (p.accent && p.accent !== 'role') root.setAttribute('data-app-accent', p.accent);
+          if (p.badge === 'white' || p.badge === 'black') root.setAttribute('data-app-badge', p.badge);
+          if (p.jaali === false) root.setAttribute('data-app-jaali', 'off');
+          if (p.mandala === false) root.setAttribute('data-app-mandala', 'off');
+        } catch (e) {}
+      })();
+    </script>
     
     <!-- Primary Meta Tags -->
     <title>MUMBAI // ONCHAIN WEEK 2026</title>
     <meta name="title" content="MUMBAI // ONCHAIN WEEK 2026 — Personal Web3 Command Center" />
     <meta name="description" content="A personal Web3 event command center tracking Devcon 8, India Blockchain Week, ETHGlobal Mumbai, and ecosystem side events across Mumbai." />
     <meta name="author" content="Najish Anjum" />
-    <meta name="theme-color" content="#050505" />
+    <meta name="theme-color" content="#FFFFFF" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -27,7 +59,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700;800&family=Pixelify+Sans:wght@400..700&family=Silkscreen:wght@400;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700;800&family=Pixelify+Sans:wght@400..700&family=Silkscreen:wght@400;700&family=Space+Grotesk:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Red+Hat+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[#FFFFFF] text-[#050505] font-sans antialiased selection:bg-[#000000] selection:text-[#FFFFFF] min-h-screen">
     <div id="root"></div>

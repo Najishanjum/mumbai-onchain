@@ -89,7 +89,7 @@ export const LiveMatchToast: React.FC<LiveMatchToastProps> = ({ onOpenProfile })
   return (
     <aside
       aria-label="Live Match Notification"
-      className="fixed bottom-24 right-3.5 sm:bottom-6 sm:left-6 z-40 max-w-sm w-[calc(100vw-1.75rem)] sm:w-88 bg-[#0F0F0F] text-[#FFFFFF] border-2 border-[#22C55E] rounded-xl p-4 shadow-[0_0_25px_rgba(34,197,94,0.35)] select-none animate-in slide-in-from-bottom-5 duration-300"
+      className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-3.5 sm:bottom-6 sm:left-6 z-40 max-w-sm w-[calc(100vw-1.75rem)] sm:w-88 bg-[#0F0F0F] text-[#FFFFFF] border-2 border-[#22C55E] rounded-xl p-4 shadow-[0_0_25px_rgba(34,197,94,0.35)] select-none animate-in slide-in-from-bottom-5 duration-300"
     >
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-[#262626] pb-2.5">

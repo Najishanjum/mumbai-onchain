@@ -8,6 +8,7 @@ import { PersonCard } from './PersonCard';
 import { PersonAvatar } from './PersonAvatar';
 import { ProfileQrModal } from './ProfileQrModal';
 import { ProfileScannerModal } from './ProfileScannerModal';
+import { requireApp, WEBSITE_SNAP_LIMIT } from '../lib/appGate';
 import { BuilderSpeedMatch } from './BuilderSpeedMatch';
 import { SurpriseMeModal } from './SurpriseMeModal';
 import {
@@ -151,7 +152,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ events }) => {
             {/* Open Camera Scanner Button */}
             <button
               type="button"
-              onClick={() => setIsScannerModalOpen(true)}
+              onClick={() => requireApp('scan') && setIsScannerModalOpen(true)}
               className="inline-flex items-center gap-2 bg-[#22C55E] hover:bg-[#16a34a] text-[#000000] hover:text-[#FFFFFF] border-2 border-[#000000] px-4 py-3 font-heading font-black text-xs sm:text-sm tracking-wide transition-all active:scale-95 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer group"
               title="Open camera scanner to scan any attendee's QR Pass"
             >
@@ -438,7 +439,7 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ events }) => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
-            {recentSnaps.slice(0, 8).map(snap => (
+            {recentSnaps.slice(0, WEBSITE_SNAP_LIMIT).map(snap => (
               <div
                 key={snap.id}
                 onClick={() => setActiveSnapForViewer(snap)}
@@ -504,6 +505,17 @@ export const PeopleDirectory: React.FC<PeopleDirectoryProps> = ({ events }) => {
               </div>
             ))}
           </div>
+        )}
+
+        {/* The website shows only the top few snaps; the full feed is in the app. */}
+        {recentSnaps.length > 0 && (
+          <button
+            type="button"
+            onClick={() => requireApp('snaps')}
+            className="w-full py-3 border-2 border-[#000000] bg-[#FFFFFF] hover:bg-[#FAFAFA] font-heading font-black text-xs uppercase tracking-wide text-[#000000] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+          >
+            See every snap in the app →
+          </button>
         )}
       </section>
 

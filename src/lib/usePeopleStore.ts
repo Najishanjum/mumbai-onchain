@@ -1,7 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import type { User } from '@supabase/supabase-js';
 import type { PersonProfile, ConnectionStatus, PeopleFilterState } from '../types/person';
 import { INITIAL_PEOPLE } from '../data/people';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { signOut } from './auth';
+import { requireApp } from './appGate';
+import { storeAvatar } from './avatarStorage';
 
 const PEOPLE_STORAGE_KEY = 'mumbai_onchain_people_profiles_v2';
 const MY_PROFILE_STORAGE_KEY = 'mumbai_onchain_my_profile_v2';
@@ -19,6 +23,16 @@ interface DbProfileRow {
   linkedin_url?: string | null;
   attending_events?: string[] | null;
   created_at?: string;
+  // Added by supabase/migrations/20261015000000_accounts_and_rls.sql
+  owner_id?: string | null;
+  headline?: string | null;
+  currently_building?: string | null;
+  looking_for?: string | null;
+  skills?: string[] | null;
+  interests?: string[] | null;
+  telegram_handle?: string | null;
+  farcaster_handle?: string | null;
+  website_url?: string | null;
 }
 
 function mapDbToPerson(row: DbProfileRow, myProfileId?: string): PersonProfile {
@@ -33,8 +47,41 @@ function mapDbToPerson(row: DbProfileRow, myProfileId?: string): PersonProfile {
     githubUrl: row.github_url || '',
     linkedinUrl: row.linkedin_url || '',
     attendingEvents: Array.isArray(row.attending_events) ? row.attending_events : [],
+    headline: row.headline || '',
+    currentlyBuilding: row.currently_building || '',
+    lookingFor: row.looking_for || '',
+    skills: Array.isArray(row.skills) ? row.skills : [],
+    interests: Array.isArray(row.interests) ? row.interests : [],
+    telegramHandle: row.telegram_handle || '',
+    farcasterHandle: row.farcaster_handle || '',
+    websiteUrl: row.website_url || '',
     isCurrentUser: Boolean(myProfileId && row.id === myProfileId),
     createdAt: row.created_at || new Date().toISOString(),
+  };
+}
+
+function personToDbRow(p: PersonProfile, ownerId: string) {
+  return {
+    id: p.id,
+    owner_id: ownerId,
+    name: p.name,
+    city: p.city,
+    category: p.category,
+    bio: p.bio || '',
+    avatar: p.avatar || '',
+    x_handle: p.xHandle || '',
+    github_url: p.githubUrl || '',
+    linkedin_url: p.linkedinUrl || '',
+    attending_events: p.attendingEvents || [],
+    headline: p.headline || '',
+    currently_building: p.currentlyBuilding || '',
+    looking_for: p.lookingFor || '',
+    skills: p.skills || [],
+    interests: p.interests || [],
+    telegram_handle: p.telegramHandle || '',
+    farcaster_handle: p.farcasterHandle || '',
+    website_url: p.websiteUrl || '',
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -238,10 +285,98 @@ function usePeopleStoreState() {
     });
   }, [myProfile]);
 
+  // ── Accounts ────────────────────────────────────────────────────────────
+  // The signed-in Supabase user; profiles and snaps are owned by this ID.
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) {
+      setAuthReady(true);
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => {
+      setAuthUser(data.session?.user ?? null);
+      setAuthReady(true);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  // Latest local profile, read by the attach step without re-running it.
+  const myProfileRef = useRef<PersonProfile | null>(myProfile);
+  useEffect(() => {
+    myProfileRef.current = myProfile;
+  }, [myProfile]);
+
+  // On sign-in: load this account's profile (a new phone, or Safari vs the
+  // installed app), or attach the profile already on this device to it.
+  const attachedFor = useRef<string | null>(null);
+  // Which account has finished loading/attaching its profile, so the UI knows
+  // whether to show "create your pass" or the restored one.
+  const [accountReadyFor, setAccountReadyFor] = useState<string | null>(null);
+  useEffect(() => {
+    const client = supabase;
+    if (!authUser || !client || attachedFor.current === authUser.id) return;
+    attachedFor.current = authUser.id;
+    const uid = authUser.id;
+
+    (async () => {
+      try {
+        await attach(client, uid);
+      } finally {
+        setAccountReadyFor(uid);
+      }
+    })();
+
+    async function attach(client: NonNullable<typeof supabase>, uid: string) {
+      const { data: owned } = await client.from('profiles').select('*').eq('owner_id', uid).maybeSingle();
+      if (owned) {
+        const profile = { ...mapDbToPerson(owned as DbProfileRow, owned.id), isCurrentUser: true };
+        setMyProfile(profile);
+        // Older profiles kept the photo inside the row; move it to Storage.
+        const avatar = await storeAvatar(client, uid, profile.avatar);
+        if (avatar !== profile.avatar) {
+          const moved = { ...profile, avatar };
+          const { error } = await client.from('profiles').update({ avatar }).eq('id', profile.id);
+          if (!error) setMyProfile(moved);
+        }
+        return;
+      }
+      const local = myProfileRef.current;
+      if (!local) return; // nothing to keep; they'll create a profile
+
+      // A profile made on this device before accounts existed.
+      const { data: claimed } = await client.rpc('claim_profile', { p_profile_id: local.id });
+      const keepId = (claimed as DbProfileRow | null)?.id;
+      // Not in the cloud yet, or not claimable: save it as a new owned profile.
+      const id = keepId || `user-${uid}`;
+      const avatar = await storeAvatar(client, uid, local.avatar);
+      const profile = { ...local, id, avatar, isCurrentUser: true };
+      const { error } = await client.from('profiles').upsert(personToDbRow(profile, uid));
+      if (error) console.error('Could not attach profile to account:', error.message);
+      setMyProfile(profile);
+    }
+  }, [authUser]);
+
+  const signOutAndClear = useCallback(async () => {
+    await signOut();
+    attachedFor.current = null;
+    // The profile stays in the account; this device just forgets it.
+    setMyProfile(null);
+  }, []);
+
   // Save or Update My Profile (both locally and to Supabase)
   const saveMyProfile = useCallback(async (profileData: Partial<PersonProfile>) => {
-    const id = myProfile?.id || `user-profile-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const id = myProfile?.id || (authUser ? `user-${authUser.id}` : `user-profile-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`);
     const newProfile: PersonProfile = {
+      // Keep every field the editor sends (headline, skills, interests,
+      // Telegram, website…). Only the columns below exist in Supabase today,
+      // but the rest must at least survive on this device.
+      ...myProfile,
+      ...profileData,
       id,
       name: profileData.name || 'Anonymous Builder',
       city: profileData.city || 'Mumbai',
@@ -260,24 +395,19 @@ function usePeopleStoreState() {
     setMyProfile(newProfile);
     setIsEditModalOpen(false);
 
-    // Sync to Supabase cloud if connected
-    if (isSupabaseConfigured() && supabase) {
+    // Sync to Supabase. The database only accepts writes from the signed-in
+    // owner; without an account the profile stays on this device until they
+    // sign in (the attach step above uploads it then).
+    if (isSupabaseConfigured() && supabase && authUser) {
       try {
         setIsSyncing(true);
-        const { error } = await supabase.from('profiles').upsert({
-          id: newProfile.id,
-          name: newProfile.name,
-          city: newProfile.city,
-          category: newProfile.category,
-          bio: newProfile.bio,
-          avatar: newProfile.avatar,
-          x_handle: newProfile.xHandle,
-          github_url: newProfile.githubUrl,
-          linkedin_url: newProfile.linkedinUrl,
-          attending_events: newProfile.attendingEvents,
-          updated_at: new Date().toISOString(),
-        });
-
+        // A newly chosen photo goes to Storage; the row keeps only its URL.
+        const avatar = await storeAvatar(supabase, authUser.id, newProfile.avatar);
+        if (avatar !== newProfile.avatar) {
+          newProfile.avatar = avatar;
+          setMyProfile({ ...newProfile });
+        }
+        const { error } = await supabase.from('profiles').upsert(personToDbRow(newProfile, authUser.id));
         if (error) {
           console.error('Supabase profile save error:', error);
         }
@@ -287,10 +417,17 @@ function usePeopleStoreState() {
         setIsSyncing(false);
       }
     }
-  }, [myProfile]);
+  }, [myProfile, authUser]);
 
   // Transition connection: CONNECT -> REQUESTED -> CONNECTED -> NOT_CONNECTED
+  const openEditModal = useCallback((open: boolean) => {
+    if (open && !requireApp('profile')) return;
+    setIsEditModalOpen(open);
+  }, []);
+
   const cycleConnection = useCallback((personId: string) => {
+    // Connecting is app-only; the website asks for the install instead.
+    if (!requireApp('connect')) return;
     setConnections(prev => {
       const current = prev[personId] || 'NOT_CONNECTED';
       let next: ConnectionStatus;
@@ -306,6 +443,7 @@ function usePeopleStoreState() {
   }, []);
 
   const setConnectionStatus = useCallback((personId: string, status: ConnectionStatus) => {
+    if (!requireApp('connect')) return;
     setConnections(prev => ({
       ...prev,
       [personId]: status,
@@ -389,8 +527,13 @@ function usePeopleStoreState() {
     isCloudConnected,
     isSyncing,
     refreshProfiles: fetchSupabaseProfiles,
+    authUser,
+    authReady,
+    accountReady: Boolean(authUser && accountReadyFor === authUser.id),
+    signOut: signOutAndClear,
     setSelectedPersonId,
-    setIsEditModalOpen,
+    // Profiles are made in the app; on the website opening the editor asks for the install.
+    setIsEditModalOpen: openEditModal,
     setFilters,
     saveMyProfile,
     cycleConnection,

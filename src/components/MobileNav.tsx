@@ -8,7 +8,7 @@ interface MobileNavProps {
 
 export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, setActiveTab }) => {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FFFFFF] border-t-2 border-[#000000] px-1 py-1 select-none">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FFFFFF] border-t-2 border-[#000000] px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] select-none">
       <div className="grid grid-cols-6 gap-0.5 max-w-lg mx-auto">
         <button
           onClick={() => setActiveTab('home')}

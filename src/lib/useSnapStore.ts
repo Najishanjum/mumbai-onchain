@@ -5,6 +5,8 @@ import { INITIAL_SNAPS } from '../data/snaps';
 import { compressAndOptimizeImage, dataUrlToBlob } from './imageCompressor';
 import { usePeopleStore } from './usePeopleStore';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { isAppMode } from './pwa';
+import { requireApp, WEBSITE_SNAP_LIMIT } from './appGate';
 
 const SNAPS_STORAGE_KEY = 'mumbai_onchain_snaps_v4';
 const USER_REACTIONS_STORAGE_KEY = 'mumbai_onchain_user_reactions_v4';
@@ -52,6 +54,9 @@ interface SnapStoreState {
   isOwnerOfSnap: (snap: Snap) => boolean;
 }
 
+// The thumbnail sits next to the photo in Storage: <name>-thumb.webp.
+const thumbPathFor = (path: string) => path.replace(/\.webp$/, '') + '-thumb.webp';
+
 const SnapContext = createContext<SnapStoreState | null>(null);
 
 function mapDbRowToSnap(row: DbSnapRow, peopleMap: Map<string, PersonProfile>, myProfile: PersonProfile | null): Snap {
@@ -85,7 +90,7 @@ function mapDbRowToSnap(row: DbSnapRow, peopleMap: Map<string, PersonProfile>, m
 }
 
 export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { myProfile, people } = usePeopleStore();
+  const { myProfile, people, authUser } = usePeopleStore();
   const [isSyncingSnaps, setIsSyncingSnaps] = useState<boolean>(false);
 
   // Map of people for rapid author lookup
@@ -148,6 +153,8 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [preselectedEventIdForSnap, setPreselectedEventIdForSnap] = useState<string | undefined>();
 
   const setIsAddSnapModalOpen = useCallback((isOpen: boolean, defaultEventId?: string) => {
+    // Posting snaps is app-only; the website asks for the install instead.
+    if (isOpen && !requireApp('snap')) return;
     setPreselectedEventIdForSnap(defaultEventId);
     setIsAddSnapModalOpenState(isOpen);
   }, []);
@@ -283,10 +290,22 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [userReactions]);
 
+  // The website only shows a handful of the best public snaps (most
+  // reactions, newest first on a tie); the full feed is in the app. Every
+  // list below reads from this, so drawers and viewers follow it too.
+  const visibleSnaps = useMemo(() => {
+    if (isAppMode()) return snaps;
+    const total = (s: Snap) => s.reactions.heart + s.reactions.fire + s.reactions.eyes + s.reactions.clap;
+    return snaps
+      .filter((s) => !s.visibility || s.visibility === 'public')
+      .sort((a, b) => total(b) - total(a) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, WEBSITE_SNAP_LIMIT);
+  }, [snaps]);
+
   // Sorted recent snaps: newest uploads first
   const recentSnaps = useMemo(() => {
-    return [...snaps].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [snaps]);
+    return [...visibleSnaps].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [visibleSnaps]);
 
   // Check if current user is owner of a Snap
   const isOwnerOfSnap = useCallback((snap: Snap): boolean => {
@@ -315,6 +334,11 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
       0.82
     );
 
+    // The database only accepts snaps from a signed-in owner with a profile.
+    if (isSupabaseConfigured() && supabase && (!authUser || !myProfile)) {
+      throw new Error('Sign in and create your pass to post snaps.');
+    }
+
     const authorId = myProfile?.id || 'me-user';
     const authorName = myProfile?.name || 'You';
     const authorAvatar = myProfile?.avatar || '';
@@ -322,7 +346,8 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const authorCity = myProfile?.city || 'Mumbai';
 
     const snapId = `snap-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    const storageFilePath = `${authorId}/${Date.now()}-${Math.random().toString(36).substring(2, 6)}.webp`;
+    // Storage rules only allow uploads into the account's own folder.
+    const storageFilePath = `${authUser?.id ?? authorId}/${Date.now()}-${Math.random().toString(36).substring(2, 6)}.webp`;
 
     let finalImageUrl = compressed.dataUrl;
     let finalThumbnailUrl = compressed.thumbnailUrl;
@@ -335,12 +360,15 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error: uploadError } = await supabase.storage
           .from('snaps')
           .upload(storageFilePath, imageBlob, {
-            contentType: 'image/webp',
+            // Safari can't encode WebP, so this may be a JPEG; label it truthfully.
+            contentType: imageBlob.type || 'image/webp',
             upsert: true,
           });
 
         if (uploadError) {
-          console.warn('Supabase Storage notice (using optimized image):', uploadError.message);
+          // Don't fall back to storing the photo as text in the row: it would
+          // only ever show on this phone. Tell the user instead.
+          throw new Error('Couldn’t upload the photo. Check your connection and try again.');
         } else {
           // Retrieve public permanent URL from Supabase Storage
           const { data: { publicUrl } } = supabase.storage
@@ -350,10 +378,21 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (publicUrl) {
             finalImageUrl = publicUrl;
             uploadedStoragePath = storageFilePath;
+            // The thumbnail goes beside the photo instead of into the row as
+            // text. If that upload fails, lists just use the full photo.
+            finalThumbnailUrl = publicUrl;
+            const thumbPath = thumbPathFor(storageFilePath);
+            const thumbBlob = dataUrlToBlob(compressed.thumbnailUrl);
+            const { error: thumbError } = await supabase.storage
+              .from('snaps')
+              .upload(thumbPath, thumbBlob, { contentType: thumbBlob.type || 'image/webp', upsert: true });
+            if (!thumbError) {
+              finalThumbnailUrl = supabase.storage.from('snaps').getPublicUrl(thumbPath).data.publicUrl;
+            }
           }
         }
       } catch (storageErr) {
-        console.warn('Supabase Storage exception handled:', storageErr);
+        throw storageErr instanceof Error ? storageErr : new Error('Couldn’t upload the photo.');
       }
     }
 
@@ -385,6 +424,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error: dbError } = await supabase.from('snaps').insert([
           {
             id: newSnap.id,
+            owner_id: authUser?.id,
             user_id: newSnap.authorId,
             image_url: newSnap.imageUrl,
             thumbnail_url: newSnap.thumbnailUrl,
@@ -402,10 +442,12 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ]);
 
         if (dbError) {
-          console.warn('Supabase DB snaps insert notice:', dbError.message);
+          console.error('Supabase snaps insert failed:', dbError.message);
+          // The photo is uploaded but nobody else would see the snap; say so.
+          throw new Error('Couldn’t post the snap. Try again in a moment.');
         }
       } catch (dbErr) {
-        console.warn('Supabase DB insert exception handled:', dbErr);
+        throw dbErr instanceof Error ? dbErr : new Error('Couldn’t post the snap.');
       }
     }
 
@@ -413,7 +455,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSnaps(prev => [newSnap, ...prev]);
     setIsAddSnapModalOpenState(false);
     return newSnap;
-  }, [myProfile]);
+  }, [myProfile, authUser]);
 
   // Delete a snap: Owner only. Removes from Supabase DB, Supabase Storage, and local state
   const deleteSnap = useCallback(async (snapId: string): Promise<boolean> => {
@@ -449,7 +491,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (target.storagePath) {
           const { error: storageDeleteError } = await supabase.storage
             .from('snaps')
-            .remove([target.storagePath]);
+            .remove([target.storagePath, thumbPathFor(target.storagePath)]);
 
           if (storageDeleteError) {
             console.warn('Supabase storage delete error:', storageDeleteError.message);
@@ -468,6 +510,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Toggle reaction
   const toggleReaction = useCallback((snapId: string, reaction: SnapReactionType) => {
+    if (!requireApp('react')) return;
     setUserReactions(prev => {
       const currentGiven = prev[snapId] || [];
       const hasReacted = currentGiven.includes(reaction);
@@ -485,13 +528,12 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [reaction]: Math.max(0, currentCount + delta),
           };
 
-          // Optimistically update Supabase DB if available
+          // Counts change through react_to_snap, the only write the database
+          // allows on someone else's snap (signed-in users only).
           if (isSupabaseConfigured() && supabase) {
             supabase
-              .from('snaps')
-              .update({ reactions: nextReactions })
-              .eq('id', snapId)
-              .then();
+              .rpc('react_to_snap', { p_snap_id: snapId, p_reaction: reaction, p_delta: delta })
+              .then(({ error }) => error && console.warn('Reaction not saved:', error.message));
           }
 
           return {
@@ -532,7 +574,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Queries: newest Snaps first
   const getSnapsByAuthor = useCallback((authorId: string): Snap[] => {
-    return snaps
+    return visibleSnaps
       .filter(s => {
         if (s.visibility && s.visibility !== 'public') return false;
         if (authorId === 'me' || authorId === (myProfile?.id || 'me-user')) {
@@ -541,16 +583,17 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return s.authorId === authorId;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [snaps, myProfile?.id]);
+  }, [visibleSnaps, myProfile?.id]);
 
   const getSnapsByEvent = useCallback((eventId: string): Snap[] => {
-    return snaps
+    return visibleSnaps
       .filter(s => s.eventId === eventId && (!s.visibility || s.visibility === 'public'))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [snaps]);
+  }, [visibleSnaps]);
 
   const value = {
-    snaps,
+    // On the website this is the short public list, not every snap.
+    snaps: visibleSnaps,
     recentSnaps,
     userReactions,
     activeSnapForViewer,
