@@ -27,6 +27,7 @@ import { LiveMatchToast } from './components/LiveMatchToast';
 import { Footer } from './components/Footer';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
 import { AskScreen } from './app/AskScreen';
+import { NotifyPrompt, shouldAskForNotifications } from './app/NotifyPrompt';
 import { InstallBanner } from './components/InstallBanner';
 import { InstallSheet } from './components/InstallSheet';
 import { PwaStatus } from './components/PwaStatus';
@@ -181,6 +182,14 @@ export function App() {
     return true;
   });
 
+  // Joining (create profile or sign in) is the moment to ask for
+  // notifications in the app: once, before carrying on with what they tapped.
+  const [notifyNext, setNotifyNext] = useState<(() => void) | null>(null);
+  const beforeJoining = (next: () => void) => {
+    if (appMode && !myProfile && shouldAskForNotifications()) setNotifyNext(() => next);
+    else next();
+  };
+
   const isSelectedPersonMe = Boolean(
     selectedPerson && (selectedPerson.isCurrentUser || (myProfile && myProfile.id === selectedPerson.id))
   );
@@ -245,7 +254,7 @@ export function App() {
             events={events}
             preselectedEventId={preselectedEventIdForSnap}
             onClose={() => setIsAddSnapModalOpen(false)}
-            onCreateProfile={() => setIsEditModalOpen(true)}
+            onCreateProfile={() => beforeJoining(() => setIsEditModalOpen(true))}
           />
         </>
       ) : (
@@ -319,16 +328,24 @@ export function App() {
           onClosePerson={() => setSelectedPersonId(null)}
           people={people}
           myProfile={myProfile}
-          onEditProfile={() => setIsEditModalOpen(true)}
+          onEditProfile={() => beforeJoining(() => setIsEditModalOpen(true))}
           onSelectPerson={(id) => setSelectedPersonId(id)}
           onAddSnap={() => setIsAddSnapModalOpen(true)}
           onAsk={() => setIsAskOpen(true)}
           accountEmail={authUser?.email ?? null}
-          onSignIn={() => setSignInFor('account')}
+          onSignIn={() => beforeJoining(() => setSignInFor('account'))}
           onSignOut={signOut}
           getConnectionStatus={getConnectionStatus}
         />
         {sharedOverlays}
+        <NotifyPrompt
+          isOpen={Boolean(notifyNext)}
+          onDone={() => {
+            const next = notifyNext;
+            setNotifyNext(null);
+            next?.();
+          }}
+        />
       </div>
     );
   }
