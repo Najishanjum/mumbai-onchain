@@ -247,7 +247,10 @@ export function LanyardBadge({
               <span className="rounded-2xl bg-white/70" style={{ width: s.qr, height: s.qr }} />
             )}
             <span className="text-[16px] font-extrabold">Scan to connect</span>
-            <span className="app-mono text-[11px] font-semibold">MUMBAI ONCHAIN WEEK</span>
+            <span className="h-9 pl-1 pr-3.5 rounded-full bg-white flex items-center gap-2">
+              <img src="/icons/icon-192.png" alt="" className="w-7 h-7 rounded-full" />
+              <span className="text-[12px] font-extrabold tracking-[0.02em]">Mumbai Onchain Week</span>
+            </span>
           </div>
         </button>
       </div>
