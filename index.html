@@ -31,6 +31,7 @@
           var root = document.documentElement;
           if (p.accent && p.accent !== 'role') root.setAttribute('data-app-accent', p.accent);
           if (p.badge === 'white' || p.badge === 'black') root.setAttribute('data-app-badge', p.badge);
+          if (p.scene !== 'plain') root.setAttribute('data-app-scene', 'aurora');
           if (p.jaali === false) root.setAttribute('data-app-jaali', 'off');
           if (p.mandala === false) root.setAttribute('data-app-mandala', 'off');
         } catch (e) {}

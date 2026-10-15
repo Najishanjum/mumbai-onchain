@@ -13,6 +13,7 @@ import { useApplyAppPrefs } from '../lib/useAppPrefs';
 import { useSavedEvents } from '../lib/useSavedEvents';
 import { isRealPerson } from '../lib/samples';
 import { TodayScreen } from './TodayScreen';
+import { Scene } from './Scene';
 import { ScheduleScreen } from './ScheduleScreen';
 import { MeScreen } from './MeScreen';
 import { AppearanceScreen } from './AppearanceScreen';
@@ -158,6 +159,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <>
+      <Scene />
       <div className="app-motif" aria-hidden="true" />
       <div className={`app-statusbar${scrolled ? ' is-scrolled' : ''}`} aria-hidden="true" />
       <main className="app-main min-h-dvh pt-[env(safe-area-inset-top)] pb-[calc(var(--app-tabbar-h)+env(safe-area-inset-bottom)+16px)]">

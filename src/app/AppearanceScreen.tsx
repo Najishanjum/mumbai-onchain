@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { Check, ChevronLeft, IdCard, Moon, Sun, SunMoon } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { setThemePref, useAppTheme, type ThemePref } from '../lib/useAppTheme';
-import { setAppPrefs, useAppPrefs, type AccentPref, type BadgePref } from '../lib/useAppPrefs';
+import { setAppPrefs, useAppPrefs, type AccentPref, type BadgePref, type CardPref, type ScenePref } from '../lib/useAppPrefs';
 import { GroupedList } from './ui';
 import { useBackToClose } from '../lib/useBackToClose';
-import { BlankBadge, LanyardBadge, Mandala, roleColor } from './Badge';
+import { BlankBadge, LanyardBadge, Mandala, roleColor, VENUE } from './Badge';
 
 const THEME_OPTIONS: { id: ThemePref; label: string; Icon: typeof Moon }[] = [
   { id: 'dark', label: 'Dark', Icon: Moon },
@@ -27,6 +27,16 @@ const BADGES: { id: BadgePref; label: string; card: string[] }[] = [
   { id: 'auto', label: 'Auto', card: ['#F6F5F2', '#121419'] },
   { id: 'white', label: 'White', card: ['#F6F5F2'] },
   { id: 'black', label: 'Black', card: ['#121419'] },
+];
+
+const DESIGNS: { id: CardPref; label: string; swatch: string }[] = [
+  { id: 'devcon', label: 'Devcon pass', swatch: 'linear-gradient(135deg, #FF7A1F, #FF9EC7 42%, #B7A4FF 72%, #8FF0D2)' },
+  { id: 'classic', label: 'Classic', swatch: 'repeating-linear-gradient(90deg, #FF7A1F 0 3px, transparent 3px 6px)' },
+];
+
+const SCENES: { id: ScenePref; label: string; swatch: string }[] = [
+  { id: 'aurora', label: 'Aurora', swatch: 'radial-gradient(70% 80% at 15% 10%, rgba(255,122,31,0.8), transparent 70%), radial-gradient(60% 70% at 90% 10%, rgba(255,79,163,0.7), transparent 70%), radial-gradient(50% 60% at 50% 70%, rgba(110,240,194,0.5), transparent 70%), #0A0A0C' },
+  { id: 'plain', label: 'Plain', swatch: '#0E1013' },
 ];
 
 export const THEME_LABELS: Record<ThemePref, string> = { dark: 'Dark', light: 'Light', system: 'System' };
@@ -90,7 +100,7 @@ export function AppearanceScreen({ open, onClose, myProfile }: { open: boolean; 
 
       <div className="flex-1 overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+24px)]">
         {/* Live preview: the real badge, scaled down, over the real background touches */}
-        <section aria-label="Preview" className="relative isolate overflow-hidden mx-4 mt-4 h-[300px] rounded-3xl border border-[var(--app-line)] bg-[var(--app-bg)] [background-image:var(--app-glow)] bg-no-repeat">
+        <section aria-label="Preview" className="app-scene-preview relative isolate overflow-hidden mx-4 mt-4 h-[300px] rounded-3xl border border-[var(--app-line)] bg-[var(--app-bg)] [background-image:var(--app-glow)] bg-no-repeat">
           <div className="app-motif" aria-hidden="true" />
           <Mandala className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] z-[-1] pointer-events-none" />
           <div className="absolute left-1/2 top-0 -translate-x-1/2 origin-top scale-[0.58]">
@@ -155,7 +165,32 @@ export function AppearanceScreen({ open, onClose, myProfile }: { open: boolean; 
           </div>
           <p className="px-1 mt-3 text-[13px] text-[var(--app-muted)]">Your badge band always shows your real role.</p>
 
-          <h2 id="badge-title" className="app-label px-1 mt-6 mb-2">Badge</h2>
+          <h2 id="design-title" className="app-label px-1 mt-6 mb-2">Badge design</h2>
+          <div role="radiogroup" aria-labelledby="design-title" className="grid grid-cols-2 gap-2">
+            {DESIGNS.map(({ id, label, swatch }) => {
+              const on = prefs.design === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setAppPrefs({ design: id })}
+                  className={`app-press h-[72px] rounded-2xl border flex flex-col items-center justify-center gap-1.5 text-[14px] font-semibold ${
+                    on ? 'border-[var(--app-primary)] bg-[var(--app-primary-soft)]' : 'bg-[var(--app-surface)] border-[var(--app-line)]'
+                  }`}
+                >
+                  <span className="w-5 h-7 rounded-[4px] border border-[var(--app-line)] overflow-hidden flex flex-col bg-[#F6F5F2]" aria-hidden="true">
+                    <span className="h-[40%]" style={{ background: swatch }} />
+                  </span>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="px-1 mt-2 text-[12px] text-[var(--app-faint)]">{VENUE.credit}</p>
+
+          <h2 id="badge-title" className="app-label px-1 mt-6 mb-2">Badge colour</h2>
           <div role="radiogroup" aria-labelledby="badge-title" className="grid grid-cols-3 gap-2">
             {BADGES.map(({ id, label, card }) => {
               const on = prefs.badge === id;
@@ -182,11 +217,33 @@ export function AppearanceScreen({ open, onClose, myProfile }: { open: boolean; 
           </div>
           <p className="px-1 mt-2 text-[13px] text-[var(--app-muted)]">Auto is white in Dark and black in Light.</p>
 
-          <h2 className="app-label px-1 mt-6 mb-2">Background</h2>
+          <h2 id="scene-title" className="app-label px-1 mt-6 mb-2">Background</h2>
+          <div role="radiogroup" aria-labelledby="scene-title" className="grid grid-cols-2 gap-2">
+            {SCENES.map(({ id, label, swatch }) => {
+              const on = prefs.scene === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setAppPrefs({ scene: id })}
+                  className={`app-press h-[72px] rounded-2xl border flex flex-col items-center justify-center gap-1.5 text-[14px] font-semibold ${
+                    on ? 'border-[var(--app-primary)] bg-[var(--app-primary-soft)]' : 'bg-[var(--app-surface)] border-[var(--app-line)]'
+                  }`}
+                >
+                  <span className="w-10 h-6 rounded-md border border-[var(--app-line)]" style={{ background: swatch }} aria-hidden="true" />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          <h2 className="app-label px-1 mt-6 mb-2">Patterns</h2>
         </div>
         <GroupedList>
           <ToggleRow label="Jaali pattern" detail="The lattice at the top of each screen" on={prefs.jaali} onChange={(jaali) => setAppPrefs({ jaali })} />
-          <ToggleRow label="Mandala" detail="Behind your badge on Today" on={prefs.mandala} onChange={(mandala) => setAppPrefs({ mandala })} />
+          <ToggleRow label="Mandala" detail="The line mandala at the top of each screen" on={prefs.mandala} onChange={(mandala) => setAppPrefs({ mandala })} />
         </GroupedList>
       </div>
     </div>
