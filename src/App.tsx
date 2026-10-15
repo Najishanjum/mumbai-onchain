@@ -38,6 +38,7 @@ import { SignInSheet } from './app/SignInSheet';
 import { isSupabaseConfigured } from './lib/supabase';
 import { isAppMode } from './lib/pwa';
 import { useAppTheme } from './lib/useAppTheme';
+import { NEED_APP_COPY, NEED_APP_EVENT, type AppOnlyAction } from './lib/appGate';
 import { AlertCircle, Camera, ArrowRight } from 'lucide-react';
 
 export function App() {
@@ -45,8 +46,23 @@ export function App() {
   useAppTheme(appMode);
   const [isAskOpen, setIsAskOpen] = useState(false);
   const [isInstallOpen, setIsInstallOpen] = useState(false);
-  const openInstall = useCallback(() => setIsInstallOpen(true), []);
+  const [installReason, setInstallReason] = useState<AppOnlyAction | null>(null);
+  const openInstall = useCallback(() => {
+    setInstallReason(null);
+    setIsInstallOpen(true);
+  }, []);
   const closeInstall = useCallback(() => setIsInstallOpen(false), []);
+
+  // On the website, app-only actions (connect, snaps, profiles, scanning)
+  // land here and open the install sheet with the reason (see lib/appGate).
+  useEffect(() => {
+    const onNeedApp = (e: Event) => {
+      setInstallReason((e as CustomEvent<AppOnlyAction>).detail);
+      setIsInstallOpen(true);
+    };
+    window.addEventListener(NEED_APP_EVENT, onNeedApp);
+    return () => window.removeEventListener(NEED_APP_EVENT, onNeedApp);
+  }, []);
 
   const {
     events,
@@ -521,7 +537,7 @@ export function App() {
 
       {sharedOverlays}
 
-      <InstallSheet isOpen={isInstallOpen} onClose={closeInstall} />
+      <InstallSheet isOpen={isInstallOpen} onClose={closeInstall} reason={installReason ? NEED_APP_COPY[installReason] : null} />
 
       {/* Mobile Navigation */}
       <MobileNav

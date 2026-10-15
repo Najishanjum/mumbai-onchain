@@ -6,6 +6,8 @@ import { detectInAppBrowser, detectPlatform, promptInstall, useInstallState } fr
 interface InstallSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Why we are asking, when the website sent someone here from an app-only action. */
+  reason?: { title: string; body: string } | null;
 }
 
 const APP_URL = typeof window !== 'undefined' ? window.location.origin + '/?source=qr' : '';
@@ -138,7 +140,7 @@ function DesktopQr({ canPrompt, onInstall }: { canPrompt: boolean; onInstall: ()
   );
 }
 
-export const InstallSheet: React.FC<InstallSheetProps> = ({ isOpen, onClose }) => {
+export const InstallSheet: React.FC<InstallSheetProps> = ({ isOpen, onClose, reason }) => {
   const { deferred, installed } = useInstallState();
   const [installing, setInstalling] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -169,7 +171,7 @@ export const InstallSheet: React.FC<InstallSheetProps> = ({ isOpen, onClose }) =
     }
   }
 
-  const title = inApp ? 'Open in your browser' : platform === 'desktop' ? 'Get it on your phone' : 'Install Mumbai Onchain';
+  const title = inApp ? 'Open in your browser' : reason?.title ?? (platform === 'desktop' ? 'Get it on your phone' : 'Install Mumbai Onchain');
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
@@ -198,7 +200,7 @@ export const InstallSheet: React.FC<InstallSheetProps> = ({ isOpen, onClose }) =
         </h2>
         {!inApp && (
           <p className="mt-1.5 mb-5 text-[15px] leading-relaxed text-[#444444]">
-            Full screen, one tap from your home screen, and the schedule still works when the venue Wi-Fi doesn't.
+            {reason ? `${reason.body} Install it below; it takes a few seconds.` : "Full screen, one tap from your home screen, and the schedule still works when the venue Wi-Fi doesn't."}
           </p>
         )}
         <div className={inApp ? 'mt-3' : ''}>

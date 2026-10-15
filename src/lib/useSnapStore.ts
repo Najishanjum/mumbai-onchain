@@ -5,6 +5,8 @@ import { INITIAL_SNAPS } from '../data/snaps';
 import { compressAndOptimizeImage, dataUrlToBlob } from './imageCompressor';
 import { usePeopleStore } from './usePeopleStore';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { isAppMode } from './pwa';
+import { requireApp, WEBSITE_SNAP_LIMIT } from './appGate';
 
 const SNAPS_STORAGE_KEY = 'mumbai_onchain_snaps_v4';
 const USER_REACTIONS_STORAGE_KEY = 'mumbai_onchain_user_reactions_v4';
@@ -148,6 +150,8 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [preselectedEventIdForSnap, setPreselectedEventIdForSnap] = useState<string | undefined>();
 
   const setIsAddSnapModalOpen = useCallback((isOpen: boolean, defaultEventId?: string) => {
+    // Posting snaps is app-only; the website asks for the install instead.
+    if (isOpen && !requireApp('snap')) return;
     setPreselectedEventIdForSnap(defaultEventId);
     setIsAddSnapModalOpenState(isOpen);
   }, []);
@@ -283,10 +287,22 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [userReactions]);
 
+  // The website only shows a handful of the best public snaps (most
+  // reactions, newest first on a tie); the full feed is in the app. Every
+  // list below reads from this, so drawers and viewers follow it too.
+  const visibleSnaps = useMemo(() => {
+    if (isAppMode()) return snaps;
+    const total = (s: Snap) => s.reactions.heart + s.reactions.fire + s.reactions.eyes + s.reactions.clap;
+    return snaps
+      .filter((s) => !s.visibility || s.visibility === 'public')
+      .sort((a, b) => total(b) - total(a) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, WEBSITE_SNAP_LIMIT);
+  }, [snaps]);
+
   // Sorted recent snaps: newest uploads first
   const recentSnaps = useMemo(() => {
-    return [...snaps].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [snaps]);
+    return [...visibleSnaps].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [visibleSnaps]);
 
   // Check if current user is owner of a Snap
   const isOwnerOfSnap = useCallback((snap: Snap): boolean => {
@@ -479,6 +495,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Toggle reaction
   const toggleReaction = useCallback((snapId: string, reaction: SnapReactionType) => {
+    if (!requireApp('react')) return;
     setUserReactions(prev => {
       const currentGiven = prev[snapId] || [];
       const hasReacted = currentGiven.includes(reaction);
@@ -542,7 +559,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Queries: newest Snaps first
   const getSnapsByAuthor = useCallback((authorId: string): Snap[] => {
-    return snaps
+    return visibleSnaps
       .filter(s => {
         if (s.visibility && s.visibility !== 'public') return false;
         if (authorId === 'me' || authorId === (myProfile?.id || 'me-user')) {
@@ -551,16 +568,17 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return s.authorId === authorId;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [snaps, myProfile?.id]);
+  }, [visibleSnaps, myProfile?.id]);
 
   const getSnapsByEvent = useCallback((eventId: string): Snap[] => {
-    return snaps
+    return visibleSnaps
       .filter(s => s.eventId === eventId && (!s.visibility || s.visibility === 'public'))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [snaps]);
+  }, [visibleSnaps]);
 
   const value = {
-    snaps,
+    // On the website this is the short public list, not every snap.
+    snaps: visibleSnaps,
     recentSnaps,
     userReactions,
     activeSnapForViewer,

@@ -4,6 +4,7 @@ import type { PersonProfile, ConnectionStatus, PeopleFilterState } from '../type
 import { INITIAL_PEOPLE } from '../data/people';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { signOut } from './auth';
+import { requireApp } from './appGate';
 
 const PEOPLE_STORAGE_KEY = 'mumbai_onchain_people_profiles_v2';
 const MY_PROFILE_STORAGE_KEY = 'mumbai_onchain_my_profile_v2';
@@ -403,7 +404,14 @@ function usePeopleStoreState() {
   }, [myProfile, authUser]);
 
   // Transition connection: CONNECT -> REQUESTED -> CONNECTED -> NOT_CONNECTED
+  const openEditModal = useCallback((open: boolean) => {
+    if (open && !requireApp('profile')) return;
+    setIsEditModalOpen(open);
+  }, []);
+
   const cycleConnection = useCallback((personId: string) => {
+    // Connecting is app-only; the website asks for the install instead.
+    if (!requireApp('connect')) return;
     setConnections(prev => {
       const current = prev[personId] || 'NOT_CONNECTED';
       let next: ConnectionStatus;
@@ -419,6 +427,7 @@ function usePeopleStoreState() {
   }, []);
 
   const setConnectionStatus = useCallback((personId: string, status: ConnectionStatus) => {
+    if (!requireApp('connect')) return;
     setConnections(prev => ({
       ...prev,
       [personId]: status,
@@ -507,7 +516,8 @@ function usePeopleStoreState() {
     accountReady: Boolean(authUser && accountReadyFor === authUser.id),
     signOut: signOutAndClear,
     setSelectedPersonId,
-    setIsEditModalOpen,
+    // Profiles are made in the app; on the website opening the editor asks for the install.
+    setIsEditModalOpen: openEditModal,
     setFilters,
     saveMyProfile,
     cycleConnection,
