@@ -16,8 +16,15 @@
 import { readFileSync } from 'node:fs';
 import sharp from 'sharp';
 
-const env = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
-const get = (k) => env.match(new RegExp(`^${k}=(.*)$`, 'm'))?.[1]?.trim();
+// Values set in the environment win over .env.local, so a one-off run can
+// point at another project without editing the file.
+let env = '';
+try {
+  env = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
+} catch {
+  // fine when everything comes from the environment
+}
+const get = (k) => process.env[k] ?? env.match(new RegExp(`^${k}=(.*)$`, 'm'))?.[1]?.trim();
 const url = get('VITE_SUPABASE_URL');
 const key = get('SUPABASE_SERVICE_ROLE_KEY');
 const apply = process.argv.includes('--apply');
