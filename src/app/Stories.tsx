@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Check, MapPin, Plus, UserPlus, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type TouchEvent } from 'react';
+import { Check, Loader2, MapPin, MoreHorizontal, Plus, Trash2, UserPlus, X } from 'lucide-react';
 import type { Snap } from '../types/snap';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
@@ -211,7 +211,13 @@ function StoryViewer({
   const [paused, setPaused] = useState(false);
   const touch = useRef<{ x: number; y: number; t: number } | null>(null);
 
-  const story = queue[storyAt];
+  // A copy, so a deleted snap disappears from the story straight away.
+  const [stories, setStories] = useState(queue);
+  const [menu, setMenu] = useState<null | 'menu' | 'confirm'>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
+  const { deleteSnap, isOwnerOfSnap } = useSnapStore();
+  const story = stories[storyAt];
   const snap = story?.snaps[snapAt];
 
   useEffect(() => {
@@ -237,7 +243,7 @@ function StoryViewer({
 
   function next() {
     if (snapAt < story.snaps.length - 1) setSnapAt(snapAt + 1);
-    else if (storyAt < queue.length - 1) {
+    else if (storyAt < stories.length - 1) {
       setStoryAt(storyAt + 1);
       setSnapAt(0);
     } else onClose();
@@ -246,13 +252,39 @@ function StoryViewer({
     if (snapAt > 0) setSnapAt(snapAt - 1);
     else if (storyAt > 0) {
       setStoryAt(storyAt - 1);
-      setSnapAt(queue[storyAt - 1].snaps.length - 1);
+      setSnapAt(stories[storyAt - 1].snaps.length - 1);
     }
   }
 
+  async function removeSnap() {
+    if (!snap || deleting) return;
+    setDeleting(true);
+    setDeleteError(false);
+    const ok = await deleteSnap(snap.id);
+    setDeleting(false);
+    if (!ok) {
+      setDeleteError(true);
+      return;
+    }
+    setMenu(null);
+    const left = story.snaps.filter((s) => s.id !== snap.id);
+    if (left.length > 0) {
+      setStories(stories.map((st, i) => (i === storyAt ? { ...st, snaps: left } : st)));
+      setSnapAt(Math.min(snapAt, left.length - 1));
+      return;
+    }
+    // That was the last snap in this story: drop the story and carry on.
+    const rest = stories.filter((_, i) => i !== storyAt);
+    if (storyAt >= rest.length) return onClose();
+    setStories(rest);
+    setSnapAt(0);
+  }
+
   const mine = isMine(story);
+  const canDelete = isOwnerOfSnap(snap);
   const connected = getConnectionStatus(story.authorId) === 'CONNECTED';
   const color = roleColor(story.role);
+  const stop = { onTouchStart: (e: TouchEvent) => e.stopPropagation(), onTouchEnd: (e: TouchEvent) => e.stopPropagation() };
 
   return (
     <div
@@ -284,7 +316,7 @@ function StoryViewer({
               <span
                 key={`${storyAt}-${snapAt}`}
                 className="story-progress block h-full bg-white"
-                style={{ animationDuration: `${STORY_MS}ms`, animationPlayState: paused ? 'paused' : 'running' }}
+                style={{ animationDuration: `${STORY_MS}ms`, animationPlayState: paused || menu ? 'paused' : 'running' }}
                 onAnimationEnd={next}
               />
             )}
@@ -324,6 +356,18 @@ function StoryViewer({
             {connected ? 'Connected' : 'Connect'}
           </button>
         )}
+        {canDelete && (
+          <button
+            type="button"
+            onClick={() => setMenu('menu')}
+            {...stop}
+            aria-label="More options"
+            aria-haspopup="dialog"
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+          >
+            <MoreHorizontal className="w-6 h-6" aria-hidden="true" />
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -353,6 +397,56 @@ function StoryViewer({
               <span className="truncate">{snap.eventName || snap.location}</span>
             </p>
           )}
+        </div>
+      )}
+
+      {/* Options for your own snap */}
+      {menu && (
+        <div className="absolute inset-0 z-20 flex items-end" {...stop}>
+          <button
+            type="button"
+            aria-label="Close options"
+            onClick={() => !deleting && setMenu(null)}
+            className="absolute inset-0 bg-black/50"
+          />
+          <div
+            role="dialog"
+            aria-label="Snap options"
+            className="relative w-full rounded-t-[24px] bg-[var(--app-surface)] text-[var(--app-ink)] px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
+          >
+            {menu === 'menu' ? (
+              <button
+                type="button"
+                onClick={() => setMenu('confirm')}
+                className="app-press w-full h-14 rounded-2xl bg-[var(--app-bg)] text-[var(--app-live)] text-[16px] font-bold flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-5 h-5" aria-hidden="true" /> Delete snap
+              </button>
+            ) : (
+              <>
+                <p className="px-1 text-[17px] font-extrabold">Delete this snap?</p>
+                <p className="px-1 mt-1 text-[14px] text-[var(--app-muted)]">It’s removed from your story and from Snaps for everyone.</p>
+                {deleteError && <p className="px-1 mt-2 text-[14px] text-[var(--app-live)]">Couldn’t delete it. Check your connection and try again.</p>}
+                <button
+                  type="button"
+                  onClick={removeSnap}
+                  disabled={deleting}
+                  className="app-press mt-4 w-full h-14 rounded-2xl bg-[var(--app-live)] text-white text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {deleting && <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />}
+                  {deleting ? 'Deleting' : 'Delete'}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setMenu(null)}
+              disabled={deleting}
+              className="app-press mt-2 w-full h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>
