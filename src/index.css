@@ -217,6 +217,22 @@ html[data-app-theme='light'] .app-statusbar {
 /* Lanyard badge: hangs a touch crooked from its clip and spins on the strap
    to show the QR on the back. */
 .badge-stage { perspective: 1400px; }
+/* The badge stands out from the app: a white card in Dark mode, a black card
+   in Light. Things printed on it use the deep role shade on white and the
+   bright one on black. */
+:root,
+html[data-app-theme='dark'] {
+  --badge-card: #F6F5F2;
+  --badge-ink: #121419;
+  --badge-muted: #5A616B;
+}
+html[data-app-theme='light'] {
+  --badge-card: #121419;
+  --badge-ink: #F2F3F5;
+  --badge-muted: #A6ADB7;
+}
+.badge-print { --badge-accent: var(--badge-c-deep); }
+html[data-app-theme='light'] .badge-print { --badge-accent: var(--badge-c); }
 .badge-card {
   position: relative;
   transform-style: preserve-3d;

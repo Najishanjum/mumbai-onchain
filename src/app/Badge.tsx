@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import QRCode from 'qrcode';
 import type { PersonCategory, PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { profileUrl } from './qr';
 
-/** Band colour for a role, as printed on real event badges. */
-export function roleColor(category: PersonCategory | string | undefined): string {
+function roleKey(category: PersonCategory | string | undefined): string {
   const key = (category || 'other').toLowerCase();
   const known = ['builder', 'founder', 'student', 'volunteer', 'attendee'];
-  return `var(--role-${known.includes(key) ? key : 'other'})`;
+  return known.includes(key) ? key : 'other';
+}
+
+/** Band colour for a role, as printed on real event badges. */
+export function roleColor(category: PersonCategory | string | undefined): string {
+  return `var(--role-${roleKey(category)})`;
 }
 
 /** The person's pass QR as a data URL (high error correction for dim screens). */
@@ -104,9 +108,12 @@ function PatternTile({ tile, color }: { tile: Tile; color: string }) {
   );
 }
 
-// The badge is a physical card, so it keeps its own dark colours in either theme.
-const CARD = '#121419';
-const CARD_MUTED = '#A6ADB7';
+// The badge stands out from the app: white in Dark mode, black in Light
+// (--badge-* in index.css). INK is the dark text that sits on bright role colour.
+const INK = '#121419';
+const CARD = 'var(--badge-card)';
+const CARD_INK = 'var(--badge-ink)';
+const CARD_MUTED = 'var(--badge-muted)';
 
 const SIZES = {
   md: { w: 240, h: 320, avatar: 'w-[76px]! h-[76px]!', name: 'text-[24px]', qr: 180, strap: 120 },
@@ -114,7 +121,7 @@ const SIZES = {
 } as const;
 
 /** Event lanyard: one strap in the role colour, one black, joined by a buckle and a clasp. */
-export function Lanyard({ color, height = 120 }: { color: string; height?: number }) {
+export function Lanyard({ color, accent, height = 120 }: { color: string; accent?: string; height?: number }) {
   const strap = 'absolute bottom-0 w-[30px] origin-bottom overflow-hidden flex justify-center';
   const text = '[writing-mode:vertical-rl] whitespace-nowrap text-[12px] font-extrabold leading-[30px]';
   const words = 'Mumbai Onchain  ◆  '.repeat(4);
@@ -127,16 +134,16 @@ export function Lanyard({ color, height = 120 }: { color: string; height?: numbe
             height,
             left: 'calc(50% - 22px)',
             transform: 'rotate(-15deg)',
-            background: `linear-gradient(180deg, color-mix(in srgb, ${color} 55%, ${CARD}), ${color})`,
+            background: `linear-gradient(180deg, color-mix(in srgb, ${color} 55%, ${INK}), ${color})`,
           }}
         >
-          <span className={text} style={{ color: CARD }}>{words}</span>
+          <span className={text} style={{ color: INK }}>{words}</span>
         </div>
         <div
-          className={`${strap} border border-white/10`}
+          className={`${strap} border border-[var(--badge-muted)]/30`}
           style={{ height, left: 'calc(50% - 8px)', transform: 'rotate(15deg)', background: CARD }}
         >
-          <span className={text} style={{ color }}>{words}</span>
+          <span className={text} style={{ color: accent ?? color }}>{words}</span>
         </div>
       </div>
       <svg width="28" height="44" viewBox="0 0 28 44" className="-mt-1 text-[var(--app-clip)]">
@@ -171,6 +178,11 @@ export function LanyardBadge({
   const s = SIZES[size];
   const qr = usePassQr(person.id);
   const color = roleColor(person.category);
+  // Role colour for things printed on the badge: the deep shade on a white
+  // badge, the bright one on a black badge (see .badge-print in index.css).
+  const accent = 'var(--badge-accent)';
+  const key = roleKey(person.category);
+  const roleVars = { '--badge-c': `var(--role-${key})`, '--badge-c-deep': `var(--role-${key}-deep)` } as CSSProperties;
   const pattern = useMemo(() => makePattern(person.id), [person.id]);
   const handle = person.xHandle ? `@${person.xHandle.replace(/^@/, '')}` : '';
   const tile = s.w / 4;
@@ -182,8 +194,8 @@ export function LanyardBadge({
   };
 
   return (
-    <div className="flex flex-col items-center">
-      <Lanyard color={color} height={s.strap} />
+    <div className="badge-print flex flex-col items-center" style={roleVars}>
+      <Lanyard color={color} accent={accent} height={s.strap} />
 
       <div className="badge-stage" style={{ width: s.w, height: s.h }}>
         <button
@@ -191,14 +203,14 @@ export function LanyardBadge({
           onClick={toggle}
           aria-pressed={flipped}
           aria-label={flipped ? 'Show the front of your badge' : 'Show your QR code'}
-          className={`badge-card block w-full h-full p-0 border-0 bg-transparent text-[#F2F3F5] ${flipped ? 'is-flipped' : ''}`}
+          className={`badge-card block w-full h-full p-0 border-0 bg-transparent ${flipped ? 'is-flipped' : ''}`}
         >
-          <div className="badge-face rounded-[18px] overflow-hidden flex flex-col text-left" style={{ background: CARD }}>
+          <div className="badge-face rounded-[18px] overflow-hidden flex flex-col text-left" style={{ background: CARD, color: CARD_INK }}>
             <div className="relative grid grid-cols-4" style={{ height: tile * 3 }}>
               {pattern.map((t, i) => (
-                <PatternTile key={i} tile={t} color={color} />
+                <PatternTile key={i} tile={t} color={accent} />
               ))}
-              <span className="absolute top-2.5 left-1/2 -translate-x-1/2 w-11 h-2 rounded-full" style={{ background: CARD }} aria-hidden="true" />
+              <span className="absolute top-2.5 left-1/2 -translate-x-1/2 w-11 h-2 rounded-full bg-[var(--app-bg)]" aria-hidden="true" />
               <span className="absolute left-2.5 top-6 h-8 pl-1 pr-3 rounded-full flex items-center gap-1.5" style={{ background: CARD }}>
                 <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-full" />
                 <span className="text-[11px] font-extrabold">Mumbai Onchain</span>
@@ -208,12 +220,12 @@ export function LanyardBadge({
               name={person.name}
               avatarUrl={person.avatar}
               size="xl"
-              className={`-mt-14 ml-4 rounded-2xl! border-4! border-[#121419]! ${s.avatar}`}
+              className={`-mt-14 ml-4 rounded-2xl! border-4! border-[var(--badge-card)]! ${s.avatar}`}
             />
             <div className="flex-1 px-4 pt-2.5 pb-4 flex flex-col justify-between min-h-0">
               <div className="min-w-0">
                 <div className={`app-title leading-tight truncate ${s.name}`}>{person.name}</div>
-                <div className="app-mono mt-0.5 text-[11px] font-semibold tracking-[0.06em]" style={{ color }}>
+                <div className="app-mono mt-0.5 text-[11px] font-semibold tracking-[0.06em]" style={{ color: accent }}>
                   {(person.category || 'Attendee').toUpperCase()}
                   {person.city ? ` · ${person.city.toUpperCase()}` : ''}
                 </div>
@@ -227,7 +239,7 @@ export function LanyardBadge({
 
           <div
             className="badge-face is-back rounded-[18px] flex flex-col items-center justify-center gap-3"
-            style={{ background: `linear-gradient(160deg, ${color}, color-mix(in srgb, ${color} 45%, ${CARD}))`, color: CARD }}
+            style={{ background: `linear-gradient(160deg, ${color}, color-mix(in srgb, ${color} 45%, ${INK}))`, color: INK }}
           >
             {qr ? (
               <img src={qr} alt={`QR code for ${person.name}'s profile`} className="rounded-2xl bg-white p-2" style={{ width: s.qr, height: s.qr }} />
