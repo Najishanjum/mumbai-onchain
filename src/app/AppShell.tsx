@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { CalendarDays, Home, MessagesSquare, User, Users } from 'lucide-react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
+import { CalendarDays, Home, User, Users } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { ConnectionStatus, PersonProfile } from '../types/person';
 import { PeopleScreen } from './PeopleScreen';
@@ -14,6 +14,10 @@ import { useSavedEvents } from '../lib/useSavedEvents';
 import { isRealPerson } from '../lib/samples';
 import { TodayScreen } from './TodayScreen';
 import { Scene } from './Scene';
+import { QuickActions } from './QuickActions';
+
+// The map library is large, so the Map screen loads only when it's opened.
+const MapScreen = lazy(() => import('./MapScreen'));
 import { ScheduleScreen } from './ScheduleScreen';
 import { MeScreen } from './MeScreen';
 import { AppearanceScreen } from './AppearanceScreen';
@@ -46,7 +50,7 @@ const toStore: Record<AppTab, StoreTab> = {
 const TABS: { id: AppTab; label: string; icon: typeof Home }[] = [
   { id: 'today', label: 'Today', icon: Home },
   { id: 'schedule', label: 'Schedule', icon: CalendarDays },
-  // The Ask logo button sits here, between Schedule and People.
+  // The logo button (Map, Ask, Scan) sits here, between Schedule and People.
   { id: 'people', label: 'People', icon: Users },
   { id: 'me', label: 'Me', icon: User },
 ];
@@ -112,6 +116,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [scheduleDay, setScheduleDay] = useState(defaultDay);
   const [isPassOpen, setIsPassOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
   const [isFindOpen, setIsFindOpen] = useState(false);
 
@@ -162,7 +167,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       <Scene />
       <div className="app-motif" aria-hidden="true" />
       <div className={`app-statusbar${scrolled ? ' is-scrolled' : ''}`} aria-hidden="true" />
-      <main className="app-main min-h-dvh pt-[env(safe-area-inset-top)] pb-[calc(var(--app-tabbar-h)+env(safe-area-inset-bottom)+16px)]">
+      <main className="app-main min-h-dvh pt-[env(safe-area-inset-top)] pb-[calc(var(--app-tabbar-h)+var(--app-tabbar-pad)+16px)]">
         {visited.has('today') && (
           <div hidden={tab !== 'today'}>
           <TodayScreen
@@ -270,7 +275,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
       <nav
         aria-label="Main"
-        className="fixed bottom-0 inset-x-0 z-50 bg-[var(--app-surface)]/92 backdrop-blur-xl border-t border-[var(--app-line)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+        className="fixed bottom-0 inset-x-0 z-50 bg-[var(--app-surface)]/92 backdrop-blur-xl border-t border-[var(--app-line)] pb-[var(--app-tabbar-pad)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
       >
         <div className="grid grid-cols-5 h-[var(--app-tabbar-h)] max-w-lg mx-auto">
           {TABS.map(({ id, label, icon: Icon }, i) => {
@@ -297,23 +302,10 @@ export const AppShell: React.FC<AppShellProps> = ({
               </button>
             );
             if (i !== 2) return tabButton;
-            // The round logo in the middle opens Ask.
+            // The round logo in the middle fans out Map, Ask and Scan.
             return (
               <React.Fragment key={id}>
-                <button
-                  type="button"
-                  onClick={onAsk}
-                  aria-label="Ask Mumbai Onchain AI"
-                  className="app-press flex flex-col items-center justify-start"
-                >
-                  <span className="relative -mt-5 w-[60px] h-[60px] rounded-full bg-[var(--app-bg)] p-[3px] shadow-[0_0_0_2px_var(--app-primary),0_6px_18px_color-mix(in_srgb,var(--app-primary)_40%,transparent)]">
-                    <img src="/icons/icon-192.png" alt="" className="w-full h-full rounded-full" />
-                    <span className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] border-2 border-[var(--app-bg)] flex items-center justify-center">
-                      <MessagesSquare className="w-3 h-3" strokeWidth={2.6} aria-hidden="true" />
-                    </span>
-                  </span>
-                  <span className="mt-0.5 text-[11px] font-bold text-[var(--app-ink)]">Ask</span>
-                </button>
+                <QuickActions onAsk={onAsk} onMap={() => setIsMapOpen(true)} onScan={() => setIsScannerOpen(true)} />
                 {tabButton}
               </React.Fragment>
             );
@@ -348,6 +340,19 @@ export const AppShell: React.FC<AppShellProps> = ({
       <PassSheet person={myProfile} isOpen={isPassOpen} onClose={() => setIsPassOpen(false)} />
       <AppearanceScreen open={isAppearanceOpen} onClose={() => setIsAppearanceOpen(false)} myProfile={myProfile} />
       <FindProfileSheet isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} onSignIn={onSignIn} />
+      {isMapOpen && (
+        <Suspense fallback={<div className="app fixed inset-0 z-[60] bg-[var(--app-bg)]" aria-busy="true" />}>
+          <MapScreen
+            open={isMapOpen}
+            onClose={() => setIsMapOpen(false)}
+            events={events}
+            onOpenVenues={() => {
+              setIsMapOpen(false);
+              goTo('map');
+            }}
+          />
+        </Suspense>
+      )}
       <ScannerSheet
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}

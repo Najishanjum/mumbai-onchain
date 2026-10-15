@@ -166,6 +166,8 @@ export default defineConfig(({ mode }) => {
           // serving the old <head> (e.g. the iOS status-bar setting) after a
           // deploy, and iOS reads that when the app is added to the home screen.
           globPatterns: ['**/*.{js,css}', 'icons/*.png', 'brand/*.webp', 'intro/*.webp'],
+          // The map library is ~1 MB and useless offline without tiles: fetched when the map opens.
+          globIgnores: ['**/MapScreen-*', '**/maplibre-*'],
           // The plugin adds a cache-first NavigationRoute by default; the
           // NetworkFirst rule below replaces it.
           navigateFallback: null,
