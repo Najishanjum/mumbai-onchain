@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Camera, Check, ChevronRight, ImageOff, QrCode, ScanLine, Search, UserPlus, Users, X } from 'lucide-react';
+import { Check, ChevronRight, QrCode, ScanLine, Search, UserPlus, Users, X } from 'lucide-react';
 import type { PersonCategory, PersonProfile } from '../types/person';
 import { usePeopleStore } from '../lib/usePeopleStore';
-import { useSnapStore } from '../lib/useSnapStore';
 import { calculateMatchScore } from '../lib/matchingEngine';
-import { isRealPerson, isRealSnap } from '../lib/samples';
+import { isRealPerson } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { GroupedList } from './ui';
 import { StoriesRow } from './Stories';
@@ -18,7 +17,6 @@ interface PeopleScreenProps {
   onAddSnap: () => void;
 }
 
-type View = 'people' | 'snaps';
 type Filter = 'all' | 'mine' | PersonCategory;
 
 const ROLE_FILTERS: { id: Filter; label: string }[] = [
@@ -66,8 +64,6 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
   onAddSnap,
 }) => {
   const { people, myProfile, connections, setConnectionStatus } = usePeopleStore();
-  const { recentSnaps, setActiveSnapForViewer } = useSnapStore();
-  const [view, setView] = useState<View>('people');
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
@@ -101,7 +97,6 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const snaps = recentSnaps.filter(isRealSnap);
   const addedCount = others.filter((p) => isAdded(p.id)).length;
 
   return (
@@ -120,26 +115,6 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
 
       <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} className="mb-4" />
 
-      <div className="px-5 pb-4">
-        <div role="tablist" aria-label="People or snaps" className="grid grid-cols-2 p-1 rounded-xl bg-[var(--app-segment)]">
-          {(['people', 'snaps'] as View[]).map((v) => (
-            <button
-              key={v}
-              role="tab"
-              type="button"
-              aria-selected={view === v}
-              onClick={() => setView(v)}
-              className={`h-8 rounded-lg text-[14px] font-semibold transition-colors ${
-                view === v ? 'bg-[var(--app-surface)] shadow-sm' : 'text-[var(--app-muted)]'
-              }`}
-            >
-              {v === 'people' ? `People${others.length ? ` (${others.length})` : ''}` : `Snaps${snaps.length ? ` (${snaps.length})` : ''}`}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {view === 'people' ? (
         <>
           {/* Your pass */}
           {myProfile ? (
@@ -278,42 +253,6 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
             </div>
           )}
         </>
-      ) : (
-        <section>
-          <div className="px-4 mb-4">
-            <button
-              type="button"
-              onClick={onAddSnap}
-              className="app-press w-full h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold inline-flex items-center justify-center gap-2"
-            >
-              <Camera className="w-4 h-4" aria-hidden="true" /> Add a snap
-            </button>
-          </div>
-          {snaps.length > 0 ? (
-            <div className="px-4 grid grid-cols-3 gap-1.5">
-              {snaps.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setActiveSnapForViewer(s)}
-                  aria-label={`Snap by ${s.authorName}${s.caption ? `: ${s.caption}` : ''}`}
-                  className="app-press relative aspect-square overflow-hidden rounded-lg bg-[var(--app-line)]"
-                >
-                  <img src={s.thumbnailUrl || s.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="mx-4 py-10 text-center">
-              <ImageOff className="w-8 h-8 mx-auto text-[var(--app-faint)]" aria-hidden="true" />
-              <p className="mt-3 text-[16px] font-semibold">No snaps yet</p>
-              <p className="mt-1 text-[15px] text-[var(--app-muted)] max-w-[30ch] mx-auto">
-                Photos people share from the venues show up here. Be the first.
-              </p>
-            </div>
-          )}
-        </section>
-      )}
     </div>
   );
 };
