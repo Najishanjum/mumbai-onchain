@@ -317,10 +317,15 @@ function usePeopleStoreState() {
   // Which account has finished loading/attaching its profile, so the UI knows
   // whether to show "create your pass" or the restored one.
   const [accountReadyFor, setAccountReadyFor] = useState<string | null>(null);
+  // Bumped to look the account up again, e.g. after the profile was claimed
+  // on the website while the app was open.
+  const [recheckNonce, setRecheckNonce] = useState(0);
+  const recheckAccount = useCallback(() => setRecheckNonce((n) => n + 1), []);
   useEffect(() => {
     const client = supabase;
-    if (!authUser || !client || attachedFor.current === authUser.id) return;
-    attachedFor.current = authUser.id;
+    const key = authUser ? `${authUser.id}:${recheckNonce}` : null;
+    if (!authUser || !client || attachedFor.current === key) return;
+    attachedFor.current = key;
     const uid = authUser.id;
 
     (async () => {
@@ -359,7 +364,7 @@ function usePeopleStoreState() {
       if (error) console.error('Could not attach profile to account:', error.message);
       setMyProfile(profile);
     }
-  }, [authUser]);
+  }, [authUser, recheckNonce]);
 
   const signOutAndClear = useCallback(async () => {
     await signOut();
@@ -531,6 +536,7 @@ function usePeopleStoreState() {
     authReady,
     accountReady: Boolean(authUser && accountReadyFor === authUser.id),
     signOut: signOutAndClear,
+    recheckAccount,
     setSelectedPersonId,
     // Profiles are made in the app; on the website opening the editor asks for the install.
     setIsEditModalOpen: openEditModal,

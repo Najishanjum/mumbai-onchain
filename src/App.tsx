@@ -31,6 +31,7 @@ import { NotifyPrompt, shouldAskForNotifications } from './app/NotifyPrompt';
 import { usePushSync } from './lib/push';
 import { InstallBanner } from './components/InstallBanner';
 import { InstallSheet } from './components/InstallSheet';
+import { KeepProfileBanner } from './components/KeepProfileBanner';
 import { PwaStatus } from './components/PwaStatus';
 import { AppShell } from './app/AppShell';
 import { ProfileEditorSheet } from './app/ProfileEditorSheet';
@@ -366,6 +367,9 @@ export function App() {
       />
 
       <InstallBanner onOpen={openInstall} />
+
+      {/* Profiles made here before accounts: sign in to keep them for the app. */}
+      <KeepProfileBanner onSignIn={() => setSignInFor('account')} onInstall={openInstall} />
 
       {/* Top Event Telemetry Stream */}
       <MarqueeTicker />

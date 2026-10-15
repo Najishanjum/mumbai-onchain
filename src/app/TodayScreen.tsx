@@ -38,6 +38,7 @@ interface TodayScreenProps {
   onAsk: () => void;
   onCreateProfile: () => void;
   onSelectPerson: (id: string) => void;
+  onFindProfile: () => void;
 }
 
 /**
@@ -139,6 +140,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   onAsk,
   onCreateProfile,
   onSelectPerson,
+  onFindProfile,
 }) => {
   const now = useNow();
   const today = istDateKey(now);
@@ -197,7 +199,16 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             <p className="mt-3 text-center text-[13px] text-[var(--app-muted)]">Tap your badge to show your QR</p>
           </>
         ) : (
-          <BlankBadge onCreate={onCreateProfile} />
+          <>
+            <BlankBadge onCreate={onCreateProfile} />
+            <button
+              type="button"
+              onClick={onFindProfile}
+              className="mt-3 h-10 px-3 text-[14px] font-semibold text-[var(--app-primary)]"
+            >
+              Made a profile on the website before?
+            </button>
+          </>
         )}
         <button
           type="button"

@@ -18,6 +18,7 @@ interface MeScreenProps {
   onSignIn: () => void;
   onSignOut: () => void;
   onOpenAppearance: () => void;
+  onFindProfile: () => void;
 }
 
 async function shareApp() {
@@ -45,6 +46,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   onSignIn,
   onSignOut,
   onOpenAppearance,
+  onFindProfile,
 }) => {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const icon = 'w-[18px] h-[18px]';
@@ -191,6 +193,13 @@ export const MeScreen: React.FC<MeScreenProps> = ({
               </span>
             </button>
           )}
+          <button
+            type="button"
+            onClick={onFindProfile}
+            className="mt-2 px-1 h-10 text-[14px] font-semibold text-[var(--app-primary)]"
+          >
+            Made a profile on the website before? Find it
+          </button>
         </section>
 
 
