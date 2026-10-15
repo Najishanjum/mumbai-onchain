@@ -153,8 +153,9 @@ export const AppShell: React.FC<AppShellProps> = ({
   return (
     <>
       <div className="app-motif" aria-hidden="true" />
+      <div className="app-toran" aria-hidden="true" />
       <div className={`app-statusbar${scrolled ? ' is-scrolled' : ''}`} aria-hidden="true" />
-      <main className="app-main min-h-dvh pt-[env(safe-area-inset-top)] pb-[calc(var(--app-tabbar-h)+env(safe-area-inset-bottom)+16px)]">
+      <main className="app-main min-h-dvh pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(var(--app-tabbar-h)+env(safe-area-inset-bottom)+16px)]">
         {visited.has('today') && (
           <div hidden={tab !== 'today'}>
           <TodayScreen
