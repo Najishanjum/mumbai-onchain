@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Camera, MapPin, MessagesSquare, Navigation, QrCode, ScanLine, CalendarPlus, UserPlus } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, ChevronDown, MapPin, MessagesSquare, Navigation, QrCode, ScanLine, CalendarPlus, UserPlus } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
@@ -38,6 +38,76 @@ interface TodayScreenProps {
   onAsk: () => void;
   onCreateProfile: () => void;
   onSelectPerson: (id: string) => void;
+}
+
+/**
+ * Today is two pages: the badge on its own, then the feed starting at
+ * Stories. A short scroll between them glides the rest of the way, down to
+ * Stories or back up to the badge; below Stories it scrolls freely.
+ * Returns a function that jumps to the feed.
+ */
+function useHeroSnap(feedRef: React.RefObject<HTMLElement | null>) {
+  const feedTop = () => {
+    const el = feedRef.current;
+    if (!el) return 0;
+    const main = el.closest('main');
+    const pad = main ? parseFloat(getComputedStyle(main).paddingTop) || 0 : 0;
+    return Math.max(0, el.getBoundingClientRect().top + window.scrollY - pad);
+  };
+  const smooth = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth') as ScrollBehavior;
+
+  useEffect(() => {
+    let timer = 0;
+    let touching = false;
+    let gliding = false;
+    let lastY = window.scrollY;
+    let direction = 0;
+
+    const settle = () => {
+      const el = feedRef.current;
+      // Only on Today: other tabs keep this screen mounted but hidden.
+      if (!el || el.offsetParent === null || touching || gliding) return;
+      const y = window.scrollY;
+      const top = feedTop();
+      if (y <= 2 || y >= top - 2) return;
+      const target = direction > 0 ? (y > 24 ? top : 0) : y < top - 24 ? 0 : top;
+      gliding = true;
+      window.scrollTo({ top: target, behavior: smooth() });
+      window.setTimeout(() => (gliding = false), 600);
+    };
+    const schedule = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(settle, 140);
+    };
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y !== lastY) direction = y > lastY ? 1 : -1;
+      lastY = y;
+      schedule();
+    };
+    const onTouchStart = () => {
+      touching = true;
+      window.clearTimeout(timer);
+    };
+    const onTouchEnd = () => {
+      touching = false;
+      schedule();
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+    // feedTop reads the ref at call time; the listeners never need replacing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return () => window.scrollTo({ top: feedTop(), behavior: smooth() });
 }
 
 /** Re-renders every minute so "in 25 min" and live badges stay true. */
@@ -86,6 +156,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const weekIndex = WEEK_DAYS.indexOf(today);
 
   const others = people.filter((p) => p.id !== myProfile?.id);
+  const feedRef = useRef<HTMLElement>(null);
+  const scrollToFeed = useHeroSnap(feedRef);
   const [notesOpen, setNotesOpen] = useState(false);
   const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now);
 
@@ -126,10 +198,17 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         ) : (
           <BlankBadge onCreate={onCreateProfile} />
         )}
+        <button
+          type="button"
+          onClick={() => scrollToFeed()}
+          className="app-press mt-2 h-10 px-4 rounded-full inline-flex items-center gap-1 text-[13px] font-semibold text-[var(--app-muted)]"
+        >
+          Stories and your plan <ChevronDown className="w-4 h-4" aria-hidden="true" />
+        </button>
       </section>
 
       {/* Stories from snaps, first thing below the badge */}
-      <section aria-label="Stories" className="mb-6">
+      <section ref={feedRef} aria-label="Stories" className="mb-6 pt-2">
         <SectionHeader title="Stories" />
         <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} />
       </section>
