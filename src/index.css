@@ -216,6 +216,17 @@ html[data-app-theme='light'] .app-statusbar {
 
 /* Lanyard badge: hangs a touch crooked from its clip and spins on the strap
    to show the QR on the back. */
+/* Story progress bar: fills over the story's duration (set inline). */
+.story-progress {
+  width: 0;
+  animation-name: story-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes story-fill {
+  to { width: 100%; }
+}
+
 .badge-stage { perspective: 1400px; }
 /* The badge stands out from the app: a white card in Dark mode, a black card
    in Light. Things printed on it use the deep role shade on white and the
@@ -363,5 +374,9 @@ html[data-app-theme='light'] .badge-print { --badge-accent: var(--badge-c); }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  /* A timer, not decoration: stories still need their full time on screen. */
+  .story-progress {
+    animation-duration: 5s !important;
   }
 }

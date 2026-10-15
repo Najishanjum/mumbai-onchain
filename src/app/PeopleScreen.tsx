@@ -7,6 +7,7 @@ import { calculateMatchScore } from '../lib/matchingEngine';
 import { isRealPerson, isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { GroupedList } from './ui';
+import { StoriesRow } from './Stories';
 import { roleColor } from './Badge';
 
 interface PeopleScreenProps {
@@ -116,6 +117,8 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
           <ScanLine className="w-5 h-5" />
         </button>
       </header>
+
+      <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} className="mb-4" />
 
       <div className="px-5 pb-4">
         <div role="tablist" aria-label="People or snaps" className="grid grid-cols-2 p-1 rounded-xl bg-[var(--app-segment)]">

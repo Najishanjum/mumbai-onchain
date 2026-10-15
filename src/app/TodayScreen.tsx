@@ -6,6 +6,7 @@ import { PersonAvatar } from '../components/PersonAvatar';
 import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } from './ui';
 import { BlankBadge, LanyardBadge } from './Badge';
 import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
+import { StoriesRow } from './Stories';
 import { eventCover } from './covers';
 import {
   dayLabel,
@@ -125,6 +126,12 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         ) : (
           <BlankBadge onCreate={onCreateProfile} />
         )}
+      </section>
+
+      {/* Stories from snaps, first thing below the badge */}
+      <section aria-label="Stories" className="mb-6">
+        <SectionHeader title="Stories" />
+        <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} />
       </section>
 
       {/* Quick actions */}
