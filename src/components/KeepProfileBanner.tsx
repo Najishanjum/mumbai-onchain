@@ -101,7 +101,7 @@ export function KeepProfileBanner({ onSignIn, onInstall }: { onSignIn: () => voi
               <p className="font-heading font-black text-base uppercase tracking-tight">This email already has a profile</p>
               <p className="mt-1 text-sm text-[#333333]">
                 <b>{authUser?.email}</b> already has a profile made in the app, so the one from this browser couldn’t be added. To keep this older one
-                instead, message Najish and he’ll move it for you.
+                instead, message Nimsara to have it moved.
               </p>
             </>
           )}
@@ -131,7 +131,7 @@ export function KeepProfileBanner({ onSignIn, onInstall }: { onSignIn: () => voi
             onClick={copyAndAsk}
             className="shrink-0 px-4 py-2.5 bg-[#000000] hover:bg-[#222222] text-white font-heading font-black text-xs uppercase inline-flex items-center justify-center gap-2 cursor-pointer"
           >
-            {copied ? 'Message copied' : 'Message Najish'} <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            {copied ? 'Message copied' : 'Message Nimsara'} <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
 
