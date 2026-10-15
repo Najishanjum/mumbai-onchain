@@ -10,7 +10,7 @@ interface SignInSheetProps {
   reason?: string;
 }
 
-const CODE_LENGTH = 8;
+const CODE_LENGTH = 6;
 const RESEND_SECONDS = 30;
 const LAST_EMAIL_KEY = 'mo_last_email';
 
@@ -107,7 +107,7 @@ function SignInBody({ onClose, reason }: Omit<SignInSheetProps, 'isOpen'>) {
           <>
             <h2 className="app-title mt-5 text-[26px] font-bold leading-tight">Sign in</h2>
             <p className="mt-1.5 text-[16px] leading-relaxed text-[var(--app-muted)]">
-              {reason ? `Sign in ${reason}. ` : ''}We’ll email you an 8-digit code. New here? This creates your account.
+              {reason ? `Sign in ${reason}. ` : ''}We’ll email you a 6-digit code. New here? This creates your account.
             </p>
             <form
               className="mt-6"
@@ -152,12 +152,12 @@ function SignInBody({ onClose, reason }: Omit<SignInSheetProps, 'isOpen'>) {
           <>
             <h2 className="app-title mt-5 text-[26px] font-bold leading-tight">Check your email</h2>
             <p className="mt-1.5 text-[16px] leading-relaxed text-[var(--app-muted)]">
-              Enter the 8-digit code we sent to <span className="font-semibold text-[var(--app-ink)] break-all">{email.trim()}</span>.
+              Enter the 6-digit code we sent to <span className="font-semibold text-[var(--app-ink)] break-all">{email.trim()}</span>.
             </p>
 
             {/* One real input (so paste and iPhone auto-fill work) under six display boxes. */}
             <label htmlFor="signin-code" className="sr-only">
-              8-digit code
+              6-digit code
             </label>
             <div className="relative mt-6" onClick={() => codeRef.current?.focus()}>
               <input
@@ -173,14 +173,14 @@ function SignInBody({ onClose, reason }: Omit<SignInSheetProps, 'isOpen'>) {
                 aria-invalid={Boolean(error)}
                 className="absolute inset-0 w-full h-full opacity-0 text-[16px]"
               />
-              <div className="grid grid-cols-8 gap-1.5" aria-hidden="true">
+              <div className="grid grid-cols-6 gap-2" aria-hidden="true">
                 {Array.from({ length: CODE_LENGTH }, (_, i) => {
                   const filled = i < code.length;
                   const active = i === code.length && !busy;
                   return (
                     <div
                       key={i}
-                      className={`h-14 rounded-xl border flex items-center justify-center text-[22px] font-semibold tabular-nums bg-[var(--app-surface)] ${
+                      className={`h-14 rounded-xl border flex items-center justify-center text-[24px] font-semibold tabular-nums bg-[var(--app-surface)] ${
                         error
                           ? 'border-[var(--app-live)]'
                           : active

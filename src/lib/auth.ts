@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-// Sign-in is an 8-digit code emailed by Supabase and typed in the app.
+// Sign-in is a 6-digit code emailed by Supabase and typed in the app.
 // Magic links would open Safari instead of the installed iPhone app, so the
 // app would stay signed out; a code works everywhere.
 
