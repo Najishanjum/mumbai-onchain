@@ -7,6 +7,7 @@ import { usePeopleStore } from '../lib/usePeopleStore';
 import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { roleColor } from './Badge';
+import { useBackToClose } from '../lib/useBackToClose';
 
 const SEEN_KEY = 'mo_seen_snaps';
 const STORY_MS = 5000;
@@ -218,6 +219,7 @@ function StoryViewer({
   const [deleteError, setDeleteError] = useState(false);
   const { deleteSnap, isOwnerOfSnap } = useSnapStore();
   const story = stories[storyAt];
+  useBackToClose(true, onClose);
   const snap = story?.snaps[snapAt];
 
   useEffect(() => {

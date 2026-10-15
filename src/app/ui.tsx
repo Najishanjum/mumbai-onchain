@@ -3,6 +3,7 @@ import { Bookmark, ChevronRight, Clock, MapPin, X } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { isLive, VENUE_TBA } from './time';
 import { eventCover } from './covers';
+import { useBackToClose } from '../lib/useBackToClose';
 
 export function SectionHeader({
   title,
@@ -216,6 +217,8 @@ export function Sheet({
   const panelRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
   const [dragY, setDragY] = useState(0);
+  // iPhone edge swipe or Android back closes the sheet (not while a form has unsaved edits).
+  useBackToClose(open, () => dismissible && onClose());
 
   useEffect(() => {
     if (!open) return;

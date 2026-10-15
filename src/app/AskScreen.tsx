@@ -7,6 +7,7 @@ import { processUserQuery } from '../lib/assistant/queryEngine';
 import { SUPPORTED_LANGUAGES, TRANSLATIONS, type SupportedLanguage } from '../lib/assistant/translations';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { dayLabel } from './time';
+import { useBackToClose } from '../lib/useBackToClose';
 
 // Same keys as the website's assistant, so the chat and language carry over.
 const STORAGE_CHAT_KEY = 'mumbai_onchain_ai_chat_history_v2';
@@ -69,6 +70,7 @@ export function AskScreen({ open, onClose, events, people, myProfile, connection
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  useBackToClose(open, onClose);
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
   const onlyWelcome = messages.length === 1 && messages[0].id.startsWith('msg-welcome');
 

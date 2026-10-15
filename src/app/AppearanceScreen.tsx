@@ -4,6 +4,7 @@ import type { PersonProfile } from '../types/person';
 import { setThemePref, useAppTheme, type ThemePref } from '../lib/useAppTheme';
 import { setAppPrefs, useAppPrefs, type AccentPref, type BadgePref } from '../lib/useAppPrefs';
 import { GroupedList } from './ui';
+import { useBackToClose } from '../lib/useBackToClose';
 import { BlankBadge, LanyardBadge, Mandala, roleColor } from './Badge';
 
 const THEME_OPTIONS: { id: ThemePref; label: string; Icon: typeof Moon }[] = [
@@ -62,6 +63,7 @@ function ToggleRow({ label, detail, on, onChange }: { label: string; detail: str
 export function AppearanceScreen({ open, onClose, myProfile }: { open: boolean; onClose: () => void; myProfile: PersonProfile | null }) {
   const { pref: themePref } = useAppTheme(false);
   const prefs = useAppPrefs();
+  useBackToClose(open, onClose);
 
   useEffect(() => {
     if (!open) return;
