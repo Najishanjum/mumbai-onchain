@@ -289,7 +289,7 @@ export function App() {
   // Installed app (or ?app=1): a focused app layout instead of the landing page.
   if (appMode) {
     return (
-      <div className="app min-h-dvh">
+      <div className="app relative isolate min-h-dvh">
         <PwaStatus />
         <AppShell
           events={events}
