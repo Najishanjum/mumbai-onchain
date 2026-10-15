@@ -137,9 +137,10 @@ const SIZES = {
 export function Lanyard({ color, accent, height = 120 }: { color: string; accent?: string; height?: number }) {
   const strap = 'absolute bottom-0 w-[30px] origin-bottom overflow-hidden flex justify-center';
   const text = '[writing-mode:vertical-rl] whitespace-nowrap text-[12px] font-extrabold leading-[30px]';
-  // The event name printed down the strap, with the logo between each repeat.
-  const print = (ink: string) => (
-    <span className="flex flex-col items-center gap-2 pt-2">
+  // The event name printed down the strap with the logo between repeats,
+  // started part-way through so a logo sits mid-strap, as on a real lanyard.
+  const print = (ink: string, offset: number) => (
+    <span className="flex flex-col items-center gap-2" style={{ marginTop: offset }}>
       {[0, 1, 2, 3].map((i) => (
         <span key={i} className="flex flex-col items-center gap-2">
           <span className={text} style={{ color: ink }}>Mumbai Onchain</span>
@@ -160,13 +161,13 @@ export function Lanyard({ color, accent, height = 120 }: { color: string; accent
             background: `linear-gradient(180deg, color-mix(in srgb, ${color} 55%, ${INK}), ${color})`,
           }}
         >
-          {print(INK)}
+          {print(INK, -56)}
         </div>
         <div
           className={`${strap} border border-[var(--badge-muted)]/30`}
           style={{ height, left: 'calc(50% - 8px)', transform: 'rotate(15deg)', background: CARD }}
         >
-          {print(accent ?? color)}
+          {print(accent ?? color, -22)}
         </div>
       </div>
       <svg width="28" height="44" viewBox="0 0 28 44" className="-mt-1 text-[var(--app-clip)]">
