@@ -234,7 +234,6 @@ export const AppShell: React.FC<AppShellProps> = ({
             onEditProfile={onEditProfile}
             onShowPass={showPass}
             onScan={() => setIsScannerOpen(true)}
-            onAddSnap={onAddSnap}
             onOpenPlan={() => goTo('schedule')}
             accountEmail={accountEmail}
             onSignIn={onSignIn}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrCode, ScanLine, Camera, Pencil, Share2, Bookmark, UserPlus, Send, Moon, Sun, SunMoon, Mail, LogIn } from 'lucide-react';
+import { QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Send, Moon, Sun, SunMoon, Mail, LogIn } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { setThemePref, useAppTheme, type ThemePref } from '../lib/useAppTheme';
@@ -18,7 +18,6 @@ interface MeScreenProps {
   onEditProfile: () => void;
   onShowPass: () => void;
   onScan: () => void;
-  onAddSnap: () => void;
   onOpenPlan: () => void;
   accountEmail: string | null;
   onSignIn: () => void;
@@ -45,7 +44,6 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   onEditProfile,
   onShowPass,
   onScan,
-  onAddSnap,
   onOpenPlan,
   accountEmail,
   onSignIn,
@@ -126,8 +124,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
       <div className="space-y-6">
         <GroupedList>
           <RowLink icon={<Bookmark className={icon} />} label="My plan" detail={String(savedCount)} onClick={onOpenPlan} />
-          <RowLink icon={<ScanLine className={icon} />} label="Scan someone's pass" onClick={onScan} />
-          <RowLink icon={<Camera className={icon} />} label="Add a snap" onClick={onAddSnap} />
+          <RowLink icon={<ScanLine className={icon} />} label="Scan" onClick={onScan} />
         </GroupedList>
 
         <section aria-labelledby="account-title" className="mx-4">
