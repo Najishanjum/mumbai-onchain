@@ -109,8 +109,8 @@ const CARD = '#121419';
 const CARD_MUTED = '#A6ADB7';
 
 const SIZES = {
-  md: { w: 240, h: 344, avatar: 'w-[76px]! h-[76px]!', name: 'text-[24px]', qr: 180, strap: 120 },
-  lg: { w: 272, h: 390, avatar: 'w-[88px]! h-[88px]!', name: 'text-[28px]', qr: 210, strap: 150 },
+  md: { w: 240, h: 320, avatar: 'w-[76px]! h-[76px]!', name: 'text-[24px]', qr: 180, strap: 120 },
+  lg: { w: 272, h: 362, avatar: 'w-[88px]! h-[88px]!', name: 'text-[28px]', qr: 210, strap: 150 },
 } as const;
 
 /** Event lanyard: one strap in the role colour, one black, joined by a buckle and a clasp. */
@@ -125,7 +125,7 @@ export function Lanyard({ color, height = 120 }: { color: string; height?: numbe
           className={strap}
           style={{
             height,
-            left: 'calc(50% - 29px)',
+            left: 'calc(50% - 22px)',
             transform: 'rotate(-15deg)',
             background: `linear-gradient(180deg, color-mix(in srgb, ${color} 55%, ${CARD}), ${color})`,
           }}
@@ -134,17 +134,13 @@ export function Lanyard({ color, height = 120 }: { color: string; height?: numbe
         </div>
         <div
           className={`${strap} border border-white/10`}
-          style={{ height, left: 'calc(50% - 1px)', transform: 'rotate(15deg)', background: CARD }}
+          style={{ height, left: 'calc(50% - 8px)', transform: 'rotate(15deg)', background: CARD }}
         >
           <span className={text} style={{ color }}>{words}</span>
         </div>
-        <span
-          className="absolute left-1/2 -translate-x-1/2 bottom-7 w-14 h-6 rounded-md border-2"
-          style={{ background: color, borderColor: CARD }}
-        />
       </div>
       <svg width="28" height="44" viewBox="0 0 28 44" className="-mt-1 text-[var(--app-clip)]">
-        <rect x="5" y="0" width="18" height="10" rx="3" fill="currentColor" />
+        <rect x="1" y="0" width="26" height="11" rx="3" fill="currentColor" />
         <circle cx="14" cy="17" r="5" fill="none" stroke="currentColor" strokeWidth="3" />
         <path d="M14 22v4" stroke="currentColor" strokeWidth="3" />
         <path d="M9 26h10a2 2 0 0 1 2 2v6a7 7 0 0 1-14 0v-6a2 2 0 0 1 2-2z" fill="currentColor" />
