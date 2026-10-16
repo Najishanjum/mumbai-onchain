@@ -129,10 +129,12 @@ export function App() {
   // Once signed in and the account's profile is loaded (or attached), carry on.
   useEffect(() => {
     if (!signInFor || !authUser || !accountReady) return;
-    if (signInFor === 'profile') setIsEditModalOpen(true);
+    // They tapped "create profile", but the account already had one: it's now
+    // restored, so there's nothing to fill in.
+    if (signInFor === 'profile' && !myProfile) setIsEditModalOpen(true);
     if (signInFor === 'snap') setIsAddSnapModalOpen(true);
     setSignInFor(null);
-  }, [signInFor, authUser, accountReady, setIsEditModalOpen, setIsAddSnapModalOpen]);
+  }, [signInFor, authUser, accountReady, myProfile, setIsEditModalOpen, setIsAddSnapModalOpen]);
 
   const signInReason =
     signInFor === 'profile'

@@ -337,7 +337,21 @@ function usePeopleStoreState() {
     })();
 
     async function attach(client: NonNullable<typeof supabase>, uid: string) {
-      const { data: owned } = await client.from('profiles').select('*').eq('owner_id', uid).maybeSingle();
+      // Newest owned profile. Not maybeSingle(): an account that ended up owning
+      // two rows (e.g. a claimed website profile plus one made in the app) made
+      // it error, which read as "no profile" and asked them to create one.
+      const { data: rows, error: lookupError } = await client
+        .from('profiles')
+        .select('*')
+        .eq('owner_id', uid)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (lookupError) {
+        // Couldn't reach the account: don't treat it as empty and overwrite it.
+        console.error('Could not load profile for account:', lookupError.message);
+        return;
+      }
+      const owned = rows?.[0];
       if (owned) {
         const profile = { ...mapDbToPerson(owned as DbProfileRow, owned.id), isCurrentUser: true };
         setMyProfile(profile);
@@ -366,9 +380,17 @@ function usePeopleStoreState() {
     }
   }, [authUser, recheckNonce]);
 
+  // Signed out (here or by the session ending): forget that this account was
+  // loaded. Otherwise signing back in with the same email counted as "ready"
+  // before the profile was fetched, and "create profile" opened an empty form.
+  useEffect(() => {
+    if (!authUser) setAccountReadyFor(null);
+  }, [authUser]);
+
   const signOutAndClear = useCallback(async () => {
     await signOut();
     attachedFor.current = null;
+    setAccountReadyFor(null);
     // The profile stays in the account; this device just forgets it.
     setMyProfile(null);
   }, []);
