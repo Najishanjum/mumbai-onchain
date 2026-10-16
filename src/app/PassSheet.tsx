@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Contact, Copy, Share2 } from 'lucide-react';
+import { Check, Contact, Copy, ImageDown, Share2 } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { Sheet } from './ui';
 import { LanyardBadge } from './Badge';
@@ -9,9 +9,10 @@ interface PassSheetProps {
   person: PersonProfile | null;
   isOpen: boolean;
   onClose: () => void;
+  onSaveCard: () => void;
 }
 
-function PassBody({ person, onClose }: { person: PersonProfile; onClose: () => void }) {
+function PassBody({ person, onClose, onSaveCard }: { person: PersonProfile; onClose: () => void; onSaveCard: () => void }) {
   const url = profileUrl(person.id);
   const [copied, setCopied] = useState(false);
   // Opened to be scanned, so it starts on the QR side.
@@ -60,9 +61,12 @@ function PassBody({ person, onClose }: { person: PersonProfile; onClose: () => v
           {flipped ? 'Turn your screen brightness up if their camera struggles.' : 'Tap the badge to show your QR.'}
         </p>
 
-        <div className="mt-5 grid grid-cols-3 gap-2">
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button type="button" onClick={onSaveCard} className={action}>
+            <ImageDown className="w-5 h-5" aria-hidden="true" /> Save card
+          </button>
           <button type="button" onClick={share} className={action}>
-            <Share2 className="w-5 h-5" aria-hidden="true" /> Share
+            <Share2 className="w-5 h-5" aria-hidden="true" /> Share link
           </button>
           <button type="button" onClick={copy} className={action}>
             {copied ? <Check className="w-5 h-5" aria-hidden="true" /> : <Copy className="w-5 h-5" aria-hidden="true" />}
@@ -77,5 +81,5 @@ function PassBody({ person, onClose }: { person: PersonProfile; onClose: () => v
   );
 }
 
-export const PassSheet: React.FC<PassSheetProps> = ({ person, isOpen, onClose }) =>
-  isOpen && person ? <PassBody person={person} onClose={onClose} /> : null;
+export const PassSheet: React.FC<PassSheetProps> = ({ person, isOpen, onClose, onSaveCard }) =>
+  isOpen && person ? <PassBody person={person} onClose={onClose} onSaveCard={onSaveCard} /> : null;

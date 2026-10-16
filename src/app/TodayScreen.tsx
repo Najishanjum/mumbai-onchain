@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, ChevronDown, MapPin, MessagesSquare, Navigation, QrCode, ScanLine, CalendarPlus, UserPlus } from 'lucide-react';
+import { Camera, ChevronDown, MapPin, MessagesSquare, Navigation, QrCode, ScanLine, CalendarPlus, ImageDown, UserPlus } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
@@ -39,6 +39,7 @@ interface TodayScreenProps {
   onCreateProfile: () => void;
   onSelectPerson: (id: string) => void;
   onFindProfile: () => void;
+  onSaveCard: () => void;
 }
 
 /**
@@ -47,7 +48,7 @@ interface TodayScreenProps {
  * Stories or back up to the badge; below Stories it scrolls freely.
  * Returns a function that jumps to the feed.
  */
-function useHeroSnap(feedRef: React.RefObject<HTMLElement | null>) {
+function useHeroSnap(feedRef: React.RefObject<HTMLElement | null>, paused: React.RefObject<boolean>) {
   const feedTop = () => {
     const el = feedRef.current;
     if (!el) return 0;
@@ -67,7 +68,8 @@ function useHeroSnap(feedRef: React.RefObject<HTMLElement | null>) {
     const settle = () => {
       const el = feedRef.current;
       // Only on Today: other tabs keep this screen mounted but hidden.
-      if (!el || el.offsetParent === null || touching || gliding) return;
+      // Paused while the badge shows its QR, so they can scroll freely to Save card.
+      if (!el || el.offsetParent === null || touching || gliding || paused.current) return;
       const y = window.scrollY;
       const top = feedTop();
       if (y <= 2 || y >= top - 2) return;
@@ -141,6 +143,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   onCreateProfile,
   onSelectPerson,
   onFindProfile,
+  onSaveCard,
 }) => {
   const now = useNow();
   const today = istDateKey(now);
@@ -159,7 +162,13 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   const others = people.filter((p) => p.id !== myProfile?.id);
   const feedRef = useRef<HTMLElement>(null);
-  const scrollToFeed = useHeroSnap(feedRef);
+  // Flipped to the QR: free scrolling instead of the jump between badge and feed.
+  const [badgeFlipped, setBadgeFlipped] = useState(false);
+  const snapPaused = useRef(false);
+  useEffect(() => {
+    snapPaused.current = badgeFlipped;
+  }, [badgeFlipped]);
+  const scrollToFeed = useHeroSnap(feedRef, snapPaused);
   const [notesOpen, setNotesOpen] = useState(false);
   const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now);
 
@@ -195,8 +204,23 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         <Mandala className="absolute left-1/2 top-[60%] -translate-x-1/2 -translate-y-1/2 w-[440px] h-[440px] z-[-1] pointer-events-none" />
         {myProfile ? (
           <>
-            <LanyardBadge person={myProfile} size="lg" />
-            <p className="mt-3 text-center text-[13px] text-[var(--app-muted)]">Tap your badge to show your QR</p>
+            <LanyardBadge person={myProfile} size="lg" flipped={badgeFlipped} onFlip={setBadgeFlipped} />
+            {/* Same height either way, so flipping never shifts the page: the
+                hint on the front, Save card once they're looking at their QR. */}
+            <div className="mt-3 h-10 flex items-center justify-center">
+              {badgeFlipped ? (
+                <button
+                  type="button"
+                  onClick={onSaveCard}
+                  className="app-press h-10 px-4 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] text-[14px] font-semibold inline-flex items-center gap-2"
+                >
+                  <ImageDown className="w-4 h-4 text-[var(--app-primary)]" aria-hidden="true" />
+                  Save card
+                </button>
+              ) : (
+                <p className="text-center text-[13px] text-[var(--app-muted)]">Tap your badge to show your QR</p>
+              )}
+            </div>
           </>
         ) : (
           <>

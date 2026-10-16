@@ -7,6 +7,7 @@ import { VenuesScreen } from './VenuesScreen';
 import { EventSheet } from './EventSheet';
 import { PersonSheet } from './PersonSheet';
 import { PassSheet } from './PassSheet';
+import { SaveCardSheet } from './SaveCardSheet';
 import { ScannerSheet } from './ScannerSheet';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import { useApplyAppPrefs } from '../lib/useAppPrefs';
@@ -116,6 +117,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const { savedIds, isSaved, toggleSaved } = useSavedEvents();
   const [scheduleDay, setScheduleDay] = useState(defaultDay);
   const [isPassOpen, setIsPassOpen] = useState(false);
+  const [isSaveCardOpen, setIsSaveCardOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
@@ -190,6 +192,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onAsk={onAsk}
             onCreateProfile={onEditProfile}
             onFindProfile={() => setIsFindOpen(true)}
+            onSaveCard={() => (myProfile ? setIsSaveCardOpen(true) : onEditProfile())}
             onSelectPerson={onSelectPerson}
           />
           </div>
@@ -340,7 +343,8 @@ export const AppShell: React.FC<AppShellProps> = ({
         onShowPass={showPass}
       />
 
-      <PassSheet person={myProfile} isOpen={isPassOpen} onClose={() => setIsPassOpen(false)} />
+      <PassSheet person={myProfile} isOpen={isPassOpen} onClose={() => setIsPassOpen(false)} onSaveCard={() => setIsSaveCardOpen(true)} />
+      <SaveCardSheet person={myProfile} isOpen={isSaveCardOpen} onClose={() => setIsSaveCardOpen(false)} />
       <AppearanceScreen open={isAppearanceOpen} onClose={() => setIsAppearanceOpen(false)} myProfile={myProfile} />
       <FindProfileSheet isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} onSignIn={onSignIn} />
       <AboutScreen open={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
