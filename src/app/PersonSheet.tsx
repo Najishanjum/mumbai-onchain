@@ -1,6 +1,7 @@
 import React from 'react';
-// lucide 1.x dropped brand logos, so GitHub/LinkedIn use neutral icons.
-import { Briefcase, Check, CodeXml, Globe, Pencil, QrCode, Send, UserPlus } from 'lucide-react';
+// Brand logos come from BrandIcons (lucide 1.x dropped them).
+import { Check, Globe, Pencil, QrCode, UserPlus } from 'lucide-react';
+import { GitHubLogo, LinkedInLogo, TelegramLogo, XLogo } from './BrandIcons';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -28,15 +29,28 @@ const withScheme = (u: string) => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
 function socialLinks(p: PersonProfile) {
   const links: { label: string; href: string; icon: React.ReactNode }[] = [];
   const x = handle(p.xHandle);
-  if (x) links.push({ label: `@${x}`, href: `https://x.com/${x}`, icon: <span className="font-bold text-[13px]">𝕏</span> });
+  if (x) links.push({ label: `@${x}`, href: `https://x.com/${x}`, icon: <XLogo className="w-4 h-4" /> });
   const tg = handle(p.telegramHandle);
-  if (tg) links.push({ label: 'Telegram', href: `https://t.me/${tg}`, icon: <Send className="w-4 h-4" /> });
-  if (p.githubUrl) links.push({ label: 'GitHub', href: withScheme(p.githubUrl), icon: <CodeXml className="w-4 h-4" /> });
-  if (p.linkedinUrl) links.push({ label: 'LinkedIn', href: withScheme(p.linkedinUrl), icon: <Briefcase className="w-4 h-4" /> });
+  if (tg) links.push({ label: 'Telegram', href: `https://t.me/${tg}`, icon: <TelegramLogo className="w-4 h-4" /> });
+  if (p.githubUrl) links.push({ label: 'GitHub', href: withScheme(p.githubUrl), icon: <GitHubLogo className="w-4 h-4" /> });
+  if (p.linkedinUrl) links.push({ label: 'LinkedIn', href: withScheme(p.linkedinUrl), icon: <LinkedInLogo className="w-4 h-4" /> });
   const fc = handle(p.farcasterHandle);
   if (fc) links.push({ label: 'Farcaster', href: `https://warpcast.com/${fc}`, icon: <span className="font-bold text-[13px]">⌐◨</span> });
   if (p.websiteUrl) links.push({ label: 'Website', href: withScheme(p.websiteUrl), icon: <Globe className="w-4 h-4" /> });
   return links;
+}
+
+/**
+ * Where "Message" goes: their Telegram chat if they added one (opens straight
+ * into a chat), otherwise their X profile, where the DM button is one tap
+ * away (X has no link that opens a DM from a handle alone).
+ */
+function messageLink(p: PersonProfile): { href: string; label: string; icon: React.ReactNode } | null {
+  const tg = handle(p.telegramHandle);
+  if (tg) return { href: `https://t.me/${tg}`, label: `Message ${p.name} on Telegram`, icon: <TelegramLogo className="w-[18px] h-[18px]" /> };
+  const x = handle(p.xHandle);
+  if (x) return { href: `https://x.com/${x}`, label: `Message ${p.name} on X`, icon: <XLogo className="w-[18px] h-[18px]" /> };
+  return null;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -63,6 +77,7 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
 
   const added = connections[person.id] === 'CONNECTED';
   const links = socialLinks(person);
+  const message = messageLink(person);
   const going = events.filter((e) => person.attendingEvents?.includes(e.id)).sort(sortByStart);
   const snaps = getSnapsByAuthor(person.id).filter(isRealSnap);
   // Reasons only make sense against the user's real profile, not the demo fallback.
@@ -70,7 +85,9 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
 
   return (
     <Sheet open onClose={onClose} label={person.name}>
-      <div className="px-5 pt-4 flex flex-col items-center text-center">
+      {/* clear-both: the sheet's close button floats right, and a flex column
+          beside a float shrinks to make room, pushing the profile to the left. */}
+      <div className="clear-both px-5 pt-1 flex flex-col items-center text-center">
         <PersonAvatar name={person.name} avatarUrl={person.avatar} size="xl" className="rounded-full! border-0! w-24! h-24!" />
         <h2 className="app-title mt-3 text-[26px] font-bold leading-tight">{person.name}</h2>
         {person.headline && <p className="mt-1 text-[16px] leading-snug max-w-[32ch]">{person.headline}</p>}
@@ -103,17 +120,31 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setConnectionStatus(person.id, added ? 'NOT_CONNECTED' : 'CONNECTED')}
-              aria-pressed={added}
-              className={`app-press h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 ${
-                added ? 'bg-[var(--app-surface)] border border-[var(--app-line)] text-[var(--app-muted)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
-              }`}
-            >
-              {added ? <Check className="w-[18px] h-[18px]" /> : <UserPlus className="w-[18px] h-[18px]" />}
-              {added ? 'In my people' : 'Add to my people'}
-            </button>
+            <div className={`grid gap-2 ${message ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <button
+                type="button"
+                onClick={() => setConnectionStatus(person.id, added ? 'NOT_CONNECTED' : 'CONNECTED')}
+                aria-pressed={added}
+                className={`app-press h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 ${
+                  added ? 'bg-[var(--app-surface)] border border-[var(--app-line)] text-[var(--app-muted)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
+                }`}
+              >
+                {added ? <Check className="w-[18px] h-[18px]" /> : <UserPlus className="w-[18px] h-[18px]" />}
+                {added ? 'In my people' : 'Add'}
+              </button>
+              {message && (
+                <a
+                  href={message.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={message.label}
+                  className="app-press h-12 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] text-[15px] font-semibold inline-flex items-center justify-center gap-2"
+                >
+                  {message.icon}
+                  Message
+                </a>
+              )}
+            </div>
           )}
         </div>
 
