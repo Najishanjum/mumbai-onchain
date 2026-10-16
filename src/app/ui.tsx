@@ -234,6 +234,23 @@ export function Sheet({
     };
   }, [open, onClose, dismissible]);
 
+  // iPhone's keyboard covers the page instead of resizing it, so a bottom
+  // sheet's fields ended up underneath it. Lift the sheet by the keyboard's
+  // height (what the visual viewport loses at the bottom) while it's open.
+  const [keyboard, setKeyboard] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!open || !vv) return;
+    const update = () => setKeyboard(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [open]);
+
   // A new event or person in an already-open sheet starts at the top.
   useEffect(() => {
     if (open && panelRef.current) panelRef.current.scrollTop = 0;
@@ -256,7 +273,7 @@ export function Sheet({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center">
+    <div className="fixed inset-x-0 top-0 z-[70] flex items-end justify-center" style={{ bottom: keyboard }}>
       <div
         className="app-backdrop absolute inset-0 bg-black/40"
         onClick={dismissible ? onClose : undefined}
@@ -271,7 +288,11 @@ export function Sheet({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        style={dragY ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined}
+        style={{
+          ...(dragY ? { transform: `translateY(${dragY}px)`, transition: 'none' } : {}),
+          // Above the keyboard there's no home indicator to clear.
+          ...(keyboard ? { paddingBottom: 16, maxHeight: 'calc(100% - env(safe-area-inset-top) - 8px)' } : {}),
+        }}
         className="app app-sheet relative w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-12px)] overflow-y-auto overscroll-contain rounded-t-[28px] bg-[var(--app-bg)] outline-none pb-[calc(env(safe-area-inset-bottom)+24px)] transition-transform duration-200"
       >
         <div className="sticky top-0 z-10 flex justify-center pt-2 pb-1 pointer-events-none">

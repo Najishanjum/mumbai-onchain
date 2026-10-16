@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Send, Mail, LogIn, Info } from 'lucide-react';
+import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { useAppTheme } from '../lib/useAppTheme';
 import { GroupedList, RowLink } from './ui';
+import { TelegramLogo, XLogo } from './BrandIcons';
 import { roleColor } from './Badge';
 import { THEME_LABELS } from './AppearanceScreen';
 
@@ -208,13 +209,13 @@ export const MeScreen: React.FC<MeScreenProps> = ({
         <GroupedList>
           <RowLink icon={<Share2 className={icon} />} label="Share the app" onClick={shareApp} />
           <RowLink
-            icon={<span className="text-[15px] font-bold leading-none" aria-hidden="true">𝕏</span>}
+            icon={<XLogo className={icon} />}
             label="Follow on X"
             detail="@Mumbai_onchain"
             onClick={() => window.open('https://x.com/Mumbai_onchain', '_blank', 'noopener,noreferrer')}
           />
           <RowLink
-            icon={<Send className={`${icon} text-[#0088CC]`} />}
+            icon={<TelegramLogo className={icon} />}
             label="Join the Telegram"
             onClick={() => window.open('https://t.me/+Yi25K6W8KMo0MDZl', '_blank', 'noopener,noreferrer')}
           />
