@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Send, Mail, LogIn } from 'lucide-react';
+import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Send, Mail, LogIn, Info } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { useAppTheme } from '../lib/useAppTheme';
@@ -19,6 +19,7 @@ interface MeScreenProps {
   onSignOut: () => void;
   onOpenAppearance: () => void;
   onFindProfile: () => void;
+  onOpenAbout: () => void;
 }
 
 async function shareApp() {
@@ -47,6 +48,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   onSignOut,
   onOpenAppearance,
   onFindProfile,
+  onOpenAbout,
 }) => {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const icon = 'w-[18px] h-[18px]';
@@ -216,6 +218,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
             label="Join the Telegram"
             onClick={() => window.open('https://t.me/+Yi25K6W8KMo0MDZl', '_blank', 'noopener,noreferrer')}
           />
+          <RowLink icon={<Info className={icon} />} label="About" detail="Unofficial community app" onClick={onOpenAbout} />
         </GroupedList>
       </div>
 
@@ -231,6 +234,12 @@ export const MeScreen: React.FC<MeScreenProps> = ({
           <a href="https://x.com/nimsaraonline" target="_blank" rel="noopener noreferrer" className="underline">
             @nimsaraonline
           </a>
+        </p>
+        <p>
+          Unofficial community app ·{' '}
+          <button type="button" onClick={onOpenAbout} className="underline">
+            About
+          </button>
         </p>
       </footer>
     </div>

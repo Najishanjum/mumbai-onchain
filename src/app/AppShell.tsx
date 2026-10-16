@@ -21,6 +21,7 @@ const MapScreen = lazy(() => import('./MapScreen'));
 import { ScheduleScreen } from './ScheduleScreen';
 import { MeScreen } from './MeScreen';
 import { AppearanceScreen } from './AppearanceScreen';
+import { AboutScreen } from './AboutScreen';
 import { FindProfileSheet } from './FindProfileSheet';
 import { istDateKey, WEEK_DAYS, WEEK_START, type AppTab } from './time';
 
@@ -119,6 +120,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
   const [isFindOpen, setIsFindOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   const goTo = (next: AppTab) => {
     if (next === tab) {
@@ -268,6 +270,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onSignOut={onSignOut}
             onOpenAppearance={() => setIsAppearanceOpen(true)}
             onFindProfile={() => setIsFindOpen(true)}
+            onOpenAbout={() => setIsAboutOpen(true)}
           />
           </div>
         )}
@@ -340,6 +343,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       <PassSheet person={myProfile} isOpen={isPassOpen} onClose={() => setIsPassOpen(false)} />
       <AppearanceScreen open={isAppearanceOpen} onClose={() => setIsAppearanceOpen(false)} myProfile={myProfile} />
       <FindProfileSheet isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} onSignIn={onSignIn} />
+      <AboutScreen open={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
       {isMapOpen && (
         <Suspense fallback={<div className="app fixed inset-0 z-[60] bg-[var(--app-bg)]" aria-busy="true" />}>
           <MapScreen
