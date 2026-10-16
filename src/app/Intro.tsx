@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { Mandala } from './Scene';
 
 // Shown once, the first time the installed app opens; ?intro=1 shows it again.
 const KEY = 'mo_app_intro_done';
@@ -21,15 +22,15 @@ const SLIDES = [
     body: 'Side events, hackathons and parties across the city. Save the ones you want.',
   },
   {
-    img: '/intro/market.webp',
-    alt: 'A busy market street in south Mumbai',
+    img: '/intro/beach.webp',
+    alt: 'People on a Mumbai beach at sunset',
     kicker: 'People',
     title: 'Meet who’s building onchain',
     body: 'Builders, founders and students from India and the world. Scan a badge to connect.',
   },
   {
     img: '/intro/marine-drive.webp',
-    alt: 'Marine Drive lit up at dusk along the sea',
+    alt: 'Marine Drive’s curve of lights at night, seen from above',
     kicker: 'Your badge',
     title: 'Your pass to the week',
     body: 'Show your QR, check in and find your way around Mumbai.',
@@ -86,7 +87,7 @@ export function Intro() {
     >
       <div ref={track} onScroll={onScroll} className="app-scroll-x h-full flex overflow-x-auto snap-x snap-mandatory">
         {SLIDES.map((s, i) => (
-          <section key={s.img} aria-label={`${i + 1} of ${SLIDES.length}`} className="relative shrink-0 w-full h-full snap-start overflow-hidden">
+          <section key={s.img} aria-label={`${i + 1} of ${SLIDES.length}`} className="intro-slide relative shrink-0 w-full h-full snap-start overflow-hidden">
             <img
               src={s.img}
               alt={s.alt}
@@ -95,9 +96,17 @@ export function Intro() {
               // side in a horizontal scroller, and these are precached anyway.
               decoding="async"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,transparent_22%,transparent_45%,rgba(0,0,0,0.65)_100%)]" aria-hidden="true" />
+            {/* Fades into the app's near-black at the bottom, like every screen in the app. */}
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,12,0.45)_0%,transparent_24%,transparent_42%,rgba(10,10,12,0.7)_72%,#0A0A0C_100%)]" aria-hidden="true" />
           </section>
         ))}
+      </div>
+
+      {/* The app's Aurora over every photo: saffron, pink and mint glows at the
+          top and the gold mandala in the corner. Never takes taps. */}
+      <div className="intro-aurora absolute inset-0 pointer-events-none" aria-hidden="true" />
+      <div className="app-scene-mandala-fade intro-mandala pointer-events-none" aria-hidden="true">
+        <Mandala />
       </div>
 
       <div className="absolute inset-x-0 top-0 pt-[calc(env(safe-area-inset-top)+12px)] px-4 flex items-center justify-between pointer-events-none">
@@ -113,14 +122,14 @@ export function Intro() {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
-        <div key={index} className="intro-card rounded-[28px] p-5 bg-white/12 border border-white/25 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
-          <p className="app-mono text-[12px] font-semibold text-white/80">{SLIDES[index].kicker}</p>
+        <div key={index} className="intro-card rounded-[28px] p-5 bg-[rgba(10,10,12,0.55)] border border-white/15 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
+          <p className="app-mono text-[12px] font-semibold text-[#F7A38C]">{SLIDES[index].kicker}</p>
           <h1 className="app-title mt-1.5 text-[32px] leading-[1.05]">{SLIDES[index].title}</h1>
           <p className="mt-2 text-[15px] leading-snug text-white/85">{SLIDES[index].body}</p>
           <div className="mt-5 flex items-center justify-between">
             <div className="flex items-center gap-1.5" aria-hidden="true">
               {SLIDES.map((s, i) => (
-                <span key={s.img} className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? 'w-6 bg-white' : 'w-1.5 bg-white/40'}`} />
+                <span key={s.img} className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? 'w-6 bg-[linear-gradient(90deg,#FF7A1F,#FF4FA3)]' : 'w-1.5 bg-white/40'}`} />
               ))}
             </div>
             <button

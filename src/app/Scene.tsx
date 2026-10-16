@@ -78,7 +78,7 @@ export const RINGS: [string, number][] = [
 ];
 export const CIRCLES = [8, 44, 120, 124, 148, 266, 272, 362, 376, 382];
 
-function Mandala() {
+export function Mandala() {
   return (
     <svg viewBox="-500 -500 1000 1000" className="app-scene-mandala" fill="none" stroke="url(#scene-mandala-ink)" strokeLinecap="round">
       <defs>

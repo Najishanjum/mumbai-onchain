@@ -687,3 +687,26 @@ html[data-app-scene='aurora'][data-app-theme='light'] .app-statusbar {
 /* The tab bar sits closer to the home indicator: iOS's full bottom inset
    (34px) left a tall empty strip under the labels. */
 .app { --app-tabbar-pad: max(6px, calc(env(safe-area-inset-bottom, 0px) - 14px)); }
+/* Intro in the app's Aurora: the glows are screened onto the photos, so
+   they tint the sky without washing out the city; the mandala sits faint in
+   the top-right corner, as on every screen. */
+.intro-aurora {
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(60% 34% at 8% -4%, rgba(255, 122, 31, 0.3), transparent 70%),
+    radial-gradient(55% 32% at 100% 0%, rgba(255, 79, 163, 0.28), transparent 70%),
+    radial-gradient(50% 26% at 50% 14%, rgba(110, 240, 194, 0.18), transparent 70%);
+}
+.intro-mandala { position: absolute; inset: 0; overflow: hidden; }
+.intro-mandala .app-scene-mandala { opacity: 0.32; }
+/* Each slide stands on the Aurora itself, and the photo sits over it half
+   transparent: the whole picture stays readable, but the theme's near-black
+   and glows come through it instead of a faint tint on a full photo. */
+.intro-slide {
+  background:
+    radial-gradient(70% 40% at 8% 0%, rgba(255, 122, 31, 0.55), transparent 70%),
+    radial-gradient(65% 38% at 100% 6%, rgba(255, 79, 163, 0.5), transparent 70%),
+    radial-gradient(60% 30% at 50% 22%, rgba(110, 240, 194, 0.25), transparent 70%),
+    #0A0A0C;
+}
+.intro-slide .intro-photo { opacity: 0.55; }
