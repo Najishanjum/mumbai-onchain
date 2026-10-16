@@ -5,7 +5,7 @@ import { PersonAvatar } from '../components/PersonAvatar';
 import { profileUrl } from './qr';
 import { useAppPrefs } from '../lib/useAppPrefs';
 
-function roleKey(category: PersonCategory | string | undefined): string {
+export function roleKey(category: PersonCategory | string | undefined): string {
   const key = (category || 'other').toLowerCase();
   const known = ['builder', 'founder', 'student', 'volunteer', 'attendee'];
   return known.includes(key) ? key : 'other';
@@ -49,7 +49,7 @@ export function usePassQr(personId: string, width = 560): string {
 // Shapes from the Mumbai Onchain logo, which stands for the whole week rather
 // than any one event: the petals and flame, the Gateway arch, the sea, the
 // Ethereum diamond and the three pixel squares.
-const SHAPES = {
+export const SHAPES = {
   petal: 'M20 2C31 12 34 25 20 38C6 25 9 12 20 2Z',
   flame: 'M20 2C27 12 33 20 33 27A13 13 0 0 1 7 27C7 20 13 12 20 2Z',
   arch: 'M3 39V19A17 17 0 0 1 37 19V39H28V21A8 8 0 0 0 12 21V39Z',
@@ -58,7 +58,7 @@ const SHAPES = {
   diamond: 'M20 2L33 20L20 27L7 20ZM20 30L33 23L20 38L7 23Z',
   sea: 'M1 14C8 8 13 8 20 14S32 20 39 14V22C32 28 27 28 20 22S8 16 1 22ZM1 30C8 24 13 24 20 30S32 36 39 30V39H1Z',
 } as const;
-type ShapeName = keyof typeof SHAPES | 'pixels';
+export type ShapeName = keyof typeof SHAPES | 'pixels';
 const SHAPE_NAMES: ShapeName[] = ['petal', 'flame', 'arch', 'quarter', 'circle', 'diamond', 'sea', 'petal', 'quarter', 'arch'];
 const TILE_STYLES = [
   { opacity: 1, outline: false },
@@ -78,7 +78,7 @@ function seeded(seedText: string) {
   };
 }
 
-interface Tile {
+export interface Tile {
   shape: ShapeName;
   rotate: number;
   opacity: number;
@@ -86,7 +86,7 @@ interface Tile {
 }
 
 /** 4×3 tiles, different for every person, with the logo's pixels in one of them. */
-function makePattern(seedText: string): Tile[] {
+export function makePattern(seedText: string): Tile[] {
   const rnd = seeded(seedText);
   const pick = <T,>(list: readonly T[]) => list[Math.floor(rnd() * list.length)];
   const tiles: Tile[] = Array.from({ length: 12 }, () => {

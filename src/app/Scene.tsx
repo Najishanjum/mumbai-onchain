@@ -62,7 +62,7 @@ const eye = (y: number, r: number) => (m: Map) => {
 const join = (...parts: ((m: Map) => string)[]) => (m: Map) => parts.map((p) => p(m)).join('');
 
 // [path, stroke width] per ring, inside out.
-const RINGS: [string, number][] = [
+export const RINGS: [string, number][] = [
   [ring(16, 10, petal(6, 28)) + ring(8, 0, petal(4, 12), 22.5), 1.4],
   [ring(36, 50, dot(0, 0, 2.2)), 1.2],
   [ring(16, 56, join(petal(16, 64), petal(8, 44, 6), seg(0, -8, 0, -50))), 1.4],
@@ -76,7 +76,7 @@ const RINGS: [string, number][] = [
   [ring(12, 386, join(petal(30, 104, 10), petal(18, 80, 18), fan(18, 80, 18, 5), dot(0, -122, 3)), 15), 1.3],
   [ring(48, 266, petal(8, 22), 3.75), 1.1],
 ];
-const CIRCLES = [8, 44, 120, 124, 148, 266, 272, 362, 376, 382];
+export const CIRCLES = [8, 44, 120, 124, 148, 266, 272, 362, 376, 382];
 
 function Mandala() {
   return (
