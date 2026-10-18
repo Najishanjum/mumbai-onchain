@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type TouchEvent } from 'react';
 import { Check, Loader2, MapPin, MessageCircle, MoreHorizontal, Plus, Send, Trash2, UserPlus, X } from 'lucide-react';
-import type { Snap } from '../types/snap';
+import { NO_EVENT_ID, type Snap } from '../types/snap';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -335,6 +335,8 @@ function StoryViewer({
   const snapReplies = mine ? replies.filter((r) => r.snapId === snap.id) : [];
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? 'Someone';
   const avatarOf = (id: string) => people.find((p) => p.id === id)?.avatar;
+  // A snap from no event has no "where" to show.
+  const place = snap.eventId === NO_EVENT_ID ? '' : snap.eventName || snap.location;
   const held = paused || Boolean(menu) || typing || repliesOpen;
   const connected = getConnectionStatus(story.authorId) === 'CONNECTED';
   const color = roleColor(story.role);
@@ -449,13 +451,13 @@ function StoryViewer({
         className="absolute inset-x-0 bottom-0 px-4 pt-16 pb-[calc(env(safe-area-inset-bottom)+14px)] bg-gradient-to-t from-black/85 to-transparent pointer-events-none"
         style={keyboard ? { bottom: keyboard, paddingBottom: 10 } : undefined}
       >
-        {(snap.caption || snap.eventName || snap.location) && !typing && (
+        {(snap.caption || place) && !typing && (
           <div className="px-1 mb-3">
             {snap.caption && <p className="text-[16px] leading-snug">{snap.caption}</p>}
-            {(snap.eventName || snap.location) && (
+            {place && (
               <p className="mt-1.5 flex items-center gap-1 text-[13px] text-white/80">
                 <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{snap.eventName || snap.location}</span>
+                <span className="truncate">{place}</span>
               </p>
             )}
           </div>
