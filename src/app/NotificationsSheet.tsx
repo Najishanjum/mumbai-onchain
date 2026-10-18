@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Bell, CalendarClock, IdCard, Radio, UserPlus } from 'lucide-react';
+import { Bell, CalendarClock, IdCard, MessageCircle, Radio, UserPlus } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { getEventStartDateTime } from '../lib/date';
 import { isLive, startsIn } from './time';
@@ -10,7 +10,7 @@ const SOON_MS = 3 * 60 * 60 * 1000;
 
 export interface Reminder {
   id: string;
-  tone: 'live' | 'soon' | 'nudge' | 'added';
+  tone: 'live' | 'soon' | 'nudge' | 'added' | 'reply';
   title: string;
   detail: string;
   eventId?: string;
@@ -36,16 +36,25 @@ export function useReminders(
   hasProfile: boolean,
   now: Date,
   /** People who added you, newest first (from the account). */
-  addedBy: { personId: string; name: string }[] = []
+  addedBy: { personId: string; name: string }[] = [],
+  /** Replies to your stories, newest first (from the account). */
+  repliedBy: { id: string; personId: string; name: string; body: string }[] = []
 ) {
   const reminders = useMemo<Reminder[]>(() => {
-    const list: Reminder[] = addedBy.map((a) => ({
+    const list: Reminder[] = repliedBy.map((r) => ({
+      id: `reply:${r.id}`,
+      tone: 'reply' as const,
+      title: `${r.name} replied to your story`,
+      detail: r.body,
+      personId: r.personId,
+    }));
+    list.push(...addedBy.map((a) => ({
       id: `added:${a.personId}`,
       tone: 'added' as const,
       title: `${a.name} added you`,
       detail: 'Tap to see their profile and add them back.',
       personId: a.personId,
-    }));
+    })));
     for (const e of events) {
       if (!isSaved(e.id)) continue;
       if (isLive(e, now)) {
@@ -62,7 +71,7 @@ export function useReminders(
       list.push({ id: 'nudge:badge', tone: 'nudge', title: 'Make your badge', detail: 'So people you meet can scan and add you.' });
     }
     return list;
-  }, [events, isSaved, hasProfile, now, addedBy]);
+  }, [events, isSaved, hasProfile, now, addedBy, repliedBy]);
 
   const [seen, setSeen] = useState<string[]>(readSeen);
   const unread = reminders.some((r) => !seen.includes(r.id));
@@ -79,12 +88,13 @@ export function useReminders(
   return { reminders, unread, markSeen };
 }
 
-const ICONS = { live: Radio, soon: CalendarClock, nudge: IdCard, added: UserPlus } as const;
+const ICONS = { live: Radio, soon: CalendarClock, nudge: IdCard, added: UserPlus, reply: MessageCircle } as const;
 const TONES = {
   live: 'bg-[var(--app-live-soft)] text-[var(--app-live)]',
   soon: 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]',
   nudge: 'bg-[var(--app-pressed)] text-[var(--app-primary)]',
   added: 'bg-[var(--app-primary-soft)] text-[var(--app-primary)]',
+  reply: 'bg-[var(--app-primary-soft)] text-[var(--app-primary)]',
 } as const;
 
 export function BellButton({ unread, onClick }: { unread: boolean; onClick: () => void }) {
@@ -124,7 +134,7 @@ export function NotificationsSheet({
         <h2 className="app-title text-[26px]">Notifications</h2>
         {reminders.length === 0 ? (
           <p className="mt-3 text-[15px] text-[var(--app-muted)]">
-            Nothing right now. People who add you, and saved events about to start, show up here.
+            Nothing right now. People who add you or reply to your stories, and saved events about to start, show up here.
           </p>
         ) : (
           <ul className="mt-4 space-y-2">

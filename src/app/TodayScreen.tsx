@@ -5,6 +5,7 @@ import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } from './ui';
 import { BlankBadge, LanyardBadge, Mandala } from './Badge';
+import { useStoryReplies } from '../lib/useStoryReplies';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
 import { StoriesRow } from './Stories';
@@ -181,7 +182,19 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       }),
     [addedMe, people]
   );
-  const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy);
+  // Replies to your stories, for the bell.
+  const { replies } = useStoryReplies();
+  const repliedBy = useMemo(
+    () =>
+      replies.map((r) => ({
+        id: r.id,
+        personId: r.fromProfileId,
+        name: people.find((x) => x.id === r.fromProfileId)?.name ?? 'Someone',
+        body: r.body,
+      })),
+    [replies, people]
+  );
+  const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy, repliedBy);
 
   return (
     <div className="pb-6">

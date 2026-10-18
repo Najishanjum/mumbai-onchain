@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type TouchEvent } from 'react';
-import { Check, Loader2, MapPin, MoreHorizontal, Plus, Trash2, UserPlus, X } from 'lucide-react';
-import type { Snap } from '../types/snap';
+import { Check, Loader2, MapPin, MessageCircle, MoreHorizontal, Plus, Send, Trash2, UserPlus, X } from 'lucide-react';
+import { NO_EVENT_ID, type Snap } from '../types/snap';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -8,6 +8,8 @@ import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { roleColor } from './Badge';
 import { useBackToClose } from '../lib/useBackToClose';
+import { useStoryReplies } from '../lib/useStoryReplies';
+import { requireApp } from '../lib/appGate';
 
 const SEEN_KEY = 'mo_seen_snaps';
 const STORY_MS = 5000;
@@ -211,6 +213,10 @@ function StoryViewer({
   });
   const [paused, setPaused] = useState(false);
   const touch = useRef<{ x: number; y: number; t: number } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Stays true a moment after the keyboard goes, so the tap that put it away
+  // doesn't also skip to the next snap.
+  const typingRef = useRef(false);
 
   // A copy, so a deleted snap disappears from the story straight away.
   const [stories, setStories] = useState(queue);
@@ -218,9 +224,38 @@ function StoryViewer({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
   const { deleteSnap, isOwnerOfSnap } = useSnapStore();
+  const { people } = usePeopleStore();
+  const { replies, canReply, send } = useStoryReplies();
   const story = stories[storyAt];
   useBackToClose(true, onClose);
   const snap = story?.snaps[snapAt];
+
+  // Replying: the story waits while you type, and the bar rides above the
+  // keyboard (iPhone covers the page instead of resizing it).
+  const [draft, setDraft] = useState('');
+  const [typing, setTyping] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState(false);
+  const [repliesOpen, setRepliesOpen] = useState(false);
+  const [keyboard, setKeyboard] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!typing || !vv) return setKeyboard(0);
+    const update = () => setKeyboard(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [typing]);
+  useEffect(() => {
+    if (!sent) return;
+    const t = setTimeout(() => setSent(false), 1800);
+    return () => clearTimeout(t);
+  }, [sent]);
 
   useEffect(() => {
     if (snap) onSeen(snap.id);
@@ -230,6 +265,7 @@ function StoryViewer({
     const prev = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
+      if (typing) return;
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight') next();
       if (e.key === 'ArrowLeft') back();
@@ -282,8 +318,26 @@ function StoryViewer({
     setSnapAt(0);
   }
 
+  async function sendReply() {
+    if (!snap || sending || !draft.trim()) return;
+    setSending(true);
+    setSendError(false);
+    const ok = await send(snap.id, draft);
+    setSending(false);
+    if (!ok) return setSendError(true);
+    setDraft('');
+    setSent(true);
+    inputRef.current?.blur();
+  }
+
   const mine = isMine(story);
   const canDelete = isOwnerOfSnap(snap);
+  const snapReplies = mine ? replies.filter((r) => r.snapId === snap.id) : [];
+  const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? 'Someone';
+  const avatarOf = (id: string) => people.find((p) => p.id === id)?.avatar;
+  // A snap from no event has no "where" to show.
+  const place = snap.eventId === NO_EVENT_ID ? '' : snap.eventName || snap.location;
+  const held = paused || Boolean(menu) || typing || repliesOpen;
   const connected = getConnectionStatus(story.authorId) === 'CONNECTED';
   const color = roleColor(story.role);
   const stop = { onTouchStart: (e: TouchEvent) => e.stopPropagation(), onTouchEnd: (e: TouchEvent) => e.stopPropagation() };
@@ -303,6 +357,8 @@ function StoryViewer({
         touch.current = null;
         setPaused(false);
         if (!t) return;
+        // Tapping away while typing just puts the keyboard away.
+        if (typing) return inputRef.current?.blur();
         const dx = e.changedTouches[0].clientX - t.x;
         const dy = e.changedTouches[0].clientY - t.y;
         if (dy > 90 && Math.abs(dy) > Math.abs(dx)) return onClose();
@@ -318,7 +374,7 @@ function StoryViewer({
               <span
                 key={`${storyAt}-${snapAt}`}
                 className="story-progress block h-full bg-white"
-                style={{ animationDuration: `${STORY_MS}ms`, animationPlayState: paused || menu ? 'paused' : 'running' }}
+                style={{ animationDuration: `${STORY_MS}ms`, animationPlayState: held ? 'paused' : 'running' }}
                 onAnimationEnd={next}
               />
             )}
@@ -386,19 +442,126 @@ function StoryViewer({
       <div className="relative flex-1 flex items-center justify-center overflow-hidden">
         <img src={snap.imageUrl} alt={snap.caption || `Snap by ${story.name}`} className="max-w-full max-h-full object-contain" draggable={false} />
         {/* Tap the left third to go back, anywhere else to go on */}
-        <button type="button" aria-label="Previous" onClick={back} className="absolute inset-y-0 left-0 w-1/3" />
-        <button type="button" aria-label="Next" onClick={next} className="absolute inset-y-0 right-0 w-2/3" />
+        <button type="button" aria-label="Previous" onClick={() => !typingRef.current && back()} className="absolute inset-y-0 left-0 w-1/3" />
+        <button type="button" aria-label="Next" onClick={() => !typingRef.current && next()} className="absolute inset-y-0 right-0 w-2/3" />
       </div>
 
-      {(snap.caption || snap.eventName || snap.location) && (
-        <div className="absolute inset-x-0 bottom-0 px-5 pt-16 pb-[calc(env(safe-area-inset-bottom)+20px)] bg-gradient-to-t from-black/85 to-transparent pointer-events-none">
-          {snap.caption && <p className="text-[16px] leading-snug">{snap.caption}</p>}
-          {(snap.eventName || snap.location) && (
-            <p className="mt-1.5 flex items-center gap-1 text-[13px] text-white/80">
-              <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-              <span className="truncate">{snap.eventName || snap.location}</span>
-            </p>
-          )}
+      {/* Caption, then a reply bar on someone else's story or the replies to yours */}
+      <div
+        className="absolute inset-x-0 bottom-0 px-4 pt-16 pb-[calc(env(safe-area-inset-bottom)+14px)] bg-gradient-to-t from-black/85 to-transparent pointer-events-none"
+        style={keyboard ? { bottom: keyboard, paddingBottom: 10 } : undefined}
+      >
+        {(snap.caption || place) && !typing && (
+          <div className="px-1 mb-3">
+            {snap.caption && <p className="text-[16px] leading-snug">{snap.caption}</p>}
+            {place && (
+              <p className="mt-1.5 flex items-center gap-1 text-[13px] text-white/80">
+                <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span className="truncate">{place}</span>
+              </p>
+            )}
+          </div>
+        )}
+        {!mine && isRealSnap(snap) && (
+          <form
+            className="pointer-events-auto flex items-center gap-2"
+            {...stop}
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendReply();
+            }}
+          >
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                setSendError(false);
+              }}
+              onFocus={(e) => {
+                // On the website, replies are in the app; signed out, there's nobody to send as.
+                if (!requireApp('reply') || !canReply) {
+                  e.currentTarget.blur();
+                  return;
+                }
+                typingRef.current = true;
+                setTyping(true);
+              }}
+              onBlur={() => {
+                setTyping(false);
+                setTimeout(() => (typingRef.current = false), 350);
+              }}
+              maxLength={500}
+              enterKeyHint="send"
+              placeholder={sent ? 'Reply sent ✓' : canReply ? `Reply to ${story.name.split(' ')[0]}…` : 'Make your badge to reply'}
+              aria-label={`Reply to ${story.name}`}
+              className="flex-1 min-w-0 h-12 px-4 rounded-full bg-black/30 border border-white/40 text-[16px] text-white placeholder:text-white/75 outline-none focus:border-white backdrop-blur-sm"
+            />
+            {draft.trim() && (
+              <button
+                type="submit"
+                disabled={sending}
+                aria-label="Send reply"
+                className="app-press shrink-0 w-12 h-12 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] flex items-center justify-center disabled:opacity-60"
+              >
+                {sending ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <Send className="w-5 h-5" aria-hidden="true" />}
+              </button>
+            )}
+          </form>
+        )}
+        {sendError && <p className="mt-2 px-1 text-[13px] text-white">Couldn’t send it. Check your connection and try again.</p>}
+        {mine && (
+          <button
+            type="button"
+            onClick={() => setRepliesOpen(true)}
+            {...stop}
+            className="pointer-events-auto app-press mx-auto h-11 px-4 rounded-full bg-black/30 border border-white/30 backdrop-blur-sm text-[14px] font-semibold flex items-center gap-2"
+          >
+            <MessageCircle className="w-4.5 h-4.5" aria-hidden="true" />
+            {snapReplies.length === 0 ? 'No replies yet' : `${snapReplies.length} ${snapReplies.length === 1 ? 'reply' : 'replies'}`}
+          </button>
+        )}
+      </div>
+
+      {/* Replies to your snap */}
+      {repliesOpen && (
+        <div className="absolute inset-0 z-20 flex items-end" {...stop}>
+          <button type="button" aria-label="Close replies" onClick={() => setRepliesOpen(false)} className="absolute inset-0 bg-black/50" />
+          <div
+            role="dialog"
+            aria-label="Replies"
+            className="relative w-full max-h-[70dvh] overflow-y-auto rounded-t-[24px] bg-[var(--app-surface)] text-[var(--app-ink)] px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
+          >
+            <p className="px-1 text-[17px] font-extrabold">Replies</p>
+            {snapReplies.length === 0 ? (
+              <p className="px-1 mt-1 text-[14px] text-[var(--app-muted)]">When people reply to this snap, only you see it here.</p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {snapReplies.map((r) => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenPerson(r.fromProfileId)}
+                      className="app-press w-full flex items-start gap-3 p-3 rounded-2xl bg-[var(--app-bg)] text-left"
+                    >
+                      <PersonAvatar name={nameOf(r.fromProfileId)} avatarUrl={avatarOf(r.fromProfileId)} size="sm" className="rounded-full! shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[14px] font-bold">{nameOf(r.fromProfileId)}</span>
+                        <span className="block text-[15px] leading-snug whitespace-pre-wrap break-words">{r.body}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              type="button"
+              onClick={() => setRepliesOpen(false)}
+              className="app-press mt-2 w-full h-14 rounded-2xl text-[16px] font-semibold"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
 

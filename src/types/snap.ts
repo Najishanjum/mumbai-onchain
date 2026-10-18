@@ -1,3 +1,6 @@
+/** "Where" for a snap that isn't from any event: shows for everyone, on no event's page. */
+export const NO_EVENT_ID = 'general';
+
 export type SnapReactionType = 'heart' | 'fire' | 'eyes' | 'clap';
 
 export interface SnapReactions {

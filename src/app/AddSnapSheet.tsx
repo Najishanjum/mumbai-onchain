@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Camera, Check, ImagePlus, Loader2, X } from 'lucide-react';
 import type { EventItem } from '../types/event';
+import { NO_EVENT_ID } from '../types/snap';
 import { useSnapStore } from '../lib/useSnapStore';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import { useSavedEvents } from '../lib/useSavedEvents';
@@ -39,7 +40,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
-  const [eventId, setEventId] = useState(choices[0]?.id ?? '');
+  const [eventId, setEventId] = useState(choices[0]?.id ?? NO_EVENT_ID);
   const [caption, setCaption] = useState('');
   const [tagged, setTagged] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -62,13 +63,14 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
   async function post() {
     if (!file) return setError('Add a photo first.');
     const ev = events.find((e) => e.id === eventId);
+    const general = eventId === NO_EVENT_ID;
     setBusy(true);
     setError(null);
     try {
       await addSnap({
         file,
-        eventId: ev?.id ?? '',
-        eventName: ev?.title ?? 'Mumbai Onchain Week',
+        eventId: general ? NO_EVENT_ID : (ev?.id ?? ''),
+        eventName: general ? 'Mumbai Onchain' : (ev?.title ?? 'Mumbai Onchain Week'),
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' }),
         caption: caption.trim(),
         location: ev && ev.location !== VENUE_TBA ? ev.location : 'Mumbai',
@@ -174,6 +176,19 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
 
         <div className="mt-4 app-label mb-2">Where</div>
         <div className="rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
+          {/* Not from an event: still in everyone's stories, just without an event label */}
+          <button
+            type="button"
+            onClick={() => setEventId(NO_EVENT_ID)}
+            aria-pressed={eventId === NO_EVENT_ID}
+            className="app-press w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--app-pressed)]"
+          >
+            <span className="flex-1 min-w-0">
+              <span className="block text-[15px] font-semibold truncate">No event</span>
+              <span className="block text-[13px] text-[var(--app-muted)]">For everyone on Mumbai Onchain</span>
+            </span>
+            {eventId === NO_EVENT_ID && <Check className="w-5 h-5 text-[var(--app-primary)]" aria-hidden="true" />}
+          </button>
           {choices.map((e) => (
             <button
               key={e.id}
