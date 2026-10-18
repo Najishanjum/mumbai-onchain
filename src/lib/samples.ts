@@ -7,7 +7,7 @@ import type { Snap } from '../types/snap';
 // mixed into the directory and feed. The app hides them so attendees only
 // see people who actually signed up.
 // lean-ctx: app-only for now; remove from the website too once Najish agrees.
-const SAMPLE_PERSON_IDS = new Set(INITIAL_PEOPLE.map((p) => p.id));
+export const SAMPLE_PERSON_IDS = new Set(INITIAL_PEOPLE.map((p) => p.id));
 const SAMPLE_SNAP_IDS = new Set(INITIAL_SNAPS.map((s) => s.id));
 
 export const isRealPerson = (p: PersonProfile): boolean => !SAMPLE_PERSON_IDS.has(p.id);
