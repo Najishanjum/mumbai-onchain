@@ -79,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onInsta
                 : 'border-transparent text-[#555555] hover:text-[#000000]'
             }`}
           >
-            <span>PEOPLE / CONNECT</span>
+            <span>PEOPLE</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] inline-block" />
           </button>
 
@@ -101,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onInsta
             className="px-3 py-1.5 transition-all border-b-2 border-transparent font-bold flex items-center gap-1.5 text-[#000000] hover:text-[#0052FF] hover:border-[#0052FF] group"
             title="Open Devcon 8 ID Generator web app"
           >
-            <span>ID GENERATOR</span>
+            <span>ID GEN</span>
             <span className="w-2 h-2 rounded-full bg-[#5FE3D6] animate-pulse" />
             <ArrowUpRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </a>
@@ -137,10 +137,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onInsta
             </a>
           </div>
 
-          <div className="hidden xl:flex flex-col text-right font-mono text-[10px] leading-tight text-[#666666] border-r border-[#D8D8D8] pr-3">
-            <span className="font-bold text-[#050505]">01—08 NOV 2026</span>
-            <span>MUMBAI, INDIA</span>
-          </div>
 
           {!installed && (
             <button
