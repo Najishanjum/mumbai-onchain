@@ -4,6 +4,7 @@ import type { EventItem } from '../types/event';
 import { isLive, VENUE_TBA } from './time';
 import { eventCover } from './covers';
 import { useBackToClose } from '../lib/useBackToClose';
+import { useKeyboardViewport } from '../lib/useKeyboardViewport';
 
 export function SectionHeader({
   title,
@@ -235,21 +236,10 @@ export function Sheet({
   }, [open, onClose, dismissible]);
 
   // iPhone's keyboard covers the page instead of resizing it, so a bottom
-  // sheet's fields ended up underneath it. Lift the sheet by the keyboard's
-  // height (what the visual viewport loses at the bottom) while it's open.
-  const [keyboard, setKeyboard] = useState(0);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!open || !vv) return;
-    const update = () => setKeyboard(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
-    update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-    };
-  }, [open]);
+  // sheet's fields ended up underneath it. While it's up, the sheet sits in
+  // the visible area, right on top of the keyboard.
+  const kb = useKeyboardViewport(open);
+  const keyboard = kb?.keyboard ?? 0;
 
   // A new event or person in an already-open sheet starts at the top.
   useEffect(() => {
@@ -273,7 +263,7 @@ export function Sheet({
   };
 
   return (
-    <div className="fixed inset-x-0 top-0 z-[70] flex items-end justify-center" style={{ bottom: keyboard }}>
+    <div className="fixed inset-x-0 top-0 bottom-0 z-[70] flex items-end justify-center" style={kb ? { top: kb.top, height: kb.height, bottom: 'auto' } : undefined}>
       <div
         className="app-backdrop absolute inset-0 bg-black/40"
         onClick={dismissible ? onClose : undefined}
@@ -309,6 +299,8 @@ export function Sheet({
         </button>
         {children}
       </div>
+      {/* Behind the see-through keyboard: more sheet, not the screen underneath. */}
+      {kb && <div className="absolute top-full left-1/2 -translate-x-1/2 w-full max-w-lg bg-[var(--app-bg)]" style={{ height: kb.keyboard + 100 }} aria-hidden="true" />}
     </div>
   );
 }

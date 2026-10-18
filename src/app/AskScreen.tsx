@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
 import { ArrowUp, ChevronLeft, Loader2, MapPin, RotateCcw } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
@@ -71,6 +72,8 @@ export function AskScreen({ open, onClose, events, people, myProfile, connection
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   useBackToClose(open, onClose);
+  // While typing, the screen fits above the keyboard (header still showing).
+  const kb = useKeyboardViewport(open);
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
   const onlyWelcome = messages.length === 1 && messages[0].id.startsWith('msg-welcome');
 
@@ -84,7 +87,7 @@ export function AskScreen({ open, onClose, events, people, myProfile, connection
 
   useEffect(() => {
     if (open) endRef.current?.scrollIntoView({ block: 'end' });
-  }, [open, messages, busy]);
+  }, [open, messages, busy, kb?.height]);
 
   // Stop the page behind from scrolling while Ask is up.
   useEffect(() => {
@@ -131,7 +134,7 @@ export function AskScreen({ open, onClose, events, people, myProfile, connection
   const prompts = [t.suggestedPrompt1, t.suggestedPrompt2, t.suggestedPrompt3, t.suggestedPrompt4, t.suggestedPrompt5];
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={t.assistantName} className="app fixed inset-0 z-[60] flex flex-col bg-[var(--app-bg)] [background-image:var(--app-glow)] bg-no-repeat">
+    <div role="dialog" aria-modal="true" aria-label={t.assistantName} className="app fixed inset-0 z-[60] flex flex-col bg-[var(--app-bg)] [background-image:var(--app-glow)] bg-no-repeat" style={keyboardFit(kb, 'var(--app-bg)')}>
       <header className="shrink-0 pt-[calc(env(safe-area-inset-top)+8px)] px-3 pb-2 flex items-center gap-2 border-b border-[var(--app-line)]">
         <button type="button" onClick={onClose} aria-label="Back" className="app-press w-11 h-11 rounded-full flex items-center justify-center">
           <ChevronLeft className="w-6 h-6" aria-hidden="true" />
@@ -246,6 +249,7 @@ export function AskScreen({ open, onClose, events, people, myProfile, connection
           e.preventDefault();
           send(input);
         }}
+        style={kb ? { paddingBottom: 10 } : undefined}
         className="shrink-0 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+10px)] border-t border-[var(--app-line)] bg-[var(--app-bg)] flex items-center gap-2"
       >
         <label htmlFor="ask-input" className="sr-only">

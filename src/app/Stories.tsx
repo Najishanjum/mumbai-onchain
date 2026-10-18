@@ -9,6 +9,7 @@ import { PersonAvatar } from '../components/PersonAvatar';
 import { roleColor } from './Badge';
 import { useBackToClose } from '../lib/useBackToClose';
 import { useStoryReplies } from '../lib/useStoryReplies';
+import { keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
 import { requireApp } from '../lib/appGate';
 
 const SEEN_KEY = 'mo_seen_snaps';
@@ -238,19 +239,7 @@ function StoryViewer({
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState(false);
   const [repliesOpen, setRepliesOpen] = useState(false);
-  const [keyboard, setKeyboard] = useState(0);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!typing || !vv) return setKeyboard(0);
-    const update = () => setKeyboard(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
-    update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-    };
-  }, [typing]);
+  const kb = useKeyboardViewport(typing);
   useEffect(() => {
     if (!sent) return;
     const t = setTimeout(() => setSent(false), 1800);
@@ -348,6 +337,7 @@ function StoryViewer({
       aria-modal="true"
       aria-label={`${story.name}'s story`}
       className="app fixed inset-0 z-[75] bg-black text-white flex flex-col select-none"
+      style={keyboardFit(kb, '#000')}
       onTouchStart={(e) => {
         touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
         setPaused(true);
@@ -449,7 +439,7 @@ function StoryViewer({
       {/* Caption, then a reply bar on someone else's story or the replies to yours */}
       <div
         className="absolute inset-x-0 bottom-0 px-4 pt-16 pb-[calc(env(safe-area-inset-bottom)+14px)] bg-gradient-to-t from-black/85 to-transparent pointer-events-none"
-        style={keyboard ? { bottom: keyboard, paddingBottom: 10 } : undefined}
+        style={kb ? { paddingBottom: 10 } : undefined}
       >
         {(snap.caption || place) && !typing && (
           <div className="px-1 mb-3">
