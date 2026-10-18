@@ -83,9 +83,10 @@ export function AboutScreen({ open, onClose }: { open: boolean; onClose: () => v
         </Section>
 
         <Section title="Who made it">
-          <p>Two independent builders who met on X and wanted one place for the whole week.</p>
+          <p>Independent builders who wanted one place for the whole week.</p>
           <Maker name="Najish" role="Idea and website" handle="najish_anjum" />
           <Maker name="Nimsara" role="App design and development" handle="nimsaraonline" />
+          <Maker name="Moinuddin" role="PR and editing" handle="md_moinuddin1" />
         </Section>
 
         <Section title="Not affiliated">
