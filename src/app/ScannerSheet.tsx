@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
+import { keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
 import { AtSign, Check, ImageUp, RefreshCw, SwitchCamera, UserPlus, X } from 'lucide-react';
 import type { ConnectionStatus, PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
@@ -42,6 +43,8 @@ function Scanner({ onClose, people, getConnectionStatus, onAdd, onOpenPerson }: 
   const [result, setResult] = useState<Result | null>(null);
   const [manual, setManual] = useState(false);
   const [query, setQuery] = useState('');
+  // Typing a handle: keep the screen in the area above the keyboard.
+  const kb = useKeyboardViewport(manual);
   const [hint, setHint] = useState<string | null>(null);
 
   const resolve = useCallback((raw: string) => {
@@ -118,7 +121,7 @@ function Scanner({ onClose, people, getConnectionStatus, onAdd, onOpenPerson }: 
   const isLink = result && /^https?:\/\//i.test(result.raw);
 
   return (
-    <div className="app fixed inset-0 z-[80] bg-black text-white flex flex-col" role="dialog" aria-modal="true" aria-label="Scan a pass">
+    <div className="app fixed inset-0 z-[80] bg-black text-white flex flex-col" style={keyboardFit(kb, '#000')} role="dialog" aria-modal="true" aria-label="Scan a pass">
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] pb-3">
         <button type="button" onClick={onClose} aria-label="Close" className="app-press w-10 h-10 rounded-full bg-white/15 flex items-center justify-center">
