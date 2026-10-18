@@ -6,6 +6,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { signOut } from './auth';
 import { requireApp } from './appGate';
 import { storeAvatar } from './avatarStorage';
+import { SAMPLE_PERSON_IDS } from './samples';
 
 const PEOPLE_STORAGE_KEY = 'mumbai_onchain_people_profiles_v2';
 const MY_PROFILE_STORAGE_KEY = 'mumbai_onchain_my_profile_v2';
@@ -475,7 +476,69 @@ function usePeopleStoreState() {
       ...prev,
       [personId]: status,
     }));
-  }, []);
+    // Signed in with a profile: keep the add in the account, so the other
+    // person can see it ("added you") and it counts on both profiles.
+    const client = supabase;
+    const fromId = myProfile?.id;
+    // Demo people aren't real accounts: keep those adds on this phone only.
+    if (!client || !authUser || !fromId || fromId === personId || SAMPLE_PERSON_IDS.has(personId)) return;
+    (async () => {
+      if (status === 'CONNECTED') {
+        const { error } = await client.from('connections').upsert({ from_profile_id: fromId, to_profile_id: personId }, { ignoreDuplicates: true });
+        if (error) return console.error('Could not save add:', error.message);
+        // Best effort: a push to them if they allowed notifications.
+        client.functions.invoke('notify-connection', { body: { toProfileId: personId } }).catch(() => undefined);
+      } else {
+        const { error } = await client.from('connections').delete().eq('from_profile_id', fromId).eq('to_profile_id', personId);
+        if (error) console.error('Could not remove add:', error.message);
+      }
+    })();
+  }, [myProfile?.id, authUser]);
+
+  // Adds kept in the account: the ones you made (restored on a new phone) and
+  // the people who added you (the bell's "added you").
+  const connectionsRef = useRef(connections);
+  useEffect(() => {
+    connectionsRef.current = connections;
+  }, [connections]);
+  const [addedMe, setAddedMe] = useState<{ profileId: string; createdAt: string }[]>([]);
+  const accountLoaded = Boolean(authUser && accountReadyFor === authUser.id);
+  useEffect(() => {
+    const client = supabase;
+    const myId = myProfile?.id;
+    if (!client || !accountLoaded || !myId) {
+      setAddedMe([]);
+      return;
+    }
+    let live = true;
+    (async () => {
+      const [mine, toMe] = await Promise.all([
+        client.from('connections').select('to_profile_id').eq('from_profile_id', myId),
+        client.from('connections').select('from_profile_id, created_at').eq('to_profile_id', myId).order('created_at', { ascending: false }).limit(50),
+      ]);
+      if (!live) return;
+      // Adds made before they were saved to accounts: copy them up once,
+      // quietly (no notifications for old adds).
+      if (!mine.error) {
+        const saved = new Set((mine.data ?? []).map((r) => r.to_profile_id));
+        const earlier = Object.entries(connectionsRef.current)
+          .filter(([id, s]) => s === 'CONNECTED' && id !== myId && !saved.has(id) && !SAMPLE_PERSON_IDS.has(id))
+          .map(([id]) => ({ from_profile_id: myId, to_profile_id: id }));
+        if (earlier.length) client.from('connections').upsert(earlier, { ignoreDuplicates: true }).then(() => undefined);
+      }
+      if (mine.data?.length) {
+        setConnections((prev) => {
+          const next = { ...prev };
+          for (const r of mine.data) next[r.to_profile_id] = 'CONNECTED';
+          return next;
+        });
+      }
+      setAddedMe((toMe.data ?? []).map((r) => ({ profileId: r.from_profile_id, createdAt: r.created_at })));
+    })();
+    return () => {
+      live = false;
+    };
+  }, [accountLoaded, myProfile?.id]);
 
   const getConnectionStatus = useCallback((personId: string): ConnectionStatus => {
     return connections[personId] || 'NOT_CONNECTED';
@@ -556,7 +619,8 @@ function usePeopleStoreState() {
     refreshProfiles: fetchSupabaseProfiles,
     authUser,
     authReady,
-    accountReady: Boolean(authUser && accountReadyFor === authUser.id),
+    accountReady: accountLoaded,
+    addedMe,
     signOut: signOutAndClear,
     recheckAccount,
     setSelectedPersonId,

@@ -7,6 +7,7 @@ import type { PersonProfile } from '../types/person';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import { useSnapStore } from '../lib/useSnapStore';
 import { calculateMatchScore } from '../lib/matchingEngine';
+import { useConnectionCounts, type ConnectionCounts } from '../lib/useConnectionCounts';
 import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { Chip, Sheet } from './ui';
@@ -73,6 +74,8 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
 }) => {
   const { myProfile, connections, setConnectionStatus } = usePeopleStore();
   const { getSnapsByAuthor, setActiveSnapForViewer } = useSnapStore();
+  // Re-read when you add or remove them, so their "Added you" moves.
+  const counts = useConnectionCounts(person?.id, person ? connections[person.id] : null);
   if (!person) return null;
 
   const added = connections[person.id] === 'CONNECTED';
@@ -100,6 +103,7 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
           </span>
           {person.city}
         </p>
+        {counts && <ConnectionCountsLine counts={counts} />}
 
         <div className="mt-5 w-full grid grid-cols-1 gap-2">
           {isCurrentUser ? (
@@ -254,3 +258,14 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
     </Sheet>
   );
 };
+
+/** "12 Added · 8 Added you" under a name. */
+export function ConnectionCountsLine({ counts, className = 'mt-2' }: { counts: ConnectionCounts; className?: string }) {
+  return (
+    <p className={`${className} text-[14px] text-[var(--app-muted)]`}>
+      <b className="text-[var(--app-ink)]">{counts.added}</b> Added
+      <span aria-hidden="true"> · </span>
+      <b className="text-[var(--app-ink)]">{counts.addedYou}</b> Added you
+    </p>
+  );
+}

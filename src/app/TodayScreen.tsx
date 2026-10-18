@@ -5,6 +5,7 @@ import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } from './ui';
 import { BlankBadge, LanyardBadge, Mandala } from './Badge';
+import { usePeopleStore } from '../lib/usePeopleStore';
 import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
 import { StoriesRow } from './Stories';
 import { eventCover } from './covers';
@@ -170,7 +171,17 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   }, [badgeFlipped]);
   const scrollToFeed = useHeroSnap(feedRef, snapPaused);
   const [notesOpen, setNotesOpen] = useState(false);
-  const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now);
+  // People who added you, by name, for the bell.
+  const { addedMe } = usePeopleStore();
+  const addedBy = useMemo(
+    () =>
+      addedMe.flatMap((a) => {
+        const p = people.find((x) => x.id === a.profileId);
+        return p ? [{ personId: p.id, name: p.name }] : [];
+      }),
+    [addedMe, people]
+  );
+  const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy);
 
   return (
     <div className="pb-6">
@@ -275,6 +286,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         reminders={reminders}
         onOpenEvent={onOpenEvent}
         onCreateProfile={onCreateProfile}
+        onOpenPerson={onSelectPerson}
       />
 
       {/* Happening now */}

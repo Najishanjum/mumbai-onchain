@@ -5,6 +5,9 @@ import { PersonAvatar } from '../components/PersonAvatar';
 import { useAppTheme } from '../lib/useAppTheme';
 import { GroupedList, RowLink } from './ui';
 import { TelegramLogo, XLogo } from './BrandIcons';
+import { ConnectionCountsLine } from './PersonSheet';
+import { usePeopleStore } from '../lib/usePeopleStore';
+import { useConnectionCounts } from '../lib/useConnectionCounts';
 import { roleColor } from './Badge';
 import { THEME_LABELS } from './AppearanceScreen';
 
@@ -52,6 +55,10 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   onOpenAbout,
 }) => {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  // Your own "Added · Added you", re-read as either side changes.
+  const { connections, addedMe } = usePeopleStore();
+  const myAdds = Object.values(connections).filter((s) => s === 'CONNECTED').length;
+  const myCounts = useConnectionCounts(myProfile?.id, `${myAdds}:${addedMe.length}`);
   const icon = 'w-[18px] h-[18px]';
   // App already applies the theme; this only reads the current choice.
   const { pref: themePref } = useAppTheme(false);
@@ -84,6 +91,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
               {myProfile.xHandle && (
                 <p className="text-[15px] text-[var(--app-primary)] truncate">@{myProfile.xHandle.replace(/^@/, '')}</p>
               )}
+              {myCounts && <ConnectionCountsLine counts={myCounts} className="mt-1" />}
             </div>
           </div>
           {myProfile.bio && <p className="mt-4 text-[15px] leading-relaxed line-clamp-3">{myProfile.bio}</p>}

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Bell, CalendarClock, IdCard, Radio } from 'lucide-react';
+import { Bell, CalendarClock, IdCard, Radio, UserPlus } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { getEventStartDateTime } from '../lib/date';
 import { isLive, startsIn } from './time';
@@ -10,10 +10,11 @@ const SOON_MS = 3 * 60 * 60 * 1000;
 
 export interface Reminder {
   id: string;
-  tone: 'live' | 'soon' | 'nudge';
+  tone: 'live' | 'soon' | 'nudge' | 'added';
   title: string;
   detail: string;
   eventId?: string;
+  personId?: string;
 }
 
 function readSeen(): string[] {
@@ -29,9 +30,22 @@ function readSeen(): string[] {
  * now or start within 3 hours, and a nudge to make a badge. Nothing is sent
  * anywhere; the unread dot clears once the list has been opened.
  */
-export function useReminders(events: EventItem[], isSaved: (id: string) => boolean, hasProfile: boolean, now: Date) {
+export function useReminders(
+  events: EventItem[],
+  isSaved: (id: string) => boolean,
+  hasProfile: boolean,
+  now: Date,
+  /** People who added you, newest first (from the account). */
+  addedBy: { personId: string; name: string }[] = []
+) {
   const reminders = useMemo<Reminder[]>(() => {
-    const list: Reminder[] = [];
+    const list: Reminder[] = addedBy.map((a) => ({
+      id: `added:${a.personId}`,
+      tone: 'added' as const,
+      title: `${a.name} added you`,
+      detail: 'Tap to see their profile and add them back.',
+      personId: a.personId,
+    }));
     for (const e of events) {
       if (!isSaved(e.id)) continue;
       if (isLive(e, now)) {
@@ -48,7 +62,7 @@ export function useReminders(events: EventItem[], isSaved: (id: string) => boole
       list.push({ id: 'nudge:badge', tone: 'nudge', title: 'Make your badge', detail: 'So people you meet can scan and add you.' });
     }
     return list;
-  }, [events, isSaved, hasProfile, now]);
+  }, [events, isSaved, hasProfile, now, addedBy]);
 
   const [seen, setSeen] = useState<string[]>(readSeen);
   const unread = reminders.some((r) => !seen.includes(r.id));
@@ -65,11 +79,12 @@ export function useReminders(events: EventItem[], isSaved: (id: string) => boole
   return { reminders, unread, markSeen };
 }
 
-const ICONS = { live: Radio, soon: CalendarClock, nudge: IdCard } as const;
+const ICONS = { live: Radio, soon: CalendarClock, nudge: IdCard, added: UserPlus } as const;
 const TONES = {
   live: 'bg-[var(--app-live-soft)] text-[var(--app-live)]',
   soon: 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]',
   nudge: 'bg-[var(--app-pressed)] text-[var(--app-primary)]',
+  added: 'bg-[var(--app-primary-soft)] text-[var(--app-primary)]',
 } as const;
 
 export function BellButton({ unread, onClick }: { unread: boolean; onClick: () => void }) {
@@ -94,12 +109,14 @@ export function NotificationsSheet({
   reminders,
   onOpenEvent,
   onCreateProfile,
+  onOpenPerson,
 }: {
   isOpen: boolean;
   onClose: () => void;
   reminders: Reminder[];
   onOpenEvent: (id: string) => void;
   onCreateProfile: () => void;
+  onOpenPerson: (id: string) => void;
 }) {
   return (
     <Sheet open={isOpen} onClose={onClose} label="Notifications">
@@ -107,7 +124,7 @@ export function NotificationsSheet({
         <h2 className="app-title text-[26px]">Notifications</h2>
         {reminders.length === 0 ? (
           <p className="mt-3 text-[15px] text-[var(--app-muted)]">
-            Nothing right now. Save events and you’ll see them here when they’re about to start.
+            Nothing right now. People who add you, and saved events about to start, show up here.
           </p>
         ) : (
           <ul className="mt-4 space-y-2">
@@ -119,7 +136,8 @@ export function NotificationsSheet({
                     type="button"
                     onClick={() => {
                       onClose();
-                      if (r.eventId) onOpenEvent(r.eventId);
+                      if (r.personId) onOpenPerson(r.personId);
+                      else if (r.eventId) onOpenEvent(r.eventId);
                       else onCreateProfile();
                     }}
                     className="app-press w-full flex items-center gap-3 p-3 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-left"
