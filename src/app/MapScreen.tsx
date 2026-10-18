@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BedDouble, ChevronLeft, Coffee, Heart, Laptop, Maximize2, Minimize2, MessageCircle, Navigation, Phone, Pill, Smartphone, TramFront, UtensilsCrossed, WashingMachine, X, type LucideIcon } from 'lucide-react';
+import { Banknote, BedDouble, ChevronLeft, Coffee, Crosshair, Heart, Laptop, LocateFixed, Maximize2, Minimize2, MessageCircle, Navigation, Phone, Pill, Plus, Smartphone, TramFront, UtensilsCrossed, WashingMachine, X, type LucideIcon } from 'lucide-react';
 import { LngLatBounds, Map as MapLibre, Marker, setWorkerUrl, type LayerSpecification, type StyleSpecification } from 'maplibre-gl';
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -8,6 +8,8 @@ import { PLACE_CATEGORIES, PLACES, type Credit, type Place, type PlaceCategory }
 import { useAppTheme } from '../lib/useAppTheme';
 import { useBackToClose } from '../lib/useBackToClose';
 import { VENUE_TBA } from './time';
+import { useCommunityPlaces, useRatingSummary, type RatingSummary } from '../lib/useCommunityPlaces';
+import { AddPlaceSheet, GoogleReviewsLink, PlaceReviews, RatingBadge } from './MapCommunity';
 
 // Free OpenStreetMap tiles from OpenFreeMap: no key, no limits, attribution
 // shown by MapLibre. Its dark style is recoloured for both themes below.
@@ -89,8 +91,8 @@ function venuePins(events: EventItem[]): Pin[] {
   return [...byName.values()];
 }
 
-function placePins(): Pin[] {
-  return PLACES.map((p) => {
+function placePins(list: Place[]): Pin[] {
+  return list.map((p) => {
     const cat = PLACE_CATEGORIES.find((c) => c.id === p.category)!;
     return { id: p.id, kind: p.category, name: p.name, lat: p.lat, lng: p.lng, color: cat.color, label: cat.label, area: p.area, place: p };
   });
@@ -212,7 +214,20 @@ function pinElement(pin: Pin, onSelect: (id: string) => void): HTMLElement {
  * dark map, filtered by category, with a card for the selected pin and a list
  * sorted by distance from the main venue.
  */
-export default function MapScreen({ open, onClose, events, onOpenVenues }: { open: boolean; onClose: () => void; events: EventItem[]; onOpenVenues: () => void }) {
+export default function MapScreen({
+  open,
+  onClose,
+  events,
+  onOpenVenues,
+  onRequireProfile,
+}: {
+  open: boolean;
+  onClose: () => void;
+  events: EventItem[];
+  onOpenVenues: () => void;
+  /** Adding or rating needs an account and a profile. */
+  onRequireProfile: () => void;
+}) {
   useBackToClose(open, onClose);
   const { resolved } = useAppTheme(false);
   const [filter, setFilter] = useState<Filter>('all');
@@ -227,7 +242,17 @@ export default function MapScreen({ open, onClose, events, onOpenVenues }: { ope
   const map = useRef<MapLibre | null>(null);
   const markers = useRef<Map<string, Marker>>(new Map());
 
-  const pins = useMemo(() => [...venuePins(events), ...placePins()], [events]);
+  const { places: community, canAdd, addPlace } = useCommunityPlaces(open);
+  const { summary, refresh: refreshRatings } = useRatingSummary(open);
+  // Adding a place: move the map so the crosshair is on it, then fill in the form.
+  const [picking, setPicking] = useState(false);
+  const [addAt, setAddAt] = useState<{ lat: number; lng: number } | null>(null);
+  const startAdding = () => {
+    if (!canAdd) return onRequireProfile();
+    setSelectedId(null);
+    setPicking(true);
+  };
+  const pins = useMemo(() => [...venuePins(events), ...placePins([...PLACES, ...community])], [events, community]);
   const visible = useMemo(() => pins.filter((p) => filter === 'all' || p.kind === filter), [pins, filter]);
   const sorted = useMemo(() => [...visible].sort((a, b) => km(HOME, a) - km(HOME, b)), [visible]);
   // One thank-you per person whose picks are on screen.
@@ -315,10 +340,18 @@ export default function MapScreen({ open, onClose, events, onOpenVenues }: { ope
         <button type="button" onClick={onClose} aria-label="Back" className="app-press w-11 h-11 rounded-full flex items-center justify-center">
           <ChevronLeft className="w-6 h-6" aria-hidden="true" />
         </button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="app-title text-[20px] leading-tight">Map</h1>
           <p className="app-label">Venues and places around the week</p>
         </div>
+        <button
+          type="button"
+          onClick={startAdding}
+          className="app-press h-10 px-3.5 mr-1 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[14px] font-bold inline-flex items-center gap-1"
+        >
+          <Plus className="w-4 h-4" strokeWidth={2.6} aria-hidden="true" />
+          Add place
+        </button>
       </header>
 
       <div
@@ -357,6 +390,15 @@ export default function MapScreen({ open, onClose, events, onOpenVenues }: { ope
         {/* Sized inline: maplibre-gl.css sets the map container to position: relative,
             which beats a Tailwind class and collapsed it to 0px tall. */}
         <div ref={container} style={{ position: 'absolute', inset: 0 }} />
+        {picking && (
+          // The new place goes wherever this crosshair is when they tap Next.
+          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center" aria-hidden="true">
+            <span className="relative w-12 h-12 flex items-center justify-center text-[var(--app-primary)] drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+              <Crosshair className="w-12 h-12" strokeWidth={1.6} />
+              <span className="absolute w-2.5 h-2.5 rounded-full bg-[var(--app-primary)]" />
+            </span>
+          </div>
+        )}
         {expanded && (
           <button
             type="button"
@@ -382,12 +424,57 @@ export default function MapScreen({ open, onClose, events, onOpenVenues }: { ope
       <div
         className={
           expanded
-            ? `absolute inset-x-0 bottom-0 z-10 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] ${selected ? '' : 'hidden'}`
+            ? `absolute inset-x-0 bottom-0 z-10 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] ${selected || picking ? '' : 'hidden'}`
             : 'shrink-0 h-[38%] overflow-y-auto overscroll-contain px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)]'
         }
       >
-        {selected ? (
-          <PinCard pin={selected} onClose={() => setSelectedId(null)} onOpenVenues={onOpenVenues} />
+        {picking ? (
+          <div className="p-4 rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] flex flex-col gap-3">
+            <div>
+              <h2 className="app-title text-[20px]">Where is it?</h2>
+              <p className="text-[14px] text-[var(--app-muted)]">Move the map so the crosshair sits on the place, then tap Next.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  navigator.geolocation?.getCurrentPosition(
+                    (pos) => map.current?.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16 }),
+                    () => undefined,
+                    { enableHighAccuracy: true, timeout: 10000 }
+                  )
+                }
+                className="app-press h-11 px-4 rounded-full bg-[var(--app-pressed)] text-[14px] font-bold inline-flex items-center gap-1.5"
+              >
+                <LocateFixed className="w-4 h-4" aria-hidden="true" />
+                Use my location
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const c = map.current?.getCenter();
+                  if (!c) return;
+                  setAddAt({ lat: c.lat, lng: c.lng });
+                  setPicking(false);
+                }}
+                className="app-press h-11 px-5 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[14px] font-bold"
+              >
+                Next
+              </button>
+              <button type="button" onClick={() => setPicking(false)} className="app-press h-11 px-4 rounded-full text-[14px] font-semibold text-[var(--app-muted)]">
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : selected ? (
+          <PinCard
+            pin={selected}
+            summary={selected.place ? summary[selected.place.id] : undefined}
+            onClose={() => setSelectedId(null)}
+            onOpenVenues={onOpenVenues}
+            onRated={refreshRatings}
+            onRequireProfile={onRequireProfile}
+          />
         ) : (
           <ul className="flex flex-col gap-2" aria-label="Places by distance">
             {credits.map((c) => (
@@ -411,6 +498,11 @@ export default function MapScreen({ open, onClose, events, onOpenVenues }: { ope
                       {p.eventCount ? ` · ${p.eventCount} event${p.eventCount > 1 ? 's' : ''}` : ''}
                       {p.place?.sample ? ' · Example' : ''}
                     </span>
+                    {p.place && summary[p.place.id] && (
+                      <span className="block mt-0.5">
+                        <RatingBadge summary={summary[p.place.id]} />
+                      </span>
+                    )}
                   </span>
                   <span className="app-mono text-[12px] text-[var(--app-muted)] shrink-0">{formatKm(km(HOME, p))}</span>
                 </button>
@@ -419,11 +511,27 @@ export default function MapScreen({ open, onClose, events, onOpenVenues }: { ope
           </ul>
         )}
       </div>
+
+      <AddPlaceSheet open={Boolean(addAt)} at={addAt} onClose={() => setAddAt(null)} onAdd={addPlace} />
     </div>
   );
 }
 
-function PinCard({ pin, onClose, onOpenVenues }: { pin: Pin; onClose: () => void; onOpenVenues: () => void }) {
+function PinCard({
+  pin,
+  summary,
+  onClose,
+  onOpenVenues,
+  onRated,
+  onRequireProfile,
+}: {
+  pin: Pin;
+  summary?: RatingSummary;
+  onClose: () => void;
+  onOpenVenues: () => void;
+  onRated: () => void;
+  onRequireProfile: () => void;
+}) {
   const p = pin.place;
   const facts = [p?.price, p?.hours].filter(Boolean).join(' · ');
   const action = 'app-press h-11 px-4 rounded-full inline-flex items-center gap-1.5 text-[14px] font-bold';
@@ -450,6 +558,8 @@ function PinCard({ pin, onClose, onOpenVenues }: { pin: Pin; onClose: () => void
       {p?.deal && <p className="text-[14px] font-semibold text-[var(--app-primary)]">{p.deal}</p>}
       {p?.approx && <p className="text-[12px] text-[var(--app-faint)]">The pin shows the area. Directions finds the exact place.</p>}
       {p?.credit && <CreditLine credit={p.credit} />}
+      {p?.addedBy && <p className="text-[12px] text-[var(--app-muted)]">Added by {p.addedBy} in Mumbai Onchain</p>}
+      {p?.osm && <p className="text-[12px] text-[var(--app-faint)]">From OpenStreetMap</p>}
       <div className="flex flex-wrap gap-2 mt-1">
         <a href={directions(pin)} target="_blank" rel="noopener noreferrer" className={`${action} bg-[var(--app-ink)] text-[var(--app-bg)]`}>
           <Navigation className="w-4 h-4" aria-hidden="true" />
@@ -477,7 +587,9 @@ function PinCard({ pin, onClose, onOpenVenues }: { pin: Pin; onClose: () => void
             Website
           </a>
         )}
+        {p && <GoogleReviewsLink name={pin.name} area={pin.area} />}
       </div>
+      {p && <PlaceReviews key={p.id} placeId={p.id} summary={summary} onRated={onRated} onRequireProfile={onRequireProfile} />}
     </div>
   );
 }

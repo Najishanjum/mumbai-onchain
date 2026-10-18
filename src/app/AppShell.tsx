@@ -358,6 +358,11 @@ export const AppShell: React.FC<AppShellProps> = ({
               setIsMapOpen(false);
               goTo('map');
             }}
+            onRequireProfile={() => {
+              // Sign in and make a profile first; the map closes so the steps show.
+              setIsMapOpen(false);
+              onEditProfile();
+            }}
           />
         </Suspense>
       )}
