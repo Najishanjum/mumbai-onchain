@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
-import { CalendarDays, Home, User, Users } from 'lucide-react';
+import { CalendarDays, Home, Loader2, User, Users } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { ConnectionStatus, PersonProfile } from '../types/person';
 import { PeopleScreen } from './PeopleScreen';
@@ -18,7 +18,46 @@ import { Scene } from './Scene';
 import { QuickActions } from './QuickActions';
 
 // The map library is large, so the Map screen loads only when it's opened.
-const MapScreen = lazy(() => import('./MapScreen'));
+// If its file can't be fetched (an older version of the app after a deploy),
+// reload once to pick up the new version instead of sitting on a black screen.
+const MAP_RELOAD_KEY = 'mo_map_reload';
+const MapScreen = lazy(() =>
+  import('./MapScreen')
+    .then((mod) => {
+      try {
+        sessionStorage.removeItem(MAP_RELOAD_KEY);
+      } catch {
+        // fine without it
+      }
+      return mod;
+    })
+    .catch(() => {
+      let reloaded = true;
+      try {
+        reloaded = sessionStorage.getItem(MAP_RELOAD_KEY) === '1';
+        sessionStorage.setItem(MAP_RELOAD_KEY, '1');
+      } catch {
+        // can't remember a reload, so don't risk a loop
+      }
+      if (!reloaded) {
+        window.location.reload();
+        return new Promise<never>(() => undefined);
+      }
+      return { default: MapUnavailable };
+    })
+);
+
+function MapUnavailable({ onClose }: { onClose: () => void }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Map" className="app fixed inset-0 z-[60] bg-[var(--app-bg)] flex flex-col items-center justify-center gap-3 px-8 text-center">
+      <p className="app-title text-[22px]">Couldn’t open the map</p>
+      <p className="text-[15px] text-[var(--app-muted)]">It needs internet the first time. Check your connection and try again.</p>
+      <button type="button" onClick={onClose} className="app-press mt-2 h-11 px-5 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-bold">
+        Back
+      </button>
+    </div>
+  );
+}
 import { ScheduleScreen } from './ScheduleScreen';
 import { MeScreen } from './MeScreen';
 import { AppearanceScreen } from './AppearanceScreen';
@@ -349,7 +388,13 @@ export const AppShell: React.FC<AppShellProps> = ({
       <FindProfileSheet isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} onSignIn={onSignIn} />
       <AboutScreen open={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
       {isMapOpen && (
-        <Suspense fallback={<div className="app fixed inset-0 z-[60] bg-[var(--app-bg)]" aria-busy="true" />}>
+        <Suspense
+          fallback={
+            <div className="app fixed inset-0 z-[60] bg-[var(--app-bg)] flex items-center justify-center" aria-busy="true">
+              <Loader2 className="w-7 h-7 animate-spin text-[var(--app-muted)]" aria-label="Loading map" />
+            </div>
+          }
+        >
           <MapScreen
             open={isMapOpen}
             onClose={() => setIsMapOpen(false)}

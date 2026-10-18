@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BedDouble, ChevronLeft, Coffee, Crosshair, Heart, Laptop, LocateFixed, Maximize2, Minimize2, MessageCircle, Navigation, Phone, Pill, Plus, Smartphone, TramFront, UtensilsCrossed, WashingMachine, X, type LucideIcon } from 'lucide-react';
+import { Banknote, BedDouble, ChevronLeft, Coffee, Crosshair, Heart, Laptop, Loader2, LocateFixed, Maximize2, Minimize2, MessageCircle, Navigation, Phone, Pill, Plus, Smartphone, TramFront, UtensilsCrossed, WashingMachine, X, type LucideIcon } from 'lucide-react';
 import { LngLatBounds, Map as MapLibre, Marker, setWorkerUrl, type LayerSpecification, type StyleSpecification } from 'maplibre-gl';
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -241,6 +241,9 @@ export default function MapScreen({
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibre | null>(null);
   const markers = useRef<Map<string, Marker>>(new Map());
+  // The basemap comes from the internet: show that it's loading, or that it
+  // can't, instead of an empty dark box.
+  const [mapState, setMapState] = useState<'loading' | 'ready' | 'failed'>('loading');
 
   const { places: community, canAdd, addPlace } = useCommunityPlaces(open);
   const { summary, refresh: refreshRatings } = useRatingSummary(open);
@@ -273,6 +276,9 @@ export default function MapScreen({
     ...PLACE_CATEGORIES.filter((c) => counts.has(c.id)),
   ];
 
+  const styleRef = useRef(resolved);
+  const retryRef = useRef<(() => void) | null>(null);
+
   // Create the map once while open; switch style with the app theme.
   useEffect(() => {
     if (!open || !container.current) return;
@@ -289,9 +295,28 @@ export default function MapScreen({
     wash.className = 'map-neon';
     m.getCanvas().after(wash);
     m.on('click', () => setSelectedId(null));
+    setMapState('loading');
+    m.once('load', () => setMapState('ready'));
+    // The style didn't arrive (offline, or a bad connection).
+    m.on('error', () => {
+      if (!m.isStyleLoaded()) setMapState('failed');
+    });
+    // Slow enough to be worth saying, e.g. on weak mobile data.
+    const slow = setTimeout(() => !m.isStyleLoaded() && !navigator.onLine && setMapState('failed'), 8000);
+    const retry = () => {
+      if (m.isStyleLoaded()) return;
+      setMapState('loading');
+      m.once('load', () => setMapState('ready'));
+      applyStyle(m, styleRef.current);
+    };
+    window.addEventListener('online', retry);
+    retryRef.current = retry;
     map.current = m;
     const all = markers.current;
     return () => {
+      clearTimeout(slow);
+      window.removeEventListener('online', retry);
+      retryRef.current = null;
       all.forEach((mk) => mk.remove());
       all.clear();
       m.remove();
@@ -300,7 +325,6 @@ export default function MapScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the style follows the theme below
   }, [open]);
 
-  const styleRef = useRef(resolved);
   useEffect(() => {
     if (styleRef.current === resolved) return;
     styleRef.current = resolved;
@@ -390,6 +414,25 @@ export default function MapScreen({
         {/* Sized inline: maplibre-gl.css sets the map container to position: relative,
             which beats a Tailwind class and collapsed it to 0px tall. */}
         <div ref={container} style={{ position: 'absolute', inset: 0 }} />
+        {mapState !== 'ready' && (
+          <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 px-6 text-center pointer-events-none">
+            {mapState === 'loading' ? (
+              <Loader2 className="w-7 h-7 animate-spin text-[var(--app-muted)]" aria-label="Loading map" />
+            ) : (
+              <>
+                <p className="text-[16px] font-bold">Map needs internet</p>
+                <p className="text-[14px] text-[var(--app-muted)]">The places list below still works.</p>
+                <button
+                  type="button"
+                  onClick={() => retryRef.current?.()}
+                  className="pointer-events-auto app-press mt-1 h-10 px-4 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] text-[14px] font-semibold"
+                >
+                  Try again
+                </button>
+              </>
+            )}
+          </div>
+        )}
         {picking && (
           // The new place goes wherever this crosshair is when they tap Next.
           <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center" aria-hidden="true">

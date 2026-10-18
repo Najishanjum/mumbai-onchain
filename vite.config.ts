@@ -165,9 +165,10 @@ export default defineConfig(({ mode }) => {
           // index.html is deliberately NOT precached: a cache-first page kept
           // serving the old <head> (e.g. the iOS status-bar setting) after a
           // deploy, and iOS reads that when the app is added to the home screen.
-          globPatterns: ['**/*.{js,css}', 'icons/*.png', 'brand/*.webp', 'intro/*.webp'],
-          // The map library is ~1 MB and useless offline without tiles: fetched when the map opens.
-          globIgnores: ['**/MapScreen-*', '**/maplibre-*'],
+          // The map's code is included (and its worker, an .mjs): left to load on
+          // demand, an app still on an older version asked for a file the newer
+          // deploy no longer has and the map stayed black until a restart.
+          globPatterns: ['**/*.{js,mjs,css}', 'icons/*.png', 'brand/*.webp', 'intro/*.webp'],
           // The plugin adds a cache-first NavigationRoute by default; the
           // NetworkFirst rule below replaces it.
           navigateFallback: null,
@@ -227,6 +228,26 @@ export default defineConfig(({ mode }) => {
               options: {
                 cacheName: 'remote-images',
                 expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
+                cacheableResponse: { statuses: [0, 200] }
+              }
+            },
+            {
+              // Map style, fonts and sprites: quick from the cache, refreshed behind.
+              urlPattern: ({ url }) => url.hostname === 'tiles.openfreemap.org' && !url.pathname.endsWith('.pbf'),
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'map-style',
+                expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [0, 200] }
+              }
+            },
+            {
+              // Map tiles: the parts of Mumbai already seen also show offline.
+              urlPattern: ({ url }) => url.hostname === 'tiles.openfreemap.org' && url.pathname.endsWith('.pbf'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'map-tiles',
+                expiration: { maxEntries: 1500, maxAgeSeconds: 60 * 60 * 24 * 30 },
                 cacheableResponse: { statuses: [0, 200] }
               }
             }
