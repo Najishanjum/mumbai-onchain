@@ -1,9 +1,11 @@
+import { OSM_PLACES } from './osmPlaces';
+
 // City guide for the Map (centre button → Map): places attendees need around
 // the week, pinned next to the event venues. Event venues come from the
 // schedule; everything here is added by hand.
 //
-// The entries marked `sample` are placeholders for testing the map and must
-// be replaced with the real list before launch.
+// Hand-picked places live here; OpenStreetMap places are generated into
+// osmPlaces.ts; places people add in the app come from community_places.
 
 export type PlaceCategory =
   | 'stay'
@@ -33,6 +35,10 @@ export interface Place {
   /** A discount or perk for Mumbai Onchain attendees. */
   deal?: string;
   sample?: boolean;
+  /** From OpenStreetMap (osmPlaces.ts). */
+  osm?: boolean;
+  /** Added in the app by someone (community_places); their name for the card. */
+  addedBy?: string;
   /** The pin marks the neighbourhood, not the door; Directions searches by name instead. */
   approx?: boolean;
   /** Who recommended it, credited on the card with a link to their post. */
@@ -92,12 +98,15 @@ const CAFES: Place[] = [
   { id: 'scarlett-house-bandra', name: 'Scarlett House', category: 'cafe', lat: 19.0629, lng: 72.8299, area: 'Pali Village, Bandra', tip: 'Reservation only. Great interiors, good for dates and meetings.', credit: NIDHI_CAFES },
 ];
 
+const PICKS = [...HOSTELS, ...CAFES];
+
+/** About 150 m: the same name this close is the same place. */
+const near = (a: Place, b: Place) => Math.abs(a.lat - b.lat) < 0.0015 && Math.abs(a.lng - b.lng) < 0.0015;
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// Hand-picked places first; OpenStreetMap fills in the rest, minus anything
+// already picked (e.g. Mokai, Café Mondegar).
 export const PLACES: Place[] = [
-  ...HOSTELS,
-  ...CAFES,
-  { id: 'sample-food-bkc', name: 'Sample restaurant', category: 'food', lat: 19.0665, lng: 72.8686, area: 'BKC', tip: 'Placeholder until the real list is in', sample: true },
-  { id: 'sample-cowork-bkc', name: 'Sample coworking', category: 'cowork', lat: 19.0681, lng: 72.8722, area: 'BKC', tip: 'Placeholder until the real list is in', sample: true },
-  { id: 'sample-laundry-kurla', name: 'Sample laundry', category: 'laundry', lat: 19.0712, lng: 72.8790, area: 'Kurla West', tip: 'Placeholder until the real list is in', sample: true },
-  { id: 'sample-health-bkc', name: 'Sample pharmacy', category: 'health', lat: 19.0619, lng: 72.8603, area: 'BKC', tip: 'Placeholder until the real list is in', sample: true },
-  { id: 'sample-transport-bkc', name: 'BKC metro station', category: 'transport', lat: 19.0659, lng: 72.8626, area: 'BKC', tip: 'Placeholder until the real list is in', sample: true },
+  ...PICKS,
+  ...OSM_PLACES.filter((o) => !PICKS.some((p) => near(p, o) && (norm(p.name).includes(norm(o.name)) || norm(o.name).includes(norm(p.name))))),
 ];
