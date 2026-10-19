@@ -158,7 +158,9 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [isPassOpen, setIsPassOpen] = useState(false);
   const [isSaveCardOpen, setIsSaveCardOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [isMapOpen, setIsMapOpen] = useState(false);
+  // ?open=map (notifications, the home-screen shortcut) opens the map itself;
+  // ?tab=map is the Venues tab, kept for older links.
+  const [isMapOpen, setIsMapOpen] = useState(() => new URLSearchParams(window.location.search).get('open') === 'map');
   const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
   const [isFindOpen, setIsFindOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -175,6 +177,14 @@ export const AppShell: React.FC<AppShellProps> = ({
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [tab]);
+
+  // Drop ?open=map once used, so a reload doesn't open the map again.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('open')) return;
+    url.searchParams.delete('open');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, []);
 
   // The whole app wears the user's badge colour (see index.css). Remembered so
   // the next launch paints in it straight away (index.html reads it).
