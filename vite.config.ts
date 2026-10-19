@@ -156,7 +156,7 @@ export default defineConfig(({ mode }) => {
           shortcuts: [
             { name: 'Schedule', url: '/?tab=events&source=pwa', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
             { name: 'People', url: '/?tab=people&source=pwa', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
-            { name: 'Map', url: '/?tab=map&source=pwa', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] }
+            { name: 'Map', url: '/?open=map&source=pwa', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] }
           ]
         },
         workbox: {
