@@ -2,31 +2,43 @@
 //
 // POST /functions/v1/send-push
 //   headers: x-push-secret: <PUSH_ADMIN_SECRET>
+//        or  Authorization: Bearer <a signed-in admin's access token> (the app's Notify tab)
 //   body:    { "title": "...", "body": "...", "url": "/?tab=schedule",
 //              "tag": "optional-group", "userIds": ["<auth user id>", ...] }
 // Without userIds it goes to everyone who allowed notifications.
 //
 // Secrets (supabase secrets set ...): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY,
 // VAPID_SUBJECT (mailto: or https: contact), PUSH_ADMIN_SECRET.
-// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
+// SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
+// Deploy with "Verify JWT" off: the secret or the admin check guards it.
 
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, x-push-secret, authorization, apikey',
+  'Access-Control-Allow-Headers': 'content-type, x-push-secret, authorization, apikey, x-client-info',
 };
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'content-type': 'application/json' } });
+
+/** True when the request carries a signed-in admin's token (is_admin() in SQL). */
+async function callerIsAdmin(req: Request): Promise<boolean> {
+  const auth = req.headers.get('Authorization');
+  if (!auth) return false;
+  const asCaller = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } } });
+  const { data } = await asCaller.rpc('is_admin');
+  return data === true;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
   const secret = Deno.env.get('PUSH_ADMIN_SECRET');
-  if (!secret || req.headers.get('x-push-secret') !== secret) return json(401, { error: 'Not allowed' });
+  const bySecret = Boolean(secret) && req.headers.get('x-push-secret') === secret;
+  if (!bySecret && !(await callerIsAdmin(req))) return json(401, { error: 'Not allowed' });
 
   let payload: { title?: string; body?: string; url?: string; tag?: string; userIds?: string[] };
   try {
@@ -35,6 +47,8 @@ Deno.serve(async (req) => {
     return json(400, { error: 'Body must be JSON' });
   }
   if (!payload.title) return json(400, { error: 'title is required' });
+  if (payload.title.length > 80 || (payload.body ?? '').length > 240) return json(400, { error: 'Title or message too long' });
+  if (payload.url && !payload.url.startsWith('/')) return json(400, { error: 'url must be a path in the app, like /?open=map' });
 
   webpush.setVapidDetails(
     Deno.env.get('VAPID_SUBJECT') ?? 'mailto:hello@mumbaionchain.xyz',

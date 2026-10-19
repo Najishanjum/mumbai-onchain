@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info } from 'lucide-react';
+import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info, ShieldCheck } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { useAppTheme } from '../lib/useAppTheme';
@@ -24,6 +24,8 @@ interface MeScreenProps {
   onOpenAppearance: () => void;
   onFindProfile: () => void;
   onOpenAbout: () => void;
+  /** Only for admins: switches the app into admin mode. */
+  onSwitchToAdmin?: () => void;
 }
 
 async function shareApp() {
@@ -53,6 +55,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   onOpenAppearance,
   onFindProfile,
   onOpenAbout,
+  onSwitchToAdmin,
 }) => {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   // Your own "Added · Added you", re-read as either side changes.
@@ -132,6 +135,11 @@ export const MeScreen: React.FC<MeScreenProps> = ({
       )}
 
       <div className="space-y-6">
+        {onSwitchToAdmin && (
+          <GroupedList>
+            <RowLink icon={<ShieldCheck className={`${icon} text-[#E0A43A]`} />} label="Switch to admin" detail="Review and manage" onClick={onSwitchToAdmin} />
+          </GroupedList>
+        )}
         <GroupedList>
           <RowLink icon={<Bookmark className={icon} />} label="My plan" detail={String(savedCount)} onClick={onOpenPlan} />
           <RowLink icon={<ScanLine className={icon} />} label="Scan" onClick={onScan} />

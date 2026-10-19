@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ExternalLink, Loader2, Star } from 'lucide-react';
+import { Clock, ExternalLink, Loader2, Star } from 'lucide-react';
 import { PLACE_CATEGORIES, type PlaceCategory } from '../data/places';
-import { usePlaceReviews, type NewPlace, type RatingSummary } from '../lib/useCommunityPlaces';
+import { usePlaceReviews, type AddResult, type NewPlace, type RatingSummary } from '../lib/useCommunityPlaces';
 import { Sheet } from './ui';
 
 // The community side of the map: Mumbai Onchain ratings and reviews (ours,
@@ -201,7 +201,7 @@ export function AddPlaceSheet({
   open: boolean;
   at: { lat: number; lng: number } | null;
   onClose: () => void;
-  onAdd: (p: NewPlace) => Promise<string | null>;
+  onAdd: (p: NewPlace) => Promise<AddResult>;
 }) {
   const [category, setCategory] = useState<PlaceCategory>('food');
   const [name, setName] = useState('');
@@ -211,7 +211,36 @@ export function AddPlaceSheet({
   const [link, setLink] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Sent for review: say so before closing, since it won't show on the map yet.
+  const [sentName, setSentName] = useState('');
   if (!open || !at) return null;
+
+  if (sentName) {
+    const done = () => {
+      setSentName('');
+      onClose();
+    };
+    return (
+      <Sheet open onClose={done} label="Sent for review">
+        <div className="px-5 pt-4 pb-2 text-center">
+          <span className="mx-auto w-14 h-14 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] flex items-center justify-center">
+            <Clock className="w-7 h-7" aria-hidden="true" />
+          </span>
+          <h2 className="app-title mt-3 text-[22px]">Sent for review</h2>
+          <p className="mt-1 text-[15px] text-[var(--app-muted)] max-w-[32ch] mx-auto">
+            {sentName} shows on the map once the Mumbai Onchain team approves it. We’ll let you know.
+          </p>
+          <button
+            type="button"
+            onClick={done}
+            className="app-press mt-5 w-full h-12 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[16px] font-bold"
+          >
+            Done
+          </button>
+        </div>
+      </Sheet>
+    );
+  }
 
   const fromLink = link.trim() ? parseLocation(link) : null;
   const spot = fromLink ?? at;
@@ -222,15 +251,16 @@ export function AddPlaceSheet({
     if (link.trim() && !fromLink) return setError('That link has no location in it. Paste a full Google Maps link or "lat, long", or leave it empty to use the pin.');
     setBusy(true);
     setError('');
-    const err = await onAdd({ name, category, lat: spot.lat, lng: spot.lng, area, tip, price });
+    const result = await onAdd({ name, category, lat: spot.lat, lng: spot.lng, area, tip, price });
     setBusy(false);
-    if (err) return setError(err);
+    if (result.error) return setError(result.error);
+    if (result.pending) setSentName(name.trim());
     setName('');
     setArea('');
     setTip('');
     setPrice('');
     setLink('');
-    onClose();
+    if (!result.pending) onClose();
   }
 
   const field = 'w-full h-12 px-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)]';
@@ -240,7 +270,7 @@ export function AddPlaceSheet({
       <form onSubmit={submit} className="px-5 pt-2">
         <h2 className="app-title text-[24px]">Add a place</h2>
         <p className="clear-both mt-1 text-[14px] text-[var(--app-muted)]">
-          It shows on the map for everyone, with your name. Pin at {spot.lat.toFixed(4)}, {spot.lng.toFixed(4)}.
+          Once the team approves it, it shows on the map for everyone, with your name. Pin at {spot.lat.toFixed(4)}, {spot.lng.toFixed(4)}.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2" role="radiogroup" aria-label="What is it">
