@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Place, PlaceCategory } from '../data/places';
 import { supabase } from './supabase';
 import { usePeopleStore } from './usePeopleStore';
+import { useAdminRole } from './useAdmin';
 
 // The map's community side: places people add (community_places) and
 // Mumbai Onchain ratings for any place (place_ratings). Everything degrades
@@ -28,6 +29,12 @@ export interface NewPlace {
   area?: string;
   tip?: string;
   price?: string;
+}
+
+/** After adding: an error to show, or whether it's waiting for review. */
+export interface AddResult {
+  error: string | null;
+  pending: boolean;
 }
 
 export interface RatingSummary {
@@ -79,11 +86,14 @@ export function useCommunityPlaces(enabled: boolean) {
   }, [enabled, nonce]);
 
   const canAdd = Boolean(authUser && myProfile);
+  const isAdmin = useAdminRole() !== null;
 
   const addPlace = useCallback(
-    async (p: NewPlace): Promise<string | null> => {
-      if (!authUser || !myProfile) return 'Sign in and make your profile to add places.';
-      const { error } = await supabase.from('community_places').insert({
+    async (p: NewPlace): Promise<AddResult> => {
+      if (!authUser || !myProfile) return { error: 'Sign in and make your profile to add places.', pending: false };
+      // Members' places wait for an admin (the database decides by default);
+      // an admin's go straight on the map.
+      const { data, error } = await supabase.from('community_places').insert({
         name: p.name.trim(),
         category: p.category,
         lat: p.lat,
@@ -93,12 +103,17 @@ export function useCommunityPlaces(enabled: boolean) {
         price: p.price?.trim() || null,
         added_by_profile_id: myProfile.id,
         added_by_name: myProfile.name,
-      });
-      if (error) return 'Couldn’t add the place. Check your connection and try again.';
+        ...(isAdmin ? { status: 'live' } : {}),
+      })
+        .select('id, status')
+        .single();
+      if (error || !data) return { error: 'Couldn’t add the place. Check your connection and try again.', pending: false };
+      const pending = data.status === 'pending';
+      if (pending) void supabase.functions.invoke('notify-connection', { body: { placeId: data.id } });
       setNonce((n) => n + 1);
-      return null;
+      return { error: null, pending };
     },
-    [authUser, myProfile]
+    [authUser, myProfile, isAdmin]
   );
 
   return { places, canAdd, addPlace };

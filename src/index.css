@@ -710,3 +710,65 @@ html[data-app-scene='aurora'][data-app-theme='light'] .app-statusbar {
     #0A0A0C;
 }
 .intro-slide .intro-photo { opacity: 0.55; }
+
+/* ── Admin mode ───────────────────────────────────────────────────────────
+   Me → Switch to admin. While it's on (data-app-admin on <html>) the whole
+   app wears an amber "staff" accent instead of the role colour, so it's
+   always obvious which side you're on. */
+html[data-app-admin] { --app-primary: #F2B648; }
+html[data-app-theme='light'][data-app-admin] { --app-primary: #A3660A; }
+
+/* The switch: the badge flips from your role to ADMIN (or back). */
+.admin-switch-in { animation: admin-fade-in 180ms ease-out both; }
+.admin-switch-card {
+  position: relative;
+  width: 176px;
+  height: 236px;
+  perspective: 900px;
+}
+.admin-switch-side {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: admin-flip-front 1500ms cubic-bezier(0.6, 0, 0.3, 1) both;
+}
+.admin-switch-side.admin-switch-flip { animation-name: admin-flip-back; }
+.admin-switch-face {
+  height: 100%;
+  border-radius: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+.admin-switch-back { background: linear-gradient(160deg, #F7C766, #E09A2C); }
+.admin-switch-hole {
+  position: absolute;
+  top: 14px;
+  width: 44px;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+}
+.admin-switch-progress { animation: admin-progress 1600ms ease-in-out both; }
+@keyframes admin-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes admin-flip-front {
+  0%, 30% { transform: rotateY(0) scale(1); }
+  55% { transform: rotateY(90deg) scale(1.06); }
+  80%, 100% { transform: rotateY(180deg) scale(1); }
+}
+@keyframes admin-flip-back {
+  0%, 30% { transform: rotateY(-180deg) scale(1); }
+  55% { transform: rotateY(-90deg) scale(1.06); }
+  80%, 100% { transform: rotateY(0) scale(1); }
+}
+@keyframes admin-progress { from { width: 4%; } to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  .admin-switch-side { animation: none; }
+  .admin-switch-side:not(.admin-switch-flip) { opacity: 0; }
+  .admin-switch-side.admin-switch-flip { transform: none; }
+  .admin-switch-progress { animation-duration: 500ms; }
+}

@@ -55,7 +55,7 @@ interface SnapStoreState {
 }
 
 // The thumbnail sits next to the photo in Storage: <name>-thumb.webp.
-const thumbPathFor = (path: string) => path.replace(/\.webp$/, '') + '-thumb.webp';
+export const thumbPathFor = (path: string) => path.replace(/\.webp$/, '') + '-thumb.webp';
 
 const SnapContext = createContext<SnapStoreState | null>(null);
 

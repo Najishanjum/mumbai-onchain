@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { CalendarDays, Home, Loader2, User, Users } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { ConnectionStatus, PersonProfile } from '../types/person';
@@ -64,6 +64,9 @@ import { AppearanceScreen } from './AppearanceScreen';
 import { AboutScreen } from './AboutScreen';
 import { FindProfileSheet } from './FindProfileSheet';
 import { istDateKey, WEEK_DAYS, WEEK_START, type AppTab } from './time';
+import { useAdminMode, useAdminRole } from '../lib/useAdmin';
+import { AdminSwitch } from './admin/AdminSwitch';
+import AdminMode, { ADMIN_TABS, type AdminTab } from './admin/AdminMode';
 
 const ROLE_KEY = 'mo_app_role';
 
@@ -178,11 +181,43 @@ export const AppShell: React.FC<AppShellProps> = ({
     window.scrollTo({ top: 0 });
   }, [tab]);
 
-  // Drop ?open=map once used, so a reload doesn't open the map again.
+  // Admin mode (Me → Switch to admin): only for accounts in app_admins.
+  const adminRole = useAdminRole();
+  const [adminOn, setAdminOn] = useAdminMode();
+  const [adminSwitch, setAdminSwitch] = useState<'in' | 'out' | null>(null);
+  // ?admin=places (the "New place to review" notification) opens it there.
+  const [adminLink] = useState(() => {
+    const t = new URLSearchParams(window.location.search).get('admin');
+    return ADMIN_TABS.includes(t as AdminTab) ? (t as AdminTab) : null;
+  });
+  const [adminTab, setAdminTab] = useState<AdminTab>(adminLink ?? 'overview');
+  const showAdmin = adminOn && adminRole !== null;
+  // Once the role is known: the link switches you in (only the first time).
+  const adminLinkUsed = React.useRef(false);
+  useEffect(() => {
+    if (!adminLink || !adminRole || adminLinkUsed.current) return;
+    adminLinkUsed.current = true;
+    if (!adminOn) setAdminSwitch('in');
+  }, [adminLink, adminRole, adminOn]);
+  useEffect(() => {
+    if (showAdmin) document.documentElement.setAttribute('data-app-admin', '');
+    else document.documentElement.removeAttribute('data-app-admin');
+  }, [showAdmin]);
+  const finishAdminSwitch = useCallback(() => {
+    setAdminOn(adminSwitch === 'in');
+    setAdminSwitch(null);
+  }, [adminSwitch, setAdminOn]);
+  const enterAdmin = () => {
+    setAdminTab('overview');
+    setAdminSwitch('in');
+  };
+
+  // Drop ?open=map and ?admin= once used, so a reload doesn't open them again.
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (!url.searchParams.has('open')) return;
+    if (!url.searchParams.has('open') && !url.searchParams.has('admin')) return;
     url.searchParams.delete('open');
+    url.searchParams.delete('admin');
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   }, []);
 
@@ -323,6 +358,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onOpenAppearance={() => setIsAppearanceOpen(true)}
             onFindProfile={() => setIsFindOpen(true)}
             onOpenAbout={() => setIsAboutOpen(true)}
+            onSwitchToAdmin={adminRole ? enterAdmin : undefined}
           />
           </div>
         )}
@@ -397,6 +433,15 @@ export const AppShell: React.FC<AppShellProps> = ({
       <AppearanceScreen open={isAppearanceOpen} onClose={() => setIsAppearanceOpen(false)} myProfile={myProfile} />
       <FindProfileSheet isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} onSignIn={onSignIn} />
       <AboutScreen open={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      {showAdmin && adminRole && <AdminMode key={adminTab} role={adminRole} initialTab={adminTab} onExit={() => setAdminSwitch('out')} />}
+      {adminSwitch && (
+        <AdminSwitch
+          direction={adminSwitch}
+          name={myProfile?.name ?? 'You'}
+          category={myProfile?.category ?? 'Attendee'}
+          onDone={finishAdminSwitch}
+        />
+      )}
       {isMapOpen && (
         <Suspense
           fallback={
