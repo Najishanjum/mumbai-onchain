@@ -167,127 +167,154 @@ export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({ onAp
       </div>
 
       {/* 3. Community Partners Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPartners.map((partner) => (
-          <div
-            key={partner.id}
-            className="group bg-[#FFFFFF] border-2 border-[#000000] p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] hover:-translate-y-0.5 transition-all duration-150"
-          >
-            <div className="space-y-4">
-              {/* Partner Logo & Verification Badge */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="w-16 h-16 bg-[#F5F5F5] border-2 border-[#000000] p-1.5 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
-                  {partner.community_logo_url ? (
-                    <img
-                      src={partner.community_logo_url}
-                      alt={partner.community_name}
-                      loading="lazy"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80';
-                      }}
-                    />
-                  ) : (
-                    <div className="font-heading font-black text-xl text-[#F97316]">
-                      {partner.community_name.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1 font-mono text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 bg-[#22C55E]/10 text-[#15803D] border border-[#16A34A] rounded-full">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>OFFICIAL PARTNER</span>
-                </div>
-              </div>
-
-              {/* Community Name & Description */}
-              <div className="space-y-2">
-                <h3 className="font-heading font-black text-xl text-[#050505] uppercase tracking-tight group-hover:text-[#0052FF] transition-colors">
-                  {partner.community_name}
-                </h3>
-                <p className="font-sans text-xs text-[#555555] leading-relaxed line-clamp-3">
-                  {partner.community_description}
-                </p>
-              </div>
-            </div>
-
-            {/* Social Profile Links */}
-            <div className="pt-4 mt-5 border-t border-[#EAEAEA] flex items-center justify-between font-mono text-xs">
-              <span className="text-[10px] uppercase tracking-wider text-[#888888]">CHANNELS:</span>
-              <div className="flex items-center gap-3 text-[#333333]">
-                {partner.website_url && (
-                  <a
-                    href={partner.website_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 hover:text-[#0052FF] hover:scale-110 transition-transform"
-                    title="Website"
-                  >
-                    <Globe className="w-4 h-4" />
-                  </a>
-                )}
-                {partner.x_url && (
-                  <a
-                    href={partner.x_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 hover:text-[#000000] hover:scale-110 transition-transform"
-                    title="X Profile"
-                  >
-                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                  </a>
-                )}
-                {partner.telegram_url && (
-                  <a
-                    href={partner.telegram_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 hover:text-[#0088cc] hover:scale-110 transition-transform"
-                    title="Telegram"
-                  >
-                    <Send className="w-4 h-4" />
-                  </a>
-                )}
-                {partner.discord_url && (
-                  <a
-                    href={partner.discord_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 hover:text-[#5865F2] hover:scale-110 transition-transform"
-                    title="Discord"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
-            </div>
+      {filteredPartners.length === 0 ? (
+        <div className="border-2 border-dashed border-[#000000] bg-[#FFFFFF] p-10 sm:p-14 text-center space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="w-16 h-16 mx-auto rounded-full bg-[#000000] text-[#FFFFFF] flex items-center justify-center">
+            <Plus className="w-8 h-8" />
           </div>
-        ))}
-
-        {/* Join as Community Partner Slot Card */}
-        <div
-          onClick={onApply}
-          className="border-2 border-dashed border-[#000000] bg-[#FAFAFA] hover:bg-[#FFFFFF] p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-150 group shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] min-h-[260px]"
-        >
-          <div className="w-14 h-14 rounded-full bg-[#000000] text-[#FFFFFF] group-hover:bg-[#F97316] group-hover:text-black flex items-center justify-center transition-all mb-4">
-            <Plus className="w-7 h-7" />
-          </div>
-          <div className="space-y-1.5">
-            <div className="font-heading font-black text-lg text-[#050505] uppercase tracking-tight">
-              JOIN AS COMMUNITY PARTNER
-            </div>
-            <p className="font-mono text-xs text-[#666666] max-w-[240px] mx-auto leading-relaxed">
-              Showcase your developer club, DAO, or hacker cohort on the official Mumbai Onchain portal.
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="font-heading font-black text-xl text-[#000000] uppercase tracking-tight">
+              {searchQuery ? 'NO MATCHING COMMUNITY PARTNERS' : 'BE THE FIRST COMMUNITY PARTNER'}
+            </h3>
+            <p className="font-mono text-xs text-[#666666] leading-relaxed">
+              {searchQuery
+                ? 'Try adjusting your search terms or keywords.'
+                : 'Applications are officially open! Verified Web3 communities, DAOs, and builder cohorts will be featured here once approved.'}
             </p>
           </div>
-          <span className="mt-5 font-mono text-xs text-[#000000] font-bold group-hover:text-[#F97316] flex items-center gap-1.5">
-            <span>SUBMIT APPLICATION →</span>
-          </span>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={onApply}
+              className="inline-flex items-center gap-2 bg-[#000000] text-[#FFFFFF] hover:bg-[#222222] px-7 py-3 font-mono text-xs font-bold uppercase transition-colors cursor-pointer"
+            >
+              <span>SUBMIT APPLICATION →</span>
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPartners.map((partner) => (
+            <div
+              key={partner.id}
+              className="group bg-[#FFFFFF] border-2 border-[#000000] p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] hover:-translate-y-0.5 transition-all duration-150"
+            >
+              <div className="space-y-4">
+                {/* Partner Logo & Verification Badge */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="w-16 h-16 bg-[#F5F5F5] border-2 border-[#000000] p-1.5 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
+                    {partner.community_logo_url ? (
+                      <img
+                        src={partner.community_logo_url}
+                        alt={partner.community_name}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80';
+                        }}
+                      />
+                    ) : (
+                      <div className="font-heading font-black text-xl text-[#F97316]">
+                        {partner.community_name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 font-mono text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 bg-[#22C55E]/10 text-[#15803D] border border-[#16A34A] rounded-full">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>OFFICIAL PARTNER</span>
+                  </div>
+                </div>
+
+                {/* Community Name & Description */}
+                <div className="space-y-2">
+                  <h3 className="font-heading font-black text-xl text-[#050505] uppercase tracking-tight group-hover:text-[#0052FF] transition-colors">
+                    {partner.community_name}
+                  </h3>
+                  <p className="font-sans text-xs text-[#555555] leading-relaxed line-clamp-3">
+                    {partner.community_description}
+                  </p>
+                </div>
+              </div>
+
+              {/* Social Profile Links */}
+              <div className="pt-4 mt-5 border-t border-[#EAEAEA] flex items-center justify-between font-mono text-xs">
+                <span className="text-[10px] uppercase tracking-wider text-[#888888]">CHANNELS:</span>
+                <div className="flex items-center gap-3 text-[#333333]">
+                  {partner.website_url && (
+                    <a
+                      href={partner.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 hover:text-[#0052FF] hover:scale-110 transition-transform"
+                      title="Website"
+                    >
+                      <Globe className="w-4 h-4" />
+                    </a>
+                  )}
+                  {partner.x_url && (
+                    <a
+                      href={partner.x_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 hover:text-[#000000] hover:scale-110 transition-transform"
+                      title="X Profile"
+                    >
+                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      </svg>
+                    </a>
+                  )}
+                  {partner.telegram_url && (
+                    <a
+                      href={partner.telegram_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 hover:text-[#0088cc] hover:scale-110 transition-transform"
+                      title="Telegram"
+                    >
+                      <Send className="w-4 h-4" />
+                    </a>
+                  )}
+                  {partner.discord_url && (
+                    <a
+                      href={partner.discord_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 hover:text-[#5865F2] hover:scale-110 transition-transform"
+                      title="Discord"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Join as Community Partner Slot Card */}
+          <div
+            onClick={onApply}
+            className="border-2 border-dashed border-[#000000] bg-[#FAFAFA] hover:bg-[#FFFFFF] p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-150 group shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] min-h-[260px]"
+          >
+            <div className="w-14 h-14 rounded-full bg-[#000000] text-[#FFFFFF] group-hover:bg-[#F97316] group-hover:text-black flex items-center justify-center transition-all mb-4">
+              <Plus className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="font-heading font-black text-lg text-[#050505] uppercase tracking-tight">
+                JOIN AS COMMUNITY PARTNER
+              </div>
+              <p className="font-mono text-xs text-[#666666] max-w-[240px] mx-auto leading-relaxed">
+                Showcase your developer club, DAO, or hacker cohort on the official Mumbai Onchain portal.
+              </p>
+            </div>
+            <span className="mt-5 font-mono text-xs text-[#000000] font-bold group-hover:text-[#F97316] flex items-center gap-1.5">
+              <span>SUBMIT APPLICATION →</span>
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 4. Ecosystem Alliance Perks Section */}
       <div className="bg-[#FFFFFF] border-2 border-[#000000] p-6 sm:p-10 space-y-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
