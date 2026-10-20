@@ -1,9 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Bell, CalendarClock, IdCard, MessageCircle, Radio, UserPlus } from 'lucide-react';
+import { Bell, CalendarClock, Check, IdCard, MessageCircle, UserPlus } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { getEventStartDateTime } from '../lib/date';
+import { usePeopleStore } from '../lib/usePeopleStore';
+import { PersonAvatar } from '../components/PersonAvatar';
+import { roleColor } from './Badge';
 import { isLive, startsIn } from './time';
-import { Sheet } from './ui';
+import { LiveDot, Sheet } from './ui';
 
 // id → when it was first seen. Older builds kept a plain list of ids.
 const SEEN_KEY = 'mo_seen_notes';
@@ -18,6 +21,26 @@ export interface Reminder {
   detail: string;
   eventId?: string;
   personId?: string;
+  /** When it happened (people who added you, replies). */
+  at?: string;
+  /** Who it's from, for their photo. */
+  person?: { name: string; avatar?: string; role?: string };
+  /** The story they replied to. */
+  thumb?: string;
+}
+
+export interface AddedBy {
+  personId: string;
+  name: string;
+  avatar?: string;
+  role?: string;
+  at: string;
+}
+
+export interface RepliedBy extends AddedBy {
+  id: string;
+  body: string;
+  thumb?: string;
 }
 
 function readSeen(): Record<string, number> {
@@ -32,46 +55,55 @@ function readSeen(): Record<string, number> {
 
 /**
  * Reminders built from what the user already has: saved events that are on
- * now or start within 3 hours, and a nudge to make a badge. Nothing is sent
- * anywhere; the unread dot clears once the list has been opened.
+ * now or start within 3 hours, people who added you, replies to your stories,
+ * and a nudge to make a badge. The unread dot clears once the list is opened.
  */
 export function useReminders(
   events: EventItem[],
   isSaved: (id: string) => boolean,
   hasProfile: boolean,
   now: Date,
-  /** People who added you, newest first (from the account). */
-  addedBy: { personId: string; name: string }[] = [],
-  /** Replies to your stories, newest first (from the account). */
-  repliedBy: { id: string; personId: string; name: string; body: string }[] = []
+  addedBy: AddedBy[] = [],
+  repliedBy: RepliedBy[] = []
 ) {
   const all = useMemo<Reminder[]>(() => {
-    const list: Reminder[] = repliedBy.map((r) => ({
-      id: `reply:${r.id}`,
-      tone: 'reply' as const,
-      title: `${r.name} replied to your story`,
-      detail: r.body,
-      personId: r.personId,
-    }));
-    list.push(...addedBy.map((a) => ({
-      id: `added:${a.personId}`,
-      tone: 'added' as const,
-      title: `${a.name} added you`,
-      detail: 'Tap to see their profile and add them back.',
-      personId: a.personId,
-    })));
+    // Time-sensitive first: saved events on now or about to start.
+    const list: Reminder[] = [];
     for (const e of events) {
       if (!isSaved(e.id)) continue;
       if (isLive(e, now)) {
-        list.push({ id: `live:${e.id}:${e.startDate}`, tone: 'live', title: `${e.title} is on now`, detail: e.location, eventId: e.id });
+        list.push({ id: `live:${e.id}:${e.startDate}`, tone: 'live', title: e.title, detail: e.location, eventId: e.id });
         continue;
       }
       const start = getEventStartDateTime(e);
       const ms = start ? start.getTime() - now.getTime() : -1;
       if (ms > 0 && ms <= SOON_MS) {
-        list.push({ id: `soon:${e.id}:${e.startDate}`, tone: 'soon', title: `${e.title} starts ${startsIn(e, now)}`, detail: e.location, eventId: e.id });
+        list.push({ id: `soon:${e.id}:${e.startDate}`, tone: 'soon', title: e.title, detail: `Starts ${startsIn(e, now)} · ${e.location}`, eventId: e.id });
       }
     }
+    // Then people, newest first.
+    const social: Reminder[] = [
+      ...repliedBy.map((r) => ({
+        id: `reply:${r.id}`,
+        tone: 'reply' as const,
+        title: r.name,
+        detail: r.body,
+        personId: r.personId,
+        at: r.at,
+        person: { name: r.name, avatar: r.avatar, role: r.role },
+        thumb: r.thumb,
+      })),
+      ...addedBy.map((a) => ({
+        id: `added:${a.personId}`,
+        tone: 'added' as const,
+        title: a.name,
+        detail: '',
+        personId: a.personId,
+        at: a.at,
+        person: { name: a.name, avatar: a.avatar, role: a.role },
+      })),
+    ].sort((a, b) => (b.at ?? '').localeCompare(a.at ?? ''));
+    list.push(...social);
     if (!hasProfile) {
       list.push({ id: 'nudge:badge', tone: 'nudge', title: 'Make your badge', detail: 'So people you meet can scan and add you.' });
     }
@@ -85,7 +117,9 @@ export function useReminders(
     [all, seen, now]
   );
   const unread = visible.some((r) => !seen[r.id]);
-  const markSeen = useCallback(() => {
+  /** Marks everything seen and returns what was new, for the New section. */
+  const markSeen = useCallback((): Set<string> => {
+    const fresh = new Set(visible.filter((r) => !seen[r.id]).map((r) => r.id));
     // Keep first-seen times; drop ids that no longer exist.
     const next: Record<string, number> = {};
     for (const r of all) {
@@ -98,19 +132,11 @@ export function useReminders(
     } catch {
       // fine without it; the dot just comes back next launch
     }
+    return fresh;
   }, [all, visible, seen]);
 
   return { reminders: visible, unread, markSeen };
 }
-
-const ICONS = { live: Radio, soon: CalendarClock, nudge: IdCard, added: UserPlus, reply: MessageCircle } as const;
-const TONES = {
-  live: 'bg-[var(--app-live-soft)] text-[var(--app-live)]',
-  soon: 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]',
-  nudge: 'bg-[var(--app-pressed)] text-[var(--app-primary)]',
-  added: 'bg-[var(--app-primary-soft)] text-[var(--app-primary)]',
-  reply: 'bg-[var(--app-primary-soft)] text-[var(--app-primary)]',
-} as const;
 
 export function BellButton({ unread, onClick }: { unread: boolean; onClick: () => void }) {
   return (
@@ -128,10 +154,42 @@ export function BellButton({ unread, onClick }: { unread: boolean; onClick: () =
   );
 }
 
+/** "now", "5m", "2h", "3d", like a chat app. */
+function ago(iso: string | undefined, now: number): string {
+  if (!iso) return '';
+  const m = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000));
+  if (m < 1) return 'now';
+  if (m < 60) return `${m}m`;
+  if (m < 60 * 24) return `${Math.floor(m / 60)}h`;
+  return `${Math.floor(m / (60 * 24))}d`;
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return <h3 className="px-5 pt-5 pb-1.5 text-[15px] font-bold">{children}</h3>;
+}
+
+/** Their photo, with a small mark for what they did. */
+function PersonMark({ person, tone }: { person: NonNullable<Reminder['person']>; tone: 'added' | 'reply' }) {
+  const Icon = tone === 'added' ? UserPlus : MessageCircle;
+  return (
+    <span className="relative shrink-0">
+      <PersonAvatar name={person.name} avatarUrl={person.avatar} size="md" className="rounded-full! border-0! w-11! h-11!" />
+      <span
+        className="absolute -right-0.5 -bottom-0.5 w-5 h-5 rounded-full border-2 border-[var(--app-bg)] flex items-center justify-center text-white"
+        style={{ background: roleColor(person.role) }}
+        aria-hidden="true"
+      >
+        <Icon className="w-2.5 h-2.5" strokeWidth={3} />
+      </span>
+    </span>
+  );
+}
+
 export function NotificationsSheet({
   isOpen,
   onClose,
   reminders,
+  fresh,
   onOpenEvent,
   onCreateProfile,
   onOpenPerson,
@@ -139,46 +197,131 @@ export function NotificationsSheet({
   isOpen: boolean;
   onClose: () => void;
   reminders: Reminder[];
+  /** What was unread when the sheet opened. */
+  fresh: Set<string>;
   onOpenEvent: (id: string) => void;
   onCreateProfile: () => void;
   onOpenPerson: (id: string) => void;
 }) {
+  const { getConnectionStatus, setConnectionStatus } = usePeopleStore();
+  const now = Date.now();
+  const upcoming = reminders.filter((r) => r.tone === 'live' || r.tone === 'soon');
+  const people = reminders.filter((r) => r.tone === 'added' || r.tone === 'reply');
+  const nudges = reminders.filter((r) => r.tone === 'nudge');
+  const newPeople = people.filter((r) => fresh.has(r.id));
+  const earlier = people.filter((r) => !fresh.has(r.id));
+
+  const open = (r: Reminder) => {
+    onClose();
+    if (r.personId) onOpenPerson(r.personId);
+    else if (r.eventId) onOpenEvent(r.eventId);
+    else onCreateProfile();
+  };
+
+  const row = 'app-press w-full flex items-center gap-3 px-5 py-2.5 text-left active:bg-[var(--app-pressed)]';
+
+  const personRow = (r: Reminder) => {
+    const added = r.personId ? getConnectionStatus(r.personId) === 'CONNECTED' : false;
+    return (
+      <li key={r.id} className="relative">
+        <button type="button" onClick={() => open(r)} className={row}>
+          <PersonMark person={r.person!} tone={r.tone as 'added' | 'reply'} />
+          <span className={`flex-1 min-w-0 text-[15px] leading-snug line-clamp-3 ${r.tone === 'added' ? 'pr-24' : ''}`}>
+            <b className="font-bold">{r.title}</b>{' '}
+            {r.tone === 'added' ? 'added you.' : <>replied to your story: “{r.detail}”</>}{' '}
+            <span className="text-[var(--app-muted)]">{ago(r.at, now)}</span>
+          </span>
+          {r.tone === 'reply' && r.thumb && <img src={r.thumb} alt="" className="shrink-0 w-10 h-[52px] rounded-md object-cover bg-[var(--app-line)]" />}
+        </button>
+        {/* Outside the row button, so it adds instead of opening the profile. */}
+        {r.tone === 'added' && r.personId && (
+          <button
+            type="button"
+            onClick={() => setConnectionStatus(r.personId!, 'CONNECTED')}
+            disabled={added}
+            className={`absolute right-5 top-1/2 -translate-y-1/2 h-8 px-3.5 rounded-lg text-[14px] font-bold inline-flex items-center gap-1 ${
+              added ? 'bg-[var(--app-pressed)] text-[var(--app-muted)]' : 'app-press bg-[var(--app-primary)] text-[var(--app-on-primary)]'
+            }`}
+          >
+            {added ? (
+              <>
+                <Check className="w-4 h-4" aria-hidden="true" />
+                Added
+              </>
+            ) : (
+              'Add back'
+            )}
+          </button>
+        )}
+      </li>
+    );
+  };
+
   return (
     <Sheet open={isOpen} onClose={onClose} label="Notifications">
-      <div className="px-5 pt-3">
-        <h2 className="app-title text-[26px]">Notifications</h2>
+      <div className="pt-3 pb-2">
+        <h2 className="px-5 app-title text-[26px]">Notifications</h2>
+
         {reminders.length === 0 ? (
-          <p className="mt-3 text-[15px] text-[var(--app-muted)]">
-            Nothing right now. People who add you or reply to your stories, and saved events about to start, show up here.
-          </p>
+          <div className="px-8 pt-12 pb-10 text-center">
+            <span className="mx-auto w-16 h-16 rounded-full border-2 border-[var(--app-line)] flex items-center justify-center">
+              <Bell className="w-7 h-7 text-[var(--app-muted)]" aria-hidden="true" />
+            </span>
+            <p className="mt-4 text-[17px] font-bold">You’re all caught up</p>
+            <p className="mt-1 text-[15px] text-[var(--app-muted)]">When someone adds you or replies to your story, or a saved event is about to start, it shows up here.</p>
+          </div>
         ) : (
-          <ul className="mt-4 space-y-2">
-            {reminders.map((r) => {
-              const Icon = ICONS[r.tone];
-              return (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      if (r.personId) onOpenPerson(r.personId);
-                      else if (r.eventId) onOpenEvent(r.eventId);
-                      else onCreateProfile();
-                    }}
-                    className="app-press w-full flex items-center gap-3 p-3 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-left"
-                  >
-                    <span className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${TONES[r.tone]}`}>
-                      <Icon className="w-5 h-5" aria-hidden="true" />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[15px] font-bold leading-snug">{r.title}</span>
-                      <span className="block text-[13px] text-[var(--app-muted)] truncate">{r.detail}</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {upcoming.length > 0 && (
+              <>
+                <SectionLabel>Coming up</SectionLabel>
+                <ul>
+                  {upcoming.map((r) => (
+                    <li key={r.id}>
+                      <button type="button" onClick={() => open(r)} className={row}>
+                        <span
+                          className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${
+                            r.tone === 'live' ? 'bg-[var(--app-live-soft)]' : 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]'
+                          }`}
+                        >
+                          {r.tone === 'live' ? <LiveDot /> : <CalendarClock className="w-5 h-5" aria-hidden="true" />}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[15px] font-bold leading-snug truncate">{r.title}</span>
+                          <span className={`block text-[14px] truncate ${r.tone === 'live' ? 'text-[var(--app-live)] font-semibold' : 'text-[var(--app-muted)]'}`}>
+                            {r.tone === 'live' ? `On now · ${r.detail}` : r.detail}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {newPeople.length > 0 && (
+              <>
+                <SectionLabel>New</SectionLabel>
+                <ul>{newPeople.map(personRow)}</ul>
+              </>
+            )}
+            {earlier.length > 0 && (
+              <>
+                <SectionLabel>Earlier</SectionLabel>
+                <ul>{earlier.map(personRow)}</ul>
+              </>
+            )}
+            {nudges.map((r) => (
+              <button key={r.id} type="button" onClick={() => open(r)} className={`${row} mt-4`}>
+                <span className="shrink-0 w-11 h-11 rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)] flex items-center justify-center">
+                  <IdCard className="w-5 h-5" aria-hidden="true" />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[15px] font-bold">{r.title}</span>
+                  <span className="block text-[14px] text-[var(--app-muted)]">{r.detail}</span>
+                </span>
+              </button>
+            ))}
+          </>
         )}
       </div>
     </Sheet>

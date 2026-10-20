@@ -238,9 +238,9 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
         )}
 
         {snaps.length > 0 && (
-          <Section title="Snaps">
+          <Section title="Highlights">
             <div className="grid grid-cols-3 gap-1.5">
-              {snaps.slice(0, 9).map((s) => (
+              {snaps.map((s) => (
                 <button
                   key={s.id}
                   type="button"

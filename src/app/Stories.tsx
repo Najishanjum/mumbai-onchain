@@ -32,13 +32,17 @@ function readSeen(): Set<string> {
   }
 }
 
-/** Snaps grouped by person, oldest first inside each story, unseen stories first. */
+// Stories last this long; after that a snap lives on in Highlights on the profile.
+const STORY_LIFE_MS = 48 * 60 * 60 * 1000;
+
+/** The last 48 hours of snaps, grouped by person, oldest first inside each story, unseen stories first. */
 function useStories(seen: Set<string>) {
   const { recentSnaps } = useSnapStore();
   const { people, myProfile } = usePeopleStore();
   return useMemo(() => {
     const byAuthor = new Map<string, Story>();
-    for (const s of recentSnaps.filter(isRealSnap)) {
+    const since = Date.now() - STORY_LIFE_MS;
+    for (const s of recentSnaps.filter((s) => isRealSnap(s) && new Date(s.createdAt).getTime() >= since)) {
       const person = people.find((p) => p.id === s.authorId) ?? (myProfile?.id === s.authorId ? myProfile : undefined);
       const story = byAuthor.get(s.authorId) ?? {
         authorId: s.authorId,

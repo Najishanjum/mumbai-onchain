@@ -7,6 +7,7 @@ import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } 
 import { BlankBadge, LanyardBadge, Mandala } from './Badge';
 import { useStoryReplies } from '../lib/useStoryReplies';
 import { usePeopleStore } from '../lib/usePeopleStore';
+import { useSnapStore } from '../lib/useSnapStore';
 import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
 import { StoriesRow } from './Stories';
 import { eventCover } from './covers';
@@ -183,23 +184,34 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     () =>
       addedMe.flatMap((a) => {
         const p = people.find((x) => x.id === a.profileId);
-        return p ? [{ personId: p.id, name: p.name }] : [];
+        return p ? [{ personId: p.id, name: p.name, avatar: p.avatar, role: p.category, at: a.createdAt }] : [];
       }),
     [addedMe, people]
   );
   // Replies to your stories, for the bell.
   const { replies } = useStoryReplies();
+  const { recentSnaps } = useSnapStore();
   const repliedBy = useMemo(
     () =>
-      replies.map((r) => ({
-        id: r.id,
-        personId: r.fromProfileId,
-        name: people.find((x) => x.id === r.fromProfileId)?.name ?? 'Someone',
-        body: r.body,
-      })),
-    [replies, people]
+      replies.map((r) => {
+        const p = people.find((x) => x.id === r.fromProfileId);
+        const snap = recentSnaps.find((s) => s.id === r.snapId);
+        return {
+          id: r.id,
+          personId: r.fromProfileId,
+          name: p?.name ?? 'Someone',
+          avatar: p?.avatar,
+          role: p?.category,
+          at: r.createdAt,
+          body: r.body,
+          thumb: snap ? snap.thumbnailUrl || snap.imageUrl : undefined,
+        };
+      }),
+    [replies, people, recentSnaps]
   );
   const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy, repliedBy);
+  // What was unread when the bell was tapped: the New section.
+  const [freshNotes, setFreshNotes] = useState<Set<string>>(() => new Set());
 
   return (
     <div className="pb-6">
@@ -218,8 +230,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         <BellButton
           unread={unread}
           onClick={() => {
+            setFreshNotes(markSeen());
             setNotesOpen(true);
-            markSeen();
           }}
         />
       </header>
@@ -302,6 +314,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         isOpen={notesOpen}
         onClose={() => setNotesOpen(false)}
         reminders={reminders}
+        fresh={freshNotes}
         onOpenEvent={onOpenEvent}
         onCreateProfile={onCreateProfile}
         onOpenPerson={onSelectPerson}
