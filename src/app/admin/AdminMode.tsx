@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { BarChart3, Bell, ChevronLeft, Images, MapPin, Users } from 'lucide-react';
+import { BarChart3, Bell, ChevronLeft, Handshake, Images, MapPin, Users } from 'lucide-react';
 import type { AdminRole } from '../../lib/useAdmin';
 import { useOverview } from './shared';
 import { AdminOverview } from './AdminOverview';
 import { AdminPlaces } from './AdminPlaces';
+import { AdminPartners } from './AdminPartners';
 import { AdminStories } from './AdminStories';
 import { AdminNotify } from './AdminNotify';
 import { AdminTeam } from './AdminTeam';
 
-export const ADMIN_TABS = ['overview', 'places', 'stories', 'notify', 'team'] as const;
+export const ADMIN_TABS = ['overview', 'places', 'partners', 'stories', 'notify', 'team'] as const;
 export type AdminTab = (typeof ADMIN_TABS)[number];
 
 const TABS: { id: AdminTab; label: string; icon: typeof BarChart3 }[] = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'places', label: 'Places', icon: MapPin },
+  { id: 'partners', label: 'Partners', icon: Handshake },
   { id: 'stories', label: 'Stories', icon: Images },
   { id: 'notify', label: 'Notify', icon: Bell },
   { id: 'team', label: 'Team', icon: Users },
@@ -24,7 +26,7 @@ export default function AdminMode({ role, initialTab = 'overview', onExit }: { r
   const [tab, setTab] = useState<AdminTab>(initialTab);
   const overview = useOverview();
   const scroller = useRef<HTMLDivElement>(null);
-  const waiting = overview.data?.places_pending ?? 0;
+  const waiting: Partial<Record<AdminTab, number>> = { places: overview.data?.places_pending ?? 0, partners: overview.data?.partners_pending ?? 0 };
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 });
@@ -53,15 +55,16 @@ export default function AdminMode({ role, initialTab = 'overview', onExit }: { r
       </header>
 
       <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain pt-3 pb-8">
-        {tab === 'overview' && <AdminOverview data={overview.data} error={overview.error} onReviewPlaces={() => setTab('places')} />}
+        {tab === 'overview' && <AdminOverview data={overview.data} error={overview.error} onReviewPlaces={() => setTab('places')} onReviewPartners={() => setTab('partners')} />}
         {tab === 'places' && <AdminPlaces onChanged={overview.refresh} />}
+        {tab === 'partners' && <AdminPartners onChanged={overview.refresh} />}
         {tab === 'stories' && <AdminStories onChanged={overview.refresh} />}
         {tab === 'notify' && <AdminNotify reach={overview.data?.push_people ?? null} />}
         {tab === 'team' && <AdminTeam role={role} />}
       </div>
 
       <nav aria-label="Admin" className="shrink-0 bg-[var(--app-surface)]/92 backdrop-blur-xl border-t border-[var(--app-line)] pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-5 h-16 max-w-lg mx-auto">
+        <div className="grid grid-cols-6 h-16 max-w-lg mx-auto">
           {TABS.map(({ id, label, icon: Icon }) => {
             const active = id === tab;
             return (
@@ -76,9 +79,9 @@ export default function AdminMode({ role, initialTab = 'overview', onExit }: { r
                   <Icon className="w-[22px] h-[22px]" strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" />
                 </span>
                 <span className={`text-[11px] ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
-                {id === 'places' && waiting > 0 && (
-                  <span className="absolute top-1.5 left-1/2 ml-2 min-w-5 h-5 px-1 rounded-full bg-[var(--app-live)] text-white text-[11px] font-bold flex items-center justify-center" aria-label={`${waiting} waiting`}>
-                    {waiting}
+                {(waiting[id] ?? 0) > 0 && (
+                  <span className="absolute top-1.5 left-1/2 ml-2 min-w-5 h-5 px-1 rounded-full bg-[var(--app-live)] text-white text-[11px] font-bold flex items-center justify-center" aria-label={`${waiting[id]} waiting`}>
+                    {waiting[id]}
                   </span>
                 )}
               </button>

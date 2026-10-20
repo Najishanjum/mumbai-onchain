@@ -10,8 +10,31 @@ export interface Overview {
   replies_24h: number;
   places_pending: number;
   places_live: number;
+  // Missing until 20261021000000_admin_partners.sql has run.
+  partners_pending?: number;
+  partners_approved?: number;
   push_people: number;
   push_devices: number;
+}
+
+export type AdminEventKind =
+  | 'place_approved'
+  | 'place_rejected'
+  | 'place_hidden'
+  | 'place_restored'
+  | 'place_deleted'
+  | 'story_removed'
+  | 'partner_approved'
+  | 'partner_rejected'
+  | 'partner_reopened'
+  | 'partner_deleted'
+  | 'broadcast_sent'
+  | 'admin_added'
+  | 'admin_removed';
+
+/** Tells the other admins what you just did ("Najish approved a place"). Best effort. */
+export function notifyAdmins(kind: AdminEventKind, detail: string) {
+  void supabase.functions.invoke('notify-connection', { body: { adminEvent: { kind, detail } } });
 }
 
 /** The numbers on Overview (and the waiting count on the Places tab). */

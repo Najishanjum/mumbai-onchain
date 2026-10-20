@@ -268,18 +268,8 @@ CREATE POLICY "Public can submit partner application"
   TO anon, authenticated
   WITH CHECK (status = 'pending');
 
-CREATE POLICY "Authenticated admins can view partner applications"
-  ON community_partner_applications
-  FOR SELECT
-  TO authenticated
-  USING (true);
-
-CREATE POLICY "Authenticated admins can update partner applications"
-  ON community_partner_applications
-  FOR UPDATE
-  TO authenticated
-  USING (true)
-  WITH CHECK (true);
+-- Reading and reviewing applications is for admins only, and the public
+-- partners list is a view: both in migrations/20261021000000_admin_partners.sql.
 
 
 

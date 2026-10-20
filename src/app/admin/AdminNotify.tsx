@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
-import { AdminHeading, btn } from './shared';
+import { AdminHeading, btn, notifyAdmins } from './shared';
 
 // Where tapping the notification opens.
 const DESTINATIONS = [
@@ -42,6 +42,7 @@ export function AdminNotify({ reach }: { reach: number | null }) {
     const sent = (data as { sent: number }).sent;
     if (toAll) {
       setResult(`Sent to ${sent} ${sent === 1 ? 'phone' : 'phones'}.`);
+      notifyAdmins('broadcast_sent', `“${title.trim()}”, to ${sent} ${sent === 1 ? 'phone' : 'phones'}`);
       setTitle('');
       setBody('');
     } else {
