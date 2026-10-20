@@ -25,6 +25,9 @@ import {
 } from './time';
 
 
+// "Your 3 events today", "… tomorrow", "… on Tue 3 Nov".
+const dayWord = (label: string) => (label === 'Today' || label === 'Tomorrow' ? label.toLowerCase() : `on ${label}`);
+
 interface TodayScreenProps {
   events: EventItem[];
   isSaved: (id: string) => boolean;
@@ -156,9 +159,11 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const liveMultiDay = sorted.filter((e) => isLive(e, now) && e.startDate !== e.endDate);
   const upcoming = sorted.filter((e) => !hasEnded(e, now) && !isLive(e, now));
   const mine = upcoming.filter((e) => isSaved(e.id));
-  // Lead with the user's own next event; fall back to what's next in the city.
-  const next = mine[0] ?? upcoming[0];
+  // Lead with the user's own events that day, to swipe through; fall back to
+  // what's next in the city.
   const nextIsMine = Boolean(mine[0]);
+  const nextUp = nextIsMine ? mine.filter((e) => e.startDate === mine[0].startDate) : upcoming.slice(0, 1);
+  const [slide, setSlide] = useState(0);
 
   const weekIndex = WEEK_DAYS.indexOf(today);
 
@@ -324,48 +329,67 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       )}
 
       {/* Up next */}
-      {next && (
-        <section className="mb-7">
-          <SectionHeader title={nextIsMine ? 'Your next event' : 'Next in Mumbai'} />
+      {nextUp.length > 0 && (
+        <section className="mb-7" aria-roledescription={nextUp.length > 1 ? 'carousel' : undefined}>
+          <SectionHeader title={!nextIsMine ? 'Next in Mumbai' : nextUp.length > 1 ? `Your ${nextUp.length} events ${dayWord(dayLabel(nextUp[0].startDate, today))}` : 'Your next event'} />
           <div
-            role="button"
-            tabIndex={0}
-            onClick={() => onOpenEvent(next.id)}
-            onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(next.id)}
-            className="app-press mx-4 rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] overflow-hidden cursor-pointer"
+            className="app-scroll-x flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 scroll-px-4"
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              const card = el.firstElementChild as HTMLElement | null;
+              if (card) setSlide(Math.round(el.scrollLeft / (card.offsetWidth + 12)));
+            }}
           >
-            <CoverHero src={eventCover(next)} title={next.title} height={190} />
-            <div className="p-4">
-              <div className="flex items-center gap-2 text-[14px] font-semibold text-[var(--app-live)]">
-                <span>{dayLabel(next.startDate, today)}</span>
-                <span aria-hidden="true">·</span>
-                <span>{next.startTime === 'TBA' ? 'Time TBA' : next.startTime}</span>
-                {startsIn(next, now) && (
-                  <span className="ml-auto text-[13px] font-semibold px-2 py-0.5 rounded-full bg-[var(--app-live-soft)]">
-                    {startsIn(next, now)}
-                  </span>
-                )}
+            {nextUp.map((next) => (
+              <div
+                key={next.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenEvent(next.id)}
+                onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(next.id)}
+                className={`app-press snap-start shrink-0 ${nextUp.length > 1 ? 'w-[88%]' : 'w-full'} rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] overflow-hidden cursor-pointer`}
+              >
+                <CoverHero src={eventCover(next)} title={next.title} height={190} />
+                <div className="p-4">
+                  <div className="flex items-center gap-2 text-[14px] font-semibold text-[var(--app-live)]">
+                    <span>{dayLabel(next.startDate, today)}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{next.startTime === 'TBA' ? 'Time TBA' : next.startTime}</span>
+                    {startsIn(next, now) && (
+                      <span className="ml-auto text-[13px] font-semibold px-2 py-0.5 rounded-full bg-[var(--app-live-soft)]">
+                        {startsIn(next, now)}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="app-title mt-1.5 text-[22px] font-bold leading-tight">{next.title}</h3>
+                  <p className="mt-1 flex items-center gap-1 text-[15px] text-[var(--app-muted)]">
+                    <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{next.location}</span>
+                  </p>
+                  <div className="mt-4 flex gap-2">
+                    <a
+                      href={directionsUrl(next)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="app-press flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold"
+                    >
+                      <Navigation className="w-4 h-4" aria-hidden="true" />
+                      Directions
+                    </a>
+                    <SaveButton saved={isSaved(next.id)} onToggle={() => toggleSaved(next.id)} title={next.title} size="lg" />
+                  </div>
+                </div>
               </div>
-              <h3 className="app-title mt-1.5 text-[22px] font-bold leading-tight">{next.title}</h3>
-              <p className="mt-1 flex items-center gap-1 text-[15px] text-[var(--app-muted)]">
-                <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" />
-                <span className="truncate">{next.location}</span>
-              </p>
-              <div className="mt-4 flex gap-2">
-                <a
-                  href={directionsUrl(next)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="app-press flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold"
-                >
-                  <Navigation className="w-4 h-4" aria-hidden="true" />
-                  Directions
-                </a>
-                <SaveButton saved={isSaved(next.id)} onToggle={() => toggleSaved(next.id)} title={next.title} size="lg" />
-              </div>
-            </div>
+            ))}
           </div>
+          {nextUp.length > 1 && (
+            <div className="mt-3 flex justify-center gap-1.5" aria-hidden="true">
+              {nextUp.map((e, i) => (
+                <span key={e.id} className={`h-1.5 rounded-full transition-all ${i === Math.min(slide, nextUp.length - 1) ? 'w-4 bg-[var(--app-ink)]' : 'w-1.5 bg-[var(--app-faint)]'}`} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
