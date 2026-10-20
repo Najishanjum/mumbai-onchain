@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 // Web push: this phone's subscription, saved against the signed-in account so
@@ -34,11 +34,20 @@ function sameKey(a: ArrayBuffer | null, b: Uint8Array): boolean {
   return bytes.every((v, i) => v === b[i]);
 }
 
+// Why the last connect failed, in words someone can screenshot (Me → Notifications).
+let lastPushError: string | null = null;
+
+const describe = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e));
+
 /** This phone's push subscription, creating one if notifications are allowed. */
 export async function ensurePushSubscription(): Promise<PushSubscription | null> {
   if (!pushSupported() || Notification.permission !== 'granted') return null;
   try {
-    const reg = await navigator.serviceWorker.ready;
+    // ready never settles when the service worker didn't install; don't wait forever.
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('The app’s service worker isn’t running')), 10000)),
+    ]);
     const key = base64UrlToBytes(VAPID_PUBLIC_KEY);
     const existing = await reg.pushManager.getSubscription();
     if (existing) {
@@ -48,18 +57,26 @@ export async function ensurePushSubscription(): Promise<PushSubscription | null>
       await existing.unsubscribe();
     }
     return await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key as BufferSource });
-  } catch {
+  } catch (e) {
+    lastPushError = `Couldn’t connect this phone (${describe(e)})`;
     return null;
   }
 }
 
 /** Save (or refresh) this phone's subscription for the signed-in user. */
 export async function savePushSubscription(userId: string): Promise<boolean> {
-  if (!isSupabaseConfigured() || !supabase) return false;
+  lastPushError = null;
+  if (!isSupabaseConfigured() || !supabase) {
+    lastPushError = 'The app isn’t connected to its database';
+    return false;
+  }
   const sub = await ensurePushSubscription();
   if (!sub) return false;
   const json = sub.toJSON();
-  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return false;
+  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+    lastPushError = 'This browser gave an incomplete push address';
+    return false;
+  }
   const { error } = await supabase.from('push_subscriptions').upsert(
     {
       user_id: userId,
@@ -71,6 +88,7 @@ export async function savePushSubscription(userId: string): Promise<boolean> {
     },
     { onConflict: 'endpoint' }
   );
+  if (error) lastPushError = `Couldn’t save this phone (${error.code ?? ''} ${error.message})`;
   if (!error && staleEndpoint) {
     const { error: cleanup } = await supabase.from('push_subscriptions').delete().eq('endpoint', staleEndpoint);
     if (!cleanup) staleEndpoint = null;
@@ -93,4 +111,41 @@ export function usePushSync(userId: string | null | undefined, enabled: boolean)
     window.addEventListener('mo:notifications-granted', sync);
     return () => window.removeEventListener('mo:notifications-granted', sync);
   }, [userId, enabled]);
+}
+
+export type PushStatus = 'checking' | 'on' | 'off' | 'blocked' | 'unsupported' | 'signed-out' | 'error';
+
+/**
+ * This phone's notification status for Me → Notifications, with a way to turn
+ * them on (the first-launch prompt only asks once) and to retry. On error,
+ * `error` says which step failed.
+ */
+export function usePushStatus(userId: string | null | undefined) {
+  const [state, setState] = useState<{ status: PushStatus; error: string }>({ status: 'checking', error: '' });
+
+  const check = useCallback(async () => {
+    if (!pushSupported()) return setState({ status: 'unsupported', error: '' });
+    if (Notification.permission === 'denied') return setState({ status: 'blocked', error: '' });
+    if (Notification.permission === 'default') return setState({ status: 'off', error: '' });
+    if (!userId) return setState({ status: 'signed-out', error: '' });
+    setState({ status: 'checking', error: '' });
+    const ok = await savePushSubscription(userId);
+    setState(ok ? { status: 'on', error: '' } : { status: 'error', error: lastPushError ?? 'Unknown error' });
+  }, [userId]);
+
+  useEffect(() => {
+    void check();
+  }, [check]);
+
+  const turnOn = useCallback(async () => {
+    try {
+      // Must start inside the tap, or iPhone ignores it.
+      await Notification.requestPermission();
+    } catch {
+      // older browsers: check() reports what's left
+    }
+    await check();
+  }, [check]);
+
+  return { ...state, turnOn, retry: check };
 }
