@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info, ShieldCheck } from 'lucide-react';
+import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info, ShieldCheck, Bell } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { useAppTheme } from '../lib/useAppTheme';
@@ -10,6 +10,23 @@ import { usePeopleStore } from '../lib/usePeopleStore';
 import { useConnectionCounts } from '../lib/useConnectionCounts';
 import { roleColor } from './Badge';
 import { THEME_LABELS } from './AppearanceScreen';
+import { usePushStatus, type PushStatus } from '../lib/push';
+
+const PUSH_LABELS: Record<PushStatus, string> = {
+  checking: 'Checking…',
+  on: 'On',
+  off: 'Off',
+  blocked: 'Blocked',
+  unsupported: 'Not available',
+  'signed-out': 'Sign in first',
+  error: 'Not working',
+};
+
+const PUSH_HELP: Partial<Record<PushStatus, string>> = {
+  blocked: 'Your phone blocks notifications for this app. Allow them in Settings → Apps → Mumbai Onchain → Notifications (on iPhone: Settings → Notifications → Mumbai Onchain), then come back here.',
+  unsupported: 'This browser can’t show notifications. On iPhone, add the app to your home screen and open it from there.',
+  'signed-out': 'Sign in so notifications for your account reach this phone.',
+};
 
 interface MeScreenProps {
   myProfile: PersonProfile | null;
@@ -59,7 +76,8 @@ export const MeScreen: React.FC<MeScreenProps> = ({
 }) => {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   // Your own "Added · Added you", re-read as either side changes.
-  const { connections, addedMe } = usePeopleStore();
+  const { connections, addedMe, authUser } = usePeopleStore();
+  const push = usePushStatus(authUser?.id);
   const myAdds = Object.values(connections).filter((s) => s === 'CONNECTED').length;
   const myCounts = useConnectionCounts(myProfile?.id, `${myAdds}:${addedMe.length}`);
   const icon = 'w-[18px] h-[18px]';
@@ -144,7 +162,21 @@ export const MeScreen: React.FC<MeScreenProps> = ({
           <RowLink icon={<Bookmark className={icon} />} label="My plan" detail={String(savedCount)} onClick={onOpenPlan} />
           <RowLink icon={<ScanLine className={icon} />} label="Scan" onClick={onScan} />
           <RowLink icon={<Palette className={icon} />} label="Appearance" detail={THEME_LABELS[themePref]} onClick={onOpenAppearance} />
+          <RowLink
+            icon={<Bell className={icon} />}
+            label="Notifications"
+            detail={PUSH_LABELS[push.status]}
+            onClick={() => void (push.status === 'off' ? push.turnOn() : push.retry())}
+          />
         </GroupedList>
+        {push.status === 'error' ? (
+          <div role="status" className="mx-5 -mt-3 text-[14px] text-[var(--app-muted)]">
+            <p>Notifications aren’t reaching this phone. Tap Notifications to try again. Still failing? Screenshot this and send it to @nimsaraonline.</p>
+            <p className="mt-1.5 font-['Red_Hat_Mono'] text-[12px] break-words text-[var(--app-ink)]">{push.error}</p>
+          </div>
+        ) : (
+          PUSH_HELP[push.status] && <p className="mx-5 -mt-3 text-[14px] text-[var(--app-muted)]">{PUSH_HELP[push.status]}</p>
+        )}
 
         <section aria-labelledby="account-title" className="mx-4">
           <h2 id="account-title" className="px-1 mb-2 app-label">

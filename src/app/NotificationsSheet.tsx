@@ -5,7 +5,10 @@ import { getEventStartDateTime } from '../lib/date';
 import { isLive, startsIn } from './time';
 import { Sheet } from './ui';
 
+// id → when it was first seen. Older builds kept a plain list of ids.
 const SEEN_KEY = 'mo_seen_notes';
+// "Added you" and replies leave the list this long after you've seen them.
+const KEEP_SEEN_MS = 48 * 60 * 60 * 1000;
 const SOON_MS = 3 * 60 * 60 * 1000;
 
 export interface Reminder {
@@ -17,11 +20,13 @@ export interface Reminder {
   personId?: string;
 }
 
-function readSeen(): string[] {
+function readSeen(): Record<string, number> {
   try {
-    return JSON.parse(localStorage.getItem(SEEN_KEY) || '[]');
+    const saved = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}');
+    if (Array.isArray(saved)) return Object.fromEntries(saved.map((id: string) => [id, Date.now()]));
+    return saved && typeof saved === 'object' ? saved : {};
   } catch {
-    return [];
+    return {};
   }
 }
 
@@ -40,7 +45,7 @@ export function useReminders(
   /** Replies to your stories, newest first (from the account). */
   repliedBy: { id: string; personId: string; name: string; body: string }[] = []
 ) {
-  const reminders = useMemo<Reminder[]>(() => {
+  const all = useMemo<Reminder[]>(() => {
     const list: Reminder[] = repliedBy.map((r) => ({
       id: `reply:${r.id}`,
       tone: 'reply' as const,
@@ -73,19 +78,29 @@ export function useReminders(
     return list;
   }, [events, isSaved, hasProfile, now, addedBy, repliedBy]);
 
-  const [seen, setSeen] = useState<string[]>(readSeen);
-  const unread = reminders.some((r) => !seen.includes(r.id));
+  const [seen, setSeen] = useState<Record<string, number>>(readSeen);
+  // People who added you and replies stay until seen, then for 48 hours.
+  const visible = useMemo(
+    () => all.filter((r) => !((r.tone === 'added' || r.tone === 'reply') && seen[r.id] && now.getTime() - seen[r.id] > KEEP_SEEN_MS)),
+    [all, seen, now]
+  );
+  const unread = visible.some((r) => !seen[r.id]);
   const markSeen = useCallback(() => {
-    const ids = reminders.map((r) => r.id);
-    setSeen(ids);
+    // Keep first-seen times; drop ids that no longer exist.
+    const next: Record<string, number> = {};
+    for (const r of all) {
+      const at = seen[r.id] ?? (visible.includes(r) ? Date.now() : undefined);
+      if (at) next[r.id] = at;
+    }
+    setSeen(next);
     try {
-      localStorage.setItem(SEEN_KEY, JSON.stringify(ids));
+      localStorage.setItem(SEEN_KEY, JSON.stringify(next));
     } catch {
       // fine without it; the dot just comes back next launch
     }
-  }, [reminders]);
+  }, [all, visible, seen]);
 
-  return { reminders, unread, markSeen };
+  return { reminders: visible, unread, markSeen };
 }
 
 const ICONS = { live: Radio, soon: CalendarClock, nudge: IdCard, added: UserPlus, reply: MessageCircle } as const;
