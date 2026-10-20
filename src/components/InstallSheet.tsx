@@ -10,7 +10,8 @@ interface InstallSheetProps {
   reason?: { title: string; body: string } | null;
 }
 
-const APP_URL = typeof window !== 'undefined' ? window.location.origin + '/?source=qr' : '';
+// The /app page, which walks the phone through installing.
+const APP_URL = typeof window !== 'undefined' ? window.location.origin + '/app?source=qr' : '';
 
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
@@ -31,7 +32,7 @@ function InAppBrowserSteps({ app }: { app: 'x' | 'telegram' | 'instagram' }) {
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(window.location.origin);
+      await navigator.clipboard.writeText(window.location.origin + '/app');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -118,7 +119,7 @@ function DesktopQr({ canPrompt, onInstall }: { canPrompt: boolean; onInstall: ()
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3 border border-[#000000] p-5">
         {qr ? (
-          <img src={qr} alt={`QR code linking to ${window.location.host}`} className="w-44 h-44" />
+          <img src={qr} alt={`QR code linking to ${window.location.host}/app`} className="w-44 h-44" />
         ) : (
           <div className="w-44 h-44 bg-[#F2F2F2]" />
         )}
