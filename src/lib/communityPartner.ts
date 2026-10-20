@@ -218,3 +218,63 @@ export async function submitCommunityPartnerApplication(
     };
   }
 }
+
+/**
+ * Initial launch partner cohorts displayed when no approved applications exist yet.
+ */
+export const DEFAULT_COMMUNITY_PARTNERS: PublicCommunityPartner[] = [
+  {
+    id: 'partner-web3bharat',
+    community_name: 'Web3 Bharat',
+    community_logo_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80',
+    community_description: 'A grassroots community fostering Web3 builders, developers, and researchers across India through hackathons and workshops.',
+    website_url: 'https://web3bharat.xyz',
+    x_url: 'https://x.com/Web3Bharat',
+    telegram_url: 'https://t.me/web3bharat',
+  },
+  {
+    id: 'partner-superteam-india',
+    community_name: 'Superteam India',
+    community_logo_url: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=200&q=80',
+    community_description: 'The premier community of founders, developers, and creatives building open-source tech and crypto products in India.',
+    website_url: 'https://superteam.fun',
+    x_url: 'https://x.com/SuperteamIN',
+    discord_url: 'https://discord.gg/superteam',
+  },
+  {
+    id: 'partner-ethmumbai',
+    community_name: 'Ethereum Mumbai',
+    community_logo_url: 'https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?auto=format&fit=crop&w=200&q=80',
+    community_description: 'Mumbai’s local Ethereum community organizing developer meetups, core protocol discussions, and builder demo days.',
+    website_url: 'https://ethereum.org',
+    x_url: 'https://x.com/Mumbai_onchain',
+    telegram_url: 'https://t.me/+Yi25K6W8KMo0MDZl',
+  },
+];
+
+/**
+ * Fetches approved community partners from Supabase.
+ * Returns default ecosystem partners if none are approved yet.
+ */
+export async function fetchApprovedCommunityPartners(): Promise<PublicCommunityPartner[]> {
+  if (!isSupabaseConfigured()) {
+    return DEFAULT_COMMUNITY_PARTNERS;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('community_partner_applications')
+      .select('id, community_name, community_logo_url, community_description, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, created_at')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      return DEFAULT_COMMUNITY_PARTNERS;
+    }
+
+    return data as PublicCommunityPartner[];
+  } catch {
+    return DEFAULT_COMMUNITY_PARTNERS;
+  }
+}
+

@@ -22,3 +22,18 @@ export interface CommunityPartnerApplication extends CommunityPartnerApplication
   created_at: string;
   updated_at?: string;
 }
+
+export interface PublicCommunityPartner {
+  id: string;
+  community_name: string;
+  community_logo_url: string;
+  community_description: string;
+  website_url?: string;
+  x_url?: string;
+  instagram_url?: string;
+  linkedin_url?: string;
+  telegram_url?: string;
+  discord_url?: string;
+  created_at?: string;
+}
+
