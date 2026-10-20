@@ -1,6 +1,10 @@
 import React from 'react';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onApplyPartner?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onApplyPartner }) => {
   return (
     <footer className="w-full bg-[#FFFFFF] border-t-2 border-[#000000] pt-16 pb-12 mt-20 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -29,6 +33,17 @@ export const Footer: React.FC = () => {
               <ul className="space-y-1.5 text-[#444444]">
                 <li><a href="https://devcon.org/en/" target="_blank" rel="noopener noreferrer" className="hover:underline">DEVCON 8 INDIA ↗</a></li>
                 <li><a href="https://devcon8-id.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:underline text-[#0052FF] font-bold">DEVCON 8 ID GENERATOR ↗</a></li>
+                {onApplyPartner && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={onApplyPartner}
+                      className="hover:underline text-[#F97316] font-bold text-left cursor-pointer"
+                    >
+                      BECOME A PARTNER ↗
+                    </button>
+                  </li>
+                )}
                 <li><a href="https://ethglobal.com/events/mumbai" target="_blank" rel="noopener noreferrer" className="hover:underline">ETHGLOBAL MUMBAI ↗</a></li>
                 <li><a href="https://indiablockchainweek.com/" target="_blank" rel="noopener noreferrer" className="hover:underline">INDIA BLOCKCHAIN WEEK ↗</a></li>
                 <li><a href="https://ethereum.org" target="_blank" rel="noopener noreferrer" className="hover:underline">ETHEREUM FOUNDATION ↗</a></li>

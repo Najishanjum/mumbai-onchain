@@ -226,5 +226,60 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('snaps', 'snaps', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
+-- 9. Community Partner Applications & Logos Storage
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'community-logos',
+  'community-logos',
+  true,
+  5242880,
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 5242880,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif'];
+
+CREATE TABLE IF NOT EXISTS community_partner_applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  community_name TEXT NOT NULL,
+  community_logo_url TEXT NOT NULL,
+  community_description TEXT NOT NULL,
+  lead_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  website_url TEXT DEFAULT '',
+  x_url TEXT DEFAULT '',
+  instagram_url TEXT DEFAULT '',
+  linkedin_url TEXT DEFAULT '',
+  telegram_url TEXT DEFAULT '',
+  discord_url TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE community_partner_applications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can submit partner application"
+  ON community_partner_applications
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (status = 'pending');
+
+CREATE POLICY "Authenticated admins can view partner applications"
+  ON community_partner_applications
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY "Authenticated admins can update partner applications"
+  ON community_partner_applications
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
 
 

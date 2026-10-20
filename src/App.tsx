@@ -25,6 +25,8 @@ import { SnapViewerModal } from './components/SnapViewerModal';
 import { AddSnapModal } from './components/AddSnapModal';
 import { LiveMatchToast } from './components/LiveMatchToast';
 import { Footer } from './components/Footer';
+import { CommunityPartnerSection } from './components/CommunityPartnerSection';
+import { CommunityPartnerModal } from './components/CommunityPartnerModal';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
 import { AskScreen } from './app/AskScreen';
 import { NotifyPrompt, shouldAskForNotifications } from './app/NotifyPrompt';
@@ -50,6 +52,7 @@ export function App() {
   useAppTheme(appMode);
   const [isAskOpen, setIsAskOpen] = useState(false);
   const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
   const [installReason, setInstallReason] = useState<AppOnlyAction | null>(null);
   const openInstall = useCallback(() => {
     setInstallReason(null);
@@ -156,6 +159,8 @@ export function App() {
       } else if (tabParam === 'id-generator') {
         window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
         setActiveTab('home');
+      } else if (params.get('partner') || params.get('apply') === 'partner') {
+        setIsPartnerModalOpen(true);
       } else if (tabParam) {
         if (['home', 'timeline', 'events', 'people', 'map', 'mymumbai'].includes(tabParam)) {
           setActiveTab(tabParam as any);
@@ -314,6 +319,12 @@ export function App() {
           onSelectPerson={(id) => setSelectedPersonId(id)}
         />
       )}
+
+      {/* Community Partner Application Modal */}
+      <CommunityPartnerModal
+        isOpen={isPartnerModalOpen}
+        onClose={() => setIsPartnerModalOpen(false)}
+      />
     </>
   );
 
@@ -477,6 +488,9 @@ export function App() {
 
               {/* Side Events Section */}
               <SideEvents />
+
+              {/* Become a Community Partner Section */}
+              <CommunityPartnerSection onApply={() => setIsPartnerModalOpen(true)} />
             </div>
           </div>
         )}
@@ -573,7 +587,7 @@ export function App() {
       />
 
       {/* Footer */}
-      <Footer />
+      <Footer onApplyPartner={() => setIsPartnerModalOpen(true)} />
 
     </div>
   );
