@@ -6,7 +6,7 @@ import { detectInAppBrowser, detectPlatform, promptInstall, useInstallState } fr
 import { Scene } from './Scene';
 
 const FEATURES = [
-  { icon: CalendarDays, title: 'Every event, one schedule', body: 'Devcon 8, IBW, ETHGlobal and the side events, with what’s on now.' },
+  { icon: CalendarDays, title: 'Every event, one schedule', body: 'IBW, Devcon 8, ETHGlobal Mumbai and the side events, with what’s on now.' },
   { icon: Users, title: 'Meet people', body: 'Your badge and QR, and everyone you met, saved.' },
   { icon: MapPin, title: 'The map of Mumbai', body: 'Venues and spots the community recommends.' },
   { icon: Bell, title: 'Notifications', body: 'Replies and updates, even with the app closed.' },
@@ -198,7 +198,7 @@ export function InstallPage() {
       <main className="mx-auto max-w-md px-4 pt-[calc(env(safe-area-inset-top)+40px)] pb-[calc(env(safe-area-inset-bottom)+32px)]">
         <img src="/icons/icon-192.png" alt="" className="w-22 h-22 rounded-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.5)]" />
         <h1 className="mt-5 text-[34px] leading-[1.05] font-extrabold tracking-[-0.02em]">Mumbai Onchain</h1>
-        <p className="mt-2 text-[17px] leading-relaxed text-[var(--app-muted)]">Your app for Devcon 8 week in Mumbai. Free, and no App Store needed.</p>
+        <p className="mt-2 text-[17px] leading-relaxed text-[var(--app-muted)]">Your app for India Blockchain Week, Devcon 8 and ETHGlobal Mumbai. Free, and no App Store needed.</p>
 
         <section aria-labelledby="install-title" className="mt-7 rounded-[28px] bg-[var(--app-surface)]/85 backdrop-blur-xl border border-[var(--app-line)] p-4">
           <h2 id="install-title" className="font-['Red_Hat_Mono'] text-[12px] font-semibold tracking-[0.16em] text-[var(--app-muted)] mb-3 px-1">

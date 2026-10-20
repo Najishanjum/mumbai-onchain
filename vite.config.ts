@@ -12,11 +12,11 @@ function installPageHtml() {
   let outDir = 'dist';
   const meta: [RegExp, string][] = [
     [/<title>[^<]*<\/title>/, '<title>Get the Mumbai Onchain app</title>'],
-    [/(<meta name="description" content=")[^"]*/, '$1Every Devcon 8 and Mumbai Onchain Week event, the people you meet and the map, on your home screen. Free, no App Store.'],
+    [/(<meta name="description" content=")[^"]*/, '$1IBW, Devcon 8, ETHGlobal Mumbai and every side event, the people you meet and the map, on your home screen. Free, no App Store.'],
     [/(<meta name="theme-color" content=")[^"]*/, '$1#0A0A0C'],
     [/(<meta property="og:url" content=")[^"]*/, '$1https://www.mumbaionchain.site/app'],
     [/(<meta property="(?:og|twitter):title" content=")[^"]*/g, '$1Get the Mumbai Onchain app'],
-    [/(<meta property="(?:og|twitter):description" content=")[^"]*/g, '$1Every Devcon 8 week event, the people you meet and the map of Mumbai, on your home screen. Free, no App Store.'],
+    [/(<meta property="(?:og|twitter):description" content=")[^"]*/g, '$1IBW, Devcon 8, ETHGlobal Mumbai and every side event, the people you meet and the map of Mumbai, on your home screen. Free, no App Store.'],
     // Dark from the first paint, before React sets it.
     [/<html lang="en" class="dark scroll-smooth">/, '<html lang="en" class="dark" data-app-theme="dark" data-app-scene="aurora">'],
   ];
@@ -173,7 +173,7 @@ export default defineConfig(({ mode }) => {
           id: '/',
           name: 'Mumbai Onchain',
           short_name: 'Mumbai Onchain',
-          description: 'Your guide to Devcon 8, India Blockchain Week, ETHGlobal Mumbai and every side event in Mumbai.',
+          description: 'Your guide to India Blockchain Week, Devcon 8, ETHGlobal Mumbai and every side event in Mumbai.',
           // ?source=pwa marks launches from the home screen; App ignores unknown params.
           start_url: '/?source=pwa',
           scope: '/',
