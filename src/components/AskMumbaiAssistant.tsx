@@ -223,25 +223,49 @@ export const AskMumbaiAssistant: React.FC<AskMumbaiAssistantProps> = ({
   return (
     <>
       {/* ────────────────────────────────────────────────────────────────────
-          1. SLEEK FLOATING TRIGGER BUTTON (Bottom-Right)
+          1. SLEEK FLOATING TRIGGER BUTTON (Bottom-Right Circle Logo)
           ──────────────────────────────────────────────────────────────────── */}
       <div hidden={hideLauncher} className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3.5 sm:bottom-6 sm:right-6 z-40 select-none">
         <button
           type="button"
           onClick={() => setIsOpen(prev => !prev)}
-          className={`group flex items-center gap-2 px-4 py-2.5 rounded-full font-mono text-xs font-semibold transition-all duration-200 shadow-xl active:scale-95 cursor-pointer border ${
+          className={`group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 shadow-xl active:scale-95 cursor-pointer border ${
             isOpen
-              ? 'bg-[#000000] text-[#FFFFFF] border-[#333333]'
-              : 'bg-[#0A0A0A] hover:bg-[#161616] text-[#FFFFFF] border-[#2E2E2E] hover:border-[#555555]'
+              ? 'bg-[#181818] border-[#3E3E3E] text-[#FFFFFF]'
+              : 'bg-[#0A0A0A] hover:bg-[#141414] border-[#2E2E2E] hover:border-[#F97316]/70 hover:shadow-[0_0_20px_rgba(249,115,22,0.25)]'
           }`}
-          aria-label="Toggle Ask Mumbai Assistant"
+          aria-label={isOpen ? 'Close Ask Mumbai Assistant' : 'Open Ask Mumbai Assistant'}
+          title={t.assistantName}
         >
-          <Sparkles className="w-3.5 h-3.5 text-[#F97316] group-hover:rotate-12 transition-transform" />
-          <span className="tracking-wide">✦ {t.assistantName}</span>
-          <span className="relative flex h-2 w-2 ml-0.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-70" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22C55E]" />
-          </span>
+          {isOpen ? (
+            <X className="w-5 h-5 text-white transition-transform group-hover:rotate-90 duration-200" />
+          ) : (
+            <div className="relative w-full h-full flex items-center justify-center p-2">
+              <img
+                src="/icons/icon-192.png"
+                alt="Mumbai Onchain AI"
+                className="w-7 h-7 rounded-full object-contain group-hover:scale-105 transition-transform"
+              />
+              {/* Mini AI Sparkle badge */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#181818] border border-[#333333] flex items-center justify-center shadow-md">
+                <Sparkles className="w-2.5 h-2.5 text-[#F97316] group-hover:rotate-12 transition-transform" />
+              </div>
+            </div>
+          )}
+
+          {/* Green active ping indicator */}
+          {!isOpen && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#22C55E] border-2 border-[#0A0A0A]" />
+            </span>
+          )}
+
+          {/* Tooltip on hover (desktop) */}
+          <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-[#111111] border border-[#2B2B2B] text-white text-[11px] font-mono whitespace-nowrap shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5 z-50">
+            <span className="text-[#F97316]">✦</span>
+            <span>{t.assistantName}</span>
+          </div>
         </button>
       </div>
 
