@@ -3,8 +3,8 @@ import { ArrowUpRight, Smartphone } from 'lucide-react';
 import { useInstallState } from '../lib/pwa';
 
 interface NavbarProps {
-  activeTab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator';
-  setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator') => void;
+  activeTab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'communitypartner';
+  setActiveTab: (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'communitypartner') => void;
   onInstall: () => void;
 }
 
@@ -92,6 +92,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onInsta
             }`}
           >
             MAP
+          </button>
+
+          <button
+            onClick={() => setActiveTab('communitypartner')}
+            className={`px-3 py-1.5 transition-colors border-b-2 font-semibold flex items-center gap-1.5 ${
+              activeTab === 'communitypartner'
+                ? 'border-[#000000] text-[#000000]'
+                : 'border-transparent text-[#555555] hover:text-[#000000]'
+            }`}
+          >
+            <span>PARTNERS</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#F97316] inline-block" />
           </button>
 
           <a

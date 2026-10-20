@@ -35,13 +35,16 @@ export function useAppStore() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeDateFilter, setActiveDateFilter] = useState<string>('ALL');
 
-  const [activeTab, setActiveTabState] = useState<'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator'>(() => {
+  const [activeTab, setActiveTabState] = useState<'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'communitypartner'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       if (path.includes('id-generator') || hash.includes('id-generator') || path.includes('/id') || hash.includes('#id')) {
         window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
         return 'home';
+      }
+      if (path.includes('communitypartner') || path.includes('community-partner') || hash.includes('communitypartner') || hash.includes('community-partner')) {
+        return 'communitypartner';
       }
       if (path.includes('people') || hash.includes('people')) return 'people';
       if (path.includes('timeline') || hash.includes('timeline')) return 'timeline';
@@ -52,7 +55,7 @@ export function useAppStore() {
     return 'home';
   });
 
-  const setActiveTab = (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator') => {
+  const setActiveTab = (tab: 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'communitypartner') => {
     if (tab === 'id-generator') {
       window.open('https://devcon8-id.vercel.app/', '_blank', 'noopener,noreferrer');
       return;

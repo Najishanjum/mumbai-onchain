@@ -70,7 +70,7 @@ import AdminMode, { ADMIN_TABS, type AdminTab } from './admin/AdminMode';
 
 const ROLE_KEY = 'mo_app_role';
 
-type StoreTab ='home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator';
+type StoreTab = 'home' | 'timeline' | 'events' | 'people' | 'map' | 'mymumbai' | 'id-generator' | 'communitypartner';
 
 // The app's tabs reuse the store's tab state so deep links (?tab=people,
 // manifest shortcuts, scanned profile QR codes) work in both layouts.
@@ -82,6 +82,7 @@ const toApp: Record<StoreTab, AppTab> = {
   map: 'map',
   mymumbai: 'me',
   'id-generator': 'today',
+  communitypartner: 'today',
 };
 const toStore: Record<AppTab, StoreTab> = {
   today: 'home',

@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { compressAndOptimizeImage, dataUrlToBlob } from './imageCompressor';
-import type { CommunityPartnerApplicationInput } from '../types/partner';
+import type { CommunityPartnerApplicationInput, PublicCommunityPartner } from '../types/partner';
 
 export interface UploadLogoResult {
   success: boolean;

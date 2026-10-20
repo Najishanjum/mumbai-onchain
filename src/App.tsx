@@ -26,6 +26,7 @@ import { AddSnapModal } from './components/AddSnapModal';
 import { LiveMatchToast } from './components/LiveMatchToast';
 import { Footer } from './components/Footer';
 import { CommunityPartnerSection } from './components/CommunityPartnerSection';
+import { CommunityPartnerPage } from './components/CommunityPartnerPage';
 import { CommunityPartnerModal } from './components/CommunityPartnerModal';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
 import { AskScreen } from './app/AskScreen';
@@ -573,6 +574,10 @@ export function App() {
               onUpdateStatus={updateEventStatus}
             />
           </div>
+        )}
+
+        {activeTab === 'communitypartner' && (
+          <CommunityPartnerPage onApply={() => setIsPartnerModalOpen(true)} />
         )}
       </main>
 
