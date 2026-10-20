@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type TouchEvent } from 'react';
-import { Check, Loader2, MapPin, MessageCircle, MoreHorizontal, Plus, Send, Trash2, UserPlus, X } from 'lucide-react';
+import { Check, Eye, Loader2, MapPin, MessageCircle, MoreHorizontal, Plus, Send, Trash2, UserPlus, X } from 'lucide-react';
 import { NO_EVENT_ID, type Snap } from '../types/snap';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
@@ -9,10 +9,20 @@ import { PersonAvatar } from '../components/PersonAvatar';
 import { roleColor } from './Badge';
 import { useBackToClose } from '../lib/useBackToClose';
 import { useStoryReplies } from '../lib/useStoryReplies';
+import { recordSnapView, useSnapViewers } from '../lib/useSnapViews';
 import { coverAround, keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
 import { requireApp } from '../lib/appGate';
 
 const SEEN_KEY = 'mo_seen_snaps';
+
+/** "now", "5m", "2h", "1d". */
+function seenAgo(iso: string): string {
+  const m = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (m < 1) return 'now';
+  if (m < 60) return `${m}m`;
+  if (m < 60 * 24) return `${Math.floor(m / 60)}h`;
+  return `${Math.floor(m / (60 * 24))}d`;
+}
 const STORY_MS = 5000;
 
 interface Story {
@@ -229,11 +239,13 @@ function StoryViewer({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
   const { deleteSnap, isOwnerOfSnap } = useSnapStore();
-  const { people } = usePeopleStore();
+  const { people, myProfile: me } = usePeopleStore();
   const { replies, canReply, send } = useStoryReplies();
   const story = stories[storyAt];
   useBackToClose(true, onClose);
   const snap = story?.snaps[snapAt];
+  // On your own story: who saw this snap.
+  const viewers = useSnapViewers(snap && story && isMine(story) ? snap.id : null);
 
   // Replying: the story waits while you type, and the bar rides above the
   // keyboard (iPhone covers the page instead of resizing it).
@@ -253,6 +265,11 @@ function StoryViewer({
   useEffect(() => {
     if (snap) onSeen(snap.id);
   }, [snap, onSeen]);
+
+  // Counts towards "Seen by" for the snap's owner (signed-in members only).
+  useEffect(() => {
+    if (snap && story && me && !isMine(story) && isRealSnap(snap)) recordSnapView(snap.id, me.id);
+  }, [snap, story, me, isMine]);
 
   useEffect(() => {
     const prev = document.documentElement.style.overflow;
@@ -511,8 +528,15 @@ function StoryViewer({
             {...stop}
             className="pointer-events-auto app-press mx-auto h-11 px-4 rounded-full bg-black/30 border border-white/30 backdrop-blur-sm text-[14px] font-semibold flex items-center gap-2"
           >
-            <MessageCircle className="w-4.5 h-4.5" aria-hidden="true" />
-            {snapReplies.length === 0 ? 'No replies yet' : `${snapReplies.length} ${snapReplies.length === 1 ? 'reply' : 'replies'}`}
+            <Eye className="w-4.5 h-4.5" aria-hidden="true" />
+            {viewers?.length ? `Seen by ${viewers.length}` : 'No views yet'}
+            {snapReplies.length > 0 && (
+              <>
+                <span aria-hidden="true" className="text-white/50">·</span>
+                <MessageCircle className="w-4.5 h-4.5" aria-hidden="true" />
+                {snapReplies.length}
+              </>
+            )}
           </button>
         )}
       </div>
@@ -523,7 +547,7 @@ function StoryViewer({
           <button type="button" aria-label="Close replies" onClick={() => setRepliesOpen(false)} className="absolute inset-0 bg-black/50" />
           <div
             role="dialog"
-            aria-label="Replies"
+            aria-label="Who saw it and replies"
             className="relative w-full max-h-[70dvh] overflow-y-auto rounded-t-[24px] bg-[var(--app-surface)] text-[var(--app-ink)] px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"
           >
             <p className="px-1 text-[17px] font-extrabold">Replies</p>
@@ -543,6 +567,32 @@ function StoryViewer({
                         <span className="block text-[14px] font-bold">{nameOf(r.fromProfileId)}</span>
                         <span className="block text-[15px] leading-snug whitespace-pre-wrap break-words">{r.body}</span>
                       </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="px-1 mt-5 text-[17px] font-extrabold">
+              Seen by{viewers?.length ? ` ${viewers.length}` : ''}
+            </p>
+            {viewers === null ? (
+              <div className="py-4 flex justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-[var(--app-muted)]" aria-label="Loading" />
+              </div>
+            ) : viewers.length === 0 ? (
+              <p className="px-1 mt-1 text-[14px] text-[var(--app-muted)]">Nobody yet. People with the app show up here once they watch it; only you see this list.</p>
+            ) : (
+              <ul className="mt-2">
+                {viewers.map((v) => (
+                  <li key={v.profileId}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenPerson(v.profileId)}
+                      className="app-press w-full flex items-center gap-3 px-1 py-2 text-left"
+                    >
+                      <PersonAvatar name={nameOf(v.profileId)} avatarUrl={avatarOf(v.profileId)} size="sm" className="rounded-full! shrink-0 w-10! h-10!" />
+                      <span className="flex-1 min-w-0 text-[15px] font-semibold truncate">{nameOf(v.profileId)}</span>
+                      <span className="text-[13px] text-[var(--app-muted)]">{seenAgo(v.viewedAt)}</span>
                     </button>
                   </li>
                 ))}
