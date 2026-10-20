@@ -2,6 +2,41 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { readFileSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
+
+// dist/app.html: the built index.html with its own title and link preview, so
+// a shared mumbaionchain.site/app link reads "Get the app" on X. vercel.json
+// serves it at /app; main.tsx shows the install page there.
+function installPageHtml() {
+  let outDir = 'dist';
+  const meta: [RegExp, string][] = [
+    [/<title>[^<]*<\/title>/, '<title>Get the Mumbai Onchain app</title>'],
+    [/(<meta name="description" content=")[^"]*/, '$1Every Devcon 8 and Mumbai Onchain Week event, the people you meet and the map, on your home screen. Free, no App Store.'],
+    [/(<meta name="theme-color" content=")[^"]*/, '$1#0A0A0C'],
+    [/(<meta property="og:url" content=")[^"]*/, '$1https://www.mumbaionchain.site/app'],
+    [/(<meta property="(?:og|twitter):title" content=")[^"]*/g, '$1Get the Mumbai Onchain app'],
+    [/(<meta property="(?:og|twitter):description" content=")[^"]*/g, '$1Every Devcon 8 week event, the people you meet and the map of Mumbai, on your home screen. Free, no App Store.'],
+    // Dark from the first paint, before React sets it.
+    [/<html lang="en" class="dark scroll-smooth">/, '<html lang="en" class="dark" data-app-theme="dark" data-app-scene="aurora">'],
+  ];
+  return {
+    name: 'install-page-html',
+    apply: 'build' as const,
+    configResolved(config: { root: string; build: { outDir: string } }) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      let html = readFileSync(resolve(outDir, 'index.html'), 'utf8');
+      for (const [find, replace] of meta) {
+        if (!find.test(html)) throw new Error(`install-page-html: ${find} not found in index.html`);
+        find.lastIndex = 0;
+        html = html.replace(find, replace);
+      }
+      writeFileSync(resolve(outDir, 'app.html'), html);
+    },
+  };
+}
 
 // Local development middleware to handle /api/x/profile with seamless fallback
 function xProfileDevPlugin(token: string) {
@@ -126,6 +161,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       xProfileDevPlugin(bearerToken),
+      installPageHtml(),
       VitePWA({
         // 'prompt': a new version waits until the user taps Reload in the
         // update toast, or is applied silently when the app goes to the
