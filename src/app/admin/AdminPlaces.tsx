@@ -3,7 +3,7 @@ import { ExternalLink, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { PLACE_CATEGORIES } from '../../data/places';
-import { AdminHeading, EmptyState, ErrorLine, Segments, btn, timeAgo } from './shared';
+import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins, timeAgo } from './shared';
 
 type Status = 'pending' | 'live' | 'hidden';
 
@@ -71,6 +71,10 @@ export function AdminPlaces({ onChanged }: { onChanged: () => void }) {
     if (status === 'live' && row.status === 'pending') {
       void supabase.functions.invoke('notify-connection', { body: { approvedPlaceId: row.id } });
     }
+    notifyAdmins(
+      status === 'live' ? (row.status === 'pending' ? 'place_approved' : 'place_restored') : row.status === 'pending' ? 'place_rejected' : 'place_hidden',
+      row.name
+    );
     setRows((r) => r?.filter((x) => x.id !== row.id) ?? null);
     onChanged();
   }
@@ -81,6 +85,7 @@ export function AdminPlaces({ onChanged }: { onChanged: () => void }) {
     setBusyId(null);
     setConfirmDelete(null);
     if (e) return setError(`Couldn’t delete ${row.name}. Try again.`);
+    notifyAdmins('place_deleted', row.name);
     setRows((r) => r?.filter((x) => x.id !== row.id) ?? null);
     onChanged();
   }

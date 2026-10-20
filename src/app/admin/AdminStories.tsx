@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { thumbPathFor } from '../../lib/useSnapStore';
-import { AdminHeading, EmptyState, ErrorLine, btn, timeAgo } from './shared';
+import { AdminHeading, EmptyState, ErrorLine, btn, notifyAdmins, timeAgo } from './shared';
 
 interface Row {
   id: string;
@@ -59,6 +59,7 @@ export function AdminStories({ onChanged }: { onChanged: () => void }) {
     if (row.storage_path) await supabase.storage.from('snaps').remove([row.storage_path, thumbPathFor(row.storage_path)]);
     setBusyId(null);
     setConfirmId(null);
+    notifyAdmins('story_removed', `By ${names[row.user_id] ?? 'someone'}${row.caption ? `: “${row.caption}”` : ''}`);
     setRows((r) => r?.filter((x) => x.id !== row.id) ?? null);
     onChanged();
   }

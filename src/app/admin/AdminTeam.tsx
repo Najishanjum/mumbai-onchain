@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { PersonAvatar } from '../../components/PersonAvatar';
 import type { AdminRole } from '../../lib/useAdmin';
-import { AdminHeading, ErrorLine, btn } from './shared';
+import { AdminHeading, ErrorLine, btn, notifyAdmins } from './shared';
 
 interface Member {
   userId: string;
@@ -91,6 +91,7 @@ export function AdminTeam({ role }: { role: AdminRole }) {
     setBusy(null);
     if (e) return setError(e.code === '23505' ? `${person.name} is already an admin.` : `Couldn’t add ${person.name}. Try again.`);
     setQuery('');
+    notifyAdmins('admin_added', person.name);
     void load();
   }
 
@@ -100,6 +101,7 @@ export function AdminTeam({ role }: { role: AdminRole }) {
     setBusy(null);
     setConfirmRemove(null);
     if (e) return setError(`Couldn’t remove ${m.name}. Try again.`);
+    notifyAdmins('admin_removed', m.name);
     void load();
   }
 

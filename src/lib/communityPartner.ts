@@ -176,7 +176,11 @@ export async function submitCommunityPartnerApplication(
   }
 
   try {
+    // Made here: visitors can't read applications back, and the admin
+    // notification needs the id.
+    const id = crypto.randomUUID();
     const payload = {
+      id,
       community_name: input.community_name.trim(),
       community_logo_url: input.community_logo_url.trim(),
       community_description: input.community_description.trim(),
@@ -210,6 +214,9 @@ export async function submitCommunityPartnerApplication(
       };
     }
 
+    // Tells the admin team in the app. Best effort: the application is saved either way.
+    void supabase.functions.invoke('notify-connection', { body: { partnerApplicationId: id } });
+
     return { success: true };
   } catch (err: any) {
     return {
@@ -226,7 +233,8 @@ export async function submitCommunityPartnerApplication(
 export const DEFAULT_COMMUNITY_PARTNERS: PublicCommunityPartner[] = [];
 
 /**
- * Fetches approved community partners from Supabase.
+ * Fetches approved community partners from Supabase, through the public view
+ * (approved rows only, without contact details).
  * Returns empty array if none are approved yet.
  */
 export async function fetchApprovedCommunityPartners(): Promise<PublicCommunityPartner[]> {
@@ -236,9 +244,8 @@ export async function fetchApprovedCommunityPartners(): Promise<PublicCommunityP
 
   try {
     const { data, error } = await supabase
-      .from('community_partner_applications')
+      .from('community_partners_public')
       .select('id, community_name, community_logo_url, community_description, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, created_at')
-      .eq('status', 'approved')
       .order('created_at', { ascending: false });
 
     if (error || !data) {
