@@ -23,7 +23,9 @@ const TABS: { id: AdminTab; label: string; icon: typeof BarChart3 }[] = [
 
 /** Admin mode: its own screens and tab bar, over the app. */
 export default function AdminMode({ role, initialTab = 'overview', onExit }: { role: AdminRole; initialTab?: AdminTab; onExit: () => void }) {
-  const [tab, setTab] = useState<AdminTab>(initialTab);
+  // Team is the owner's: only they can change it.
+  const tabs = role === 'owner' ? TABS : TABS.filter((t) => t.id !== 'team');
+  const [tab, setTab] = useState<AdminTab>(tabs.some((t) => t.id === initialTab) ? initialTab : 'overview');
   const overview = useOverview();
   const scroller = useRef<HTMLDivElement>(null);
   const waiting: Partial<Record<AdminTab, number>> = { places: overview.data?.places_pending ?? 0, partners: overview.data?.partners_pending ?? 0 };
@@ -60,12 +62,12 @@ export default function AdminMode({ role, initialTab = 'overview', onExit }: { r
         {tab === 'partners' && <AdminPartners onChanged={overview.refresh} />}
         {tab === 'stories' && <AdminStories onChanged={overview.refresh} />}
         {tab === 'notify' && <AdminNotify reach={overview.data?.push_people ?? null} />}
-        {tab === 'team' && <AdminTeam role={role} />}
+        {tab === 'team' && role === 'owner' && <AdminTeam role={role} />}
       </div>
 
       <nav aria-label="Admin" className="shrink-0 bg-[var(--app-surface)]/92 backdrop-blur-xl border-t border-[var(--app-line)] pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-6 h-16 max-w-lg mx-auto">
-          {TABS.map(({ id, label, icon: Icon }) => {
+        <div className="grid h-16 max-w-lg mx-auto" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+          {tabs.map(({ id, label, icon: Icon }) => {
             const active = id === tab;
             return (
               <button
