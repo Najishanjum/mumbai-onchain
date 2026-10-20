@@ -41,13 +41,18 @@ export function useKeyboardViewport(active = true): KeyboardViewport | null {
 }
 
 /**
+ * Paints `fill` all around a layer, far past the screen edges. While the
+ * keyboard slides in, iPhone scrolls the page before the visible area has
+ * been measured, and without this the screen behind showed above and below.
+ */
+export const coverAround = (fill: string): CSSProperties => ({ boxShadow: `0 0 0 200vmax ${fill}` });
+
+/**
  * Style for a full-screen layer: fit it to the visible area while the keyboard
- * is up, and paint `fill` below it, so what shows through the translucent
+ * is up, and paint `fill` around it, so what shows through the translucent
  * keyboard is this layer and not the screen behind.
  */
 export function keyboardFit(vp: KeyboardViewport | null, fill: string): CSSProperties | undefined {
   if (!vp) return undefined;
-  // The shadow is a copy of the layer moved down by its own height: it starts
-  // right at the layer's bottom edge and is taller than the keyboard.
-  return { top: vp.top, height: vp.height, bottom: 'auto', boxShadow: `0 ${vp.height}px 0 0 ${fill}` };
+  return { top: vp.top, height: vp.height, bottom: 'auto', ...coverAround(fill) };
 }

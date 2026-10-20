@@ -9,7 +9,7 @@ import { PersonAvatar } from '../components/PersonAvatar';
 import { roleColor } from './Badge';
 import { useBackToClose } from '../lib/useBackToClose';
 import { useStoryReplies } from '../lib/useStoryReplies';
-import { keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
+import { coverAround, keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
 import { requireApp } from '../lib/appGate';
 
 const SEEN_KEY = 'mo_seen_snaps';
@@ -337,7 +337,7 @@ function StoryViewer({
       aria-modal="true"
       aria-label={`${story.name}'s story`}
       className="app fixed inset-0 z-[75] bg-black text-white flex flex-col select-none"
-      style={keyboardFit(kb, '#000')}
+      style={keyboardFit(kb, '#000') ?? (typing ? coverAround('#000') : undefined)}
       onTouchStart={(e) => {
         touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
         setPaused(true);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, Mail, Phone } from 'lucide-react';
+import { ArrowUpRight, Loader2, Mail, Phone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins, timeAgo, type AdminEventKind } from './shared';
@@ -141,28 +141,37 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
 
                 <p className="mt-3 text-[15px] leading-snug whitespace-pre-line">{p.community_description}</p>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <a href={`mailto:${p.email}`} className="app-press h-9 px-3 rounded-full bg-[var(--app-pressed)] text-[14px] font-semibold inline-flex items-center gap-1.5 max-w-full">
-                    <Mail className="w-4 h-4 shrink-0" aria-hidden="true" />
+                {/* Contact, then links, then a clear gap before the decision
+                    buttons, so tapping a link never lands on Approve. */}
+                <div className="mt-4 rounded-2xl bg-[var(--app-pressed)] divide-y divide-[var(--app-line)] overflow-hidden">
+                  <a href={`mailto:${p.email}`} className="app-press flex items-center gap-3 px-3.5 h-12 text-[15px] font-semibold">
+                    <Mail className="w-[18px] h-[18px] shrink-0 text-[var(--app-muted)]" aria-hidden="true" />
                     <span className="truncate">{p.email}</span>
                   </a>
-                  <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="app-press h-9 px-3 rounded-full bg-[var(--app-pressed)] text-[14px] font-semibold inline-flex items-center gap-1.5">
-                    <Phone className="w-4 h-4" aria-hidden="true" />
-                    {p.phone}
+                  <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="app-press flex items-center gap-3 px-3.5 h-12 text-[15px] font-semibold">
+                    <Phone className="w-[18px] h-[18px] shrink-0 text-[var(--app-muted)]" aria-hidden="true" />
+                    <span className="truncate">{p.phone}</span>
                   </a>
                 </div>
                 {links.length > 0 && (
-                  <p className="mt-2 text-[14px] font-bold text-[var(--app-primary)] flex flex-wrap gap-x-3 gap-y-1">
+                  <div className="mt-2 grid grid-cols-3 gap-2">
                     {links.map((l) => (
-                      <a key={l.label} href={l.href!} target="_blank" rel="noopener noreferrer">
-                        {l.label}
+                      <a
+                        key={l.label}
+                        href={l.href!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="app-press h-10 px-2 rounded-xl border border-[var(--app-line)] text-[13px] font-bold inline-flex items-center justify-center gap-1"
+                      >
+                        <span className="truncate">{l.label}</span>
+                        <ArrowUpRight className="w-3.5 h-3.5 shrink-0 text-[var(--app-muted)]" aria-hidden="true" />
                       </a>
                     ))}
-                  </p>
+                  </div>
                 )}
 
                 {confirmDelete === p.id ? (
-                  <div className="mt-3 pt-3 border-t border-[var(--app-line)]">
+                  <div className="mt-5 pt-4 border-t border-[var(--app-line)]">
                     <p className="text-[14px] text-[var(--app-muted)]">Delete {p.community_name}’s application and logo for good?</p>
                     <div className="mt-2 flex gap-2">
                       <button type="button" className={btn.plain} onClick={() => setConfirmDelete(null)}>
@@ -174,7 +183,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-5 pt-4 border-t border-[var(--app-line)] flex flex-wrap gap-2">
                     {p.status === 'pending' && (
                       <>
                         <button type="button" className={`${btn.good} flex-1`} disabled={busy} onClick={() => setStatus(p, 'approved', 'partner_approved')}>
