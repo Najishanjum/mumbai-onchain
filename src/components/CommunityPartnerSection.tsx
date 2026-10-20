@@ -7,6 +7,8 @@ import {
   ShieldCheck,
   Send,
   Plus,
+  FileText,
+  Download,
 } from 'lucide-react';
 import {
   fetchApprovedCommunityPartners,
@@ -16,9 +18,13 @@ import type { PublicCommunityPartner } from '../types/partner';
 
 interface CommunityPartnerSectionProps {
   onApply: () => void;
+  onViewProposal?: () => void;
 }
 
-export const CommunityPartnerSection: React.FC<CommunityPartnerSectionProps> = ({ onApply }) => {
+export const CommunityPartnerSection: React.FC<CommunityPartnerSectionProps> = ({
+  onApply,
+  onViewProposal,
+}) => {
   const [partners, setPartners] = useState<PublicCommunityPartner[]>(DEFAULT_COMMUNITY_PARTNERS);
 
   useEffect(() => {
@@ -84,7 +90,18 @@ export const CommunityPartnerSection: React.FC<CommunityPartnerSectionProps> = (
           </p>
         </div>
 
-        <div className="shrink-0">
+        <div className="shrink-0 flex flex-wrap items-center gap-3">
+          {onViewProposal && (
+            <button
+              type="button"
+              onClick={onViewProposal}
+              className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/25 px-5 py-3.5 font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+            >
+              <FileText className="w-4 h-4 text-[#F97316]" />
+              <span>VIEW PROPOSAL</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onApply}
@@ -110,7 +127,7 @@ export const CommunityPartnerSection: React.FC<CommunityPartnerSectionProps> = (
               Be the first community cohort to partner with Mumbai Onchain Week 2026. Approved communities, DAOs, and builder hubs will be featured directly on this portal.
             </p>
           </div>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={onApply}
@@ -119,6 +136,27 @@ export const CommunityPartnerSection: React.FC<CommunityPartnerSectionProps> = (
               <span>SUBMIT PARTNER APPLICATION</span>
               <ArrowUpRight className="w-4 h-4 text-[#F97316]" />
             </button>
+
+            {onViewProposal && (
+              <button
+                type="button"
+                onClick={onViewProposal}
+                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-[#F97316]" />
+                <span>READ PROPOSAL</span>
+              </button>
+            )}
+
+            <a
+              href="/docs/Mumbai_Onchain_Community_Partnership_Proposal.docx"
+              download="Mumbai_Onchain_Community_Partnership_Proposal.docx"
+              className="inline-flex items-center gap-1.5 px-4 py-3 text-white/70 hover:text-white font-mono text-xs underline"
+              title="Download Word Document"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download .DOCX</span>
+            </a>
           </div>
         </div>
       ) : (
@@ -253,13 +291,26 @@ export const CommunityPartnerSection: React.FC<CommunityPartnerSectionProps> = (
           <span>Applications are open for Web3 communities, DAOs, Hacker Houses & Student Clubs.</span>
         </div>
 
-        <button
-          type="button"
-          onClick={onApply}
-          className="font-mono text-xs font-bold text-white hover:text-[#F97316] underline underline-offset-4 flex items-center gap-1 cursor-pointer"
-        >
-          <span>BECOME A COMMUNITY PARTNER →</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-4">
+          {onViewProposal && (
+            <button
+              type="button"
+              onClick={onViewProposal}
+              className="font-mono text-xs font-bold text-[#F97316] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>PROPOSAL BRIEF</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onApply}
+            className="font-mono text-xs font-bold text-white hover:text-[#F97316] underline underline-offset-4 flex items-center gap-1 cursor-pointer"
+          >
+            <span>BECOME A COMMUNITY PARTNER →</span>
+          </button>
+        </div>
       </div>
 
     </section>

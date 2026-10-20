@@ -28,6 +28,7 @@ import { Footer } from './components/Footer';
 import { CommunityPartnerSection } from './components/CommunityPartnerSection';
 import { CommunityPartnerPage } from './components/CommunityPartnerPage';
 import { CommunityPartnerModal } from './components/CommunityPartnerModal';
+import { CommunityProposalModal } from './components/CommunityProposalModal';
 import { AskMumbaiAssistant } from './components/AskMumbaiAssistant';
 import { AskScreen } from './app/AskScreen';
 import { NotifyPrompt, shouldAskForNotifications } from './app/NotifyPrompt';
@@ -54,6 +55,7 @@ export function App() {
   const [isAskOpen, setIsAskOpen] = useState(false);
   const [isInstallOpen, setIsInstallOpen] = useState(false);
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
+  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [installReason, setInstallReason] = useState<AppOnlyAction | null>(null);
   const openInstall = useCallback(() => {
     setInstallReason(null);
@@ -321,6 +323,16 @@ export function App() {
         />
       )}
 
+      {/* Community Partner Proposal Modal */}
+      <CommunityProposalModal
+        isOpen={isProposalModalOpen}
+        onClose={() => setIsProposalModalOpen(false)}
+        onApply={() => {
+          setIsProposalModalOpen(false);
+          setIsPartnerModalOpen(true);
+        }}
+      />
+
       {/* Community Partner Application Modal */}
       <CommunityPartnerModal
         isOpen={isPartnerModalOpen}
@@ -491,7 +503,10 @@ export function App() {
               <SideEvents />
 
               {/* Become a Community Partner Section */}
-              <CommunityPartnerSection onApply={() => setIsPartnerModalOpen(true)} />
+              <CommunityPartnerSection
+                onApply={() => setIsPartnerModalOpen(true)}
+                onViewProposal={() => setIsProposalModalOpen(true)}
+              />
             </div>
           </div>
         )}
@@ -577,7 +592,10 @@ export function App() {
         )}
 
         {activeTab === 'communitypartner' && (
-          <CommunityPartnerPage onApply={() => setIsPartnerModalOpen(true)} />
+          <CommunityPartnerPage
+            onApply={() => setIsPartnerModalOpen(true)}
+            onViewProposal={() => setIsProposalModalOpen(true)}
+          />
         )}
       </main>
 

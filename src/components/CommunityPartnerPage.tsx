@@ -10,6 +10,8 @@ import {
   Users,
   Sparkles,
   Calendar,
+  FileText,
+  Download,
 } from 'lucide-react';
 import {
   fetchApprovedCommunityPartners,
@@ -19,9 +21,13 @@ import type { PublicCommunityPartner } from '../types/partner';
 
 interface CommunityPartnerPageProps {
   onApply: () => void;
+  onViewProposal?: () => void;
 }
 
-export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({ onApply }) => {
+export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({
+  onApply,
+  onViewProposal,
+}) => {
   const [partners, setPartners] = useState<PublicCommunityPartner[]>(DEFAULT_COMMUNITY_PARTNERS);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -100,14 +106,26 @@ export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({ onAp
             </div>
 
             <div className="shrink-0 space-y-3">
-              <button
-                type="button"
-                onClick={onApply}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#FFFFFF] text-[#000000] hover:bg-[#F2F2F2] px-8 py-4 border-2 border-[#000000] font-heading font-black text-sm uppercase tracking-wider transition-all duration-200 shadow-[5px_5px_0px_0px_rgba(249,115,22,1)] hover:shadow-[7px_7px_0px_0px_rgba(34,197,94,1)] active:translate-x-1 active:translate-y-1 active:shadow-none cursor-pointer"
-              >
-                <span>APPLY AS COMMUNITY PARTNER</span>
-                <ArrowUpRight className="w-5 h-5 text-[#F97316]" />
-              </button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                {onViewProposal && (
+                  <button
+                    type="button"
+                    onClick={onViewProposal}
+                    className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/25 px-5 py-4 font-mono text-xs font-bold uppercase transition-all cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-[#F97316]" />
+                    <span>VIEW PROPOSAL</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onApply}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#FFFFFF] text-[#000000] hover:bg-[#F2F2F2] px-8 py-4 border-2 border-[#000000] font-heading font-black text-sm uppercase tracking-wider transition-all duration-200 shadow-[5px_5px_0px_0px_rgba(249,115,22,1)] hover:shadow-[7px_7px_0px_0px_rgba(34,197,94,1)] active:translate-x-1 active:translate-y-1 active:shadow-none cursor-pointer"
+                >
+                  <span>APPLY AS COMMUNITY PARTNER</span>
+                  <ArrowUpRight className="w-5 h-5 text-[#F97316]" />
+                </button>
+              </div>
 
               <div className="flex items-center justify-center lg:justify-end gap-2 text-[11px] font-mono text-[#98A0AB]">
                 <ShieldCheck className="w-4 h-4 text-[#22C55E]" />
@@ -182,7 +200,7 @@ export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({ onAp
                 : 'Applications are officially open! Verified Web3 communities, DAOs, and builder cohorts will be featured here once approved.'}
             </p>
           </div>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={onApply}
@@ -190,6 +208,27 @@ export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({ onAp
             >
               <span>SUBMIT APPLICATION →</span>
             </button>
+
+            {onViewProposal && (
+              <button
+                type="button"
+                onClick={onViewProposal}
+                className="inline-flex items-center gap-2 bg-[#FAFAFA] hover:bg-[#F0F0F0] text-[#000000] border border-[#000000] px-6 py-3 font-mono text-xs font-bold uppercase transition-colors cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-[#F97316]" />
+                <span>READ PROPOSAL</span>
+              </button>
+            )}
+
+            <a
+              href="/docs/Mumbai_Onchain_Community_Partnership_Proposal.docx"
+              download="Mumbai_Onchain_Community_Partnership_Proposal.docx"
+              className="inline-flex items-center gap-1.5 px-4 py-3 text-[#555555] hover:text-[#000000] font-mono text-xs underline"
+              title="Download Word Document"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download .DOCX</span>
+            </a>
           </div>
         </div>
       ) : (
@@ -316,7 +355,44 @@ export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({ onAp
         </div>
       )}
 
-      {/* 4. Ecosystem Alliance Perks Section */}
+      {/* 4. Official Partnership Proposal Brief Card */}
+      <div className="bg-[#0A0C10] text-white border-2 border-[#000000] p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+        <div className="space-y-2 max-w-2xl">
+          <div className="inline-flex items-center gap-2 font-mono text-[11px] text-[#F97316] uppercase font-bold">
+            <FileText className="w-4 h-4" />
+            <span>OFFICIAL PARTNERSHIP DOCUMENT</span>
+          </div>
+          <h3 className="font-heading font-black text-xl sm:text-2xl text-white uppercase tracking-tight">
+            COMMUNITY PARTNERSHIP PROPOSAL
+          </h3>
+          <p className="font-mono text-xs text-[#98A0AB] leading-relaxed">
+            Connecting Communities • Empowering Builders • Exploring Mumbai Together. Review our complete partnership charter, co-marketing opportunities, and platform offerings.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          {onViewProposal && (
+            <button
+              type="button"
+              onClick={onViewProposal}
+              className="inline-flex items-center gap-2 bg-[#FFFFFF] text-[#000000] hover:bg-[#F2F2F2] px-6 py-3 font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[3px_3px_0px_0px_rgba(249,115,22,1)] cursor-pointer"
+            >
+              <span>VIEW PROPOSAL</span>
+              <ArrowUpRight className="w-4 h-4 text-[#F97316]" />
+            </button>
+          )}
+          <a
+            href="/docs/Mumbai_Onchain_Community_Partnership_Proposal.docx"
+            download="Mumbai_Onchain_Community_Partnership_Proposal.docx"
+            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/25 px-4 py-3 font-mono text-xs font-bold transition-colors"
+            title="Download Word Document"
+          >
+            <Download className="w-4 h-4 text-[#22C55E]" />
+            <span>DOWNLOAD .DOCX</span>
+          </a>
+        </div>
+      </div>
+
+      {/* 5. Ecosystem Alliance Perks Section */}
       <div className="bg-[#FFFFFF] border-2 border-[#000000] p-6 sm:p-10 space-y-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D8D8D8] pb-4 font-mono text-xs text-[#555555]">
           <span className="font-bold text-[#000000] uppercase tracking-wider">
