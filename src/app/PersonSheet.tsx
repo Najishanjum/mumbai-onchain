@@ -1,7 +1,7 @@
 import React from 'react';
 // Brand logos come from BrandIcons (lucide 1.x dropped them).
 import { Check, Globe, Pencil, QrCode, UserPlus } from 'lucide-react';
-import { GitHubLogo, LinkedInLogo, TelegramLogo, XLogo } from './BrandIcons';
+import { GitHubLogo, LinkedInLogo, TelegramLogo, WhatsAppLogo, XLogo } from './BrandIcons';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -33,6 +33,8 @@ function socialLinks(p: PersonProfile) {
   if (x) links.push({ label: `@${x}`, href: `https://x.com/${x}`, icon: <XLogo className="w-4 h-4" /> });
   const tg = handle(p.telegramHandle);
   if (tg) links.push({ label: 'Telegram', href: `https://t.me/${tg}`, icon: <TelegramLogo className="w-4 h-4" /> });
+  const wa = p.whatsapp?.replace(/\D/g, '');
+  if (wa) links.push({ label: 'WhatsApp', href: `https://wa.me/${wa}`, icon: <WhatsAppLogo className="w-4 h-4" /> });
   if (p.githubUrl) links.push({ label: 'GitHub', href: withScheme(p.githubUrl), icon: <GitHubLogo className="w-4 h-4" /> });
   if (p.linkedinUrl) links.push({ label: 'LinkedIn', href: withScheme(p.linkedinUrl), icon: <LinkedInLogo className="w-4 h-4" /> });
   const fc = handle(p.farcasterHandle);
