@@ -39,6 +39,7 @@ export function vCard(p: PersonProfile): string {
     p.city ? `ADR;TYPE=WORK:;;${p.city};;;;` : '',
     x ? `X-SOCIALPROFILE;type=twitter:https://x.com/${x}` : '',
     tg ? `X-SOCIALPROFILE;type=telegram:https://t.me/${tg}` : '',
+    p.whatsapp ? `TEL;TYPE=CELL:${p.whatsapp}` : '',
     p.websiteUrl ? `URL:${p.websiteUrl}` : '',
     `NOTE:Met at Mumbai Onchain Week · ${profileUrl(p.id)}`,
     'END:VCARD',

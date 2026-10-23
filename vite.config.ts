@@ -177,6 +177,9 @@ export default defineConfig(({ mode }) => {
           // ?source=pwa marks launches from the home screen; App ignores unknown params.
           start_url: '/?source=pwa',
           scope: '/',
+          // The website and the app share one origin, so without this desktop
+          // Chrome opens every mumbaionchain.site link inside the installed app.
+          handle_links: 'not-preferred',
           display: 'standalone',
           orientation: 'portrait',
           // Launch splash + title bar match the app's default dark theme.
