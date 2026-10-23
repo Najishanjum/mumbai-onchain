@@ -9,6 +9,7 @@ export const EVENT_COVERS: Record<string, string> = {
   'tokeniq-tradewar': '/images/events/tokeniq-tradewar.webp',
   'physical-ai-stack-developers-paytm': '/images/events/physical-ai-stack-developers-paytm.webp',
   'enterprise-ai-summit-mumbai-2026': '/images/events/enterprise-ai-summit-mumbai-2026.webp',
+  'achija-pav-bhaji-meetup': '/images/events/achija-pav-bhaji-meetup.webp',
   'defi-security-summit': '/images/events/defi-security-summit.webp',
   'ibw2026-pre-conference-vip-night': '/images/events/ibw2026-pre-conference-vip-night.webp',
   'india-blockchain-ai-tour-2026-mumbai': '/images/events/india-blockchain-ai-tour-2026-mumbai.webp',
@@ -40,6 +41,7 @@ export const EVENT_COVERS: Record<string, string> = {
   'alchemy-1-1-meetings-devcon-8': '/images/events/alchemy-1-1-meetings-devcon-8.webp',
   'liquidity-pool-devcon-8': '/images/events/liquidity-pool-devcon-8.webp',
   'monad-blitz-mumbai-devcon-edition': '/images/events/monad-blitz-mumbai-devcon-edition.webp',
+  'hashkey-chain-horizon-mumbai-demo-day': '/images/events/hashkey-chain-horizon-mumbai-demo-day.webp',
   'zcash-presents-free-society-hackathon': '/images/events/zcash-presents-free-society-hackathon.webp',
   'open-house-lil-room-mumbai': '/images/events/open-house-lil-room-mumbai.webp',
   'eva-symposium-iii': '/images/events/eva-symposium-iii.webp',
@@ -58,5 +60,6 @@ export const EVENT_COVERS: Record<string, string> = {
   'ready-for-the-run-mumbai': '/images/events/ready-for-the-run-mumbai.webp',
   'ship-safe-quillaudits': '/images/events/ship-safe-quillaudits.webp',
   'monad-india-community-meetup': '/images/events/monad-india-community-meetup.webp',
+  'crypto-after-hours-penthouse': '/images/events/crypto-after-hours-penthouse.webp',
   'biggest-ct-gay-party': '/images/events/biggest-ct-gay-party.webp',
 };
