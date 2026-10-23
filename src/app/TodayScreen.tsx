@@ -46,6 +46,8 @@ interface TodayScreenProps {
   onSelectPerson: (id: string) => void;
   onFindProfile: () => void;
   onSaveCard: () => void;
+  /** "Part of a community?" or "You joined …", under the quick actions. */
+  communityCard?: React.ReactNode;
 }
 
 /**
@@ -150,6 +152,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   onSelectPerson,
   onFindProfile,
   onSaveCard,
+  communityCard,
 }) => {
   const now = useNow();
   const today = istDateKey(now);
@@ -309,6 +312,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           </button>
         ))}
       </section>
+
+      {communityCard}
 
       <NotificationsSheet
         isOpen={notesOpen}

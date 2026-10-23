@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info, ShieldCheck, Bell } from 'lucide-react';
+import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info, ShieldCheck, Bell, Users, KeyRound } from 'lucide-react';
+import { MAX_COMMUNITIES, useCommunities } from '../lib/useCommunities';
+import { CommunityLogo } from './CommunitySheet';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { useAppTheme } from '../lib/useAppTheme';
@@ -43,6 +45,9 @@ interface MeScreenProps {
   onOpenAbout: () => void;
   /** Only for admins: switches the app into admin mode. */
   onSwitchToAdmin?: () => void;
+  onOpenCommunity: (id: string) => void;
+  /** true: straight to the leader code. */
+  onJoinCommunity: (claim: boolean) => void;
 }
 
 async function shareApp() {
@@ -73,10 +78,19 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   onFindProfile,
   onOpenAbout,
   onSwitchToAdmin,
+  onOpenCommunity,
+  onJoinCommunity,
 }) => {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   // Your own "Added · Added you", re-read as either side changes.
   const { connections, addedMe, authUser } = usePeopleStore();
+  const { mine: myCommunities, byId } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
+  const joinedCommunities = (myCommunities ?? [])
+    .map((m) => ({ m, c: byId(m.communityId) }))
+    .filter((r): r is { m: (typeof r)['m']; c: NonNullable<(typeof r)['c']> } => Boolean(r.c))
+    // The ones you lead first.
+    .sort((a, b) => Number(b.m.role === 'lead') - Number(a.m.role === 'lead'));
+  const memberCount = joinedCommunities.filter((r) => r.m.role === 'member').length;
   const push = usePushStatus(authUser?.id);
   const myAdds = Object.values(connections).filter((s) => s === 'CONNECTED').length;
   const myCounts = useConnectionCounts(myProfile?.id, `${myAdds}:${addedMe.length}`);
@@ -158,6 +172,32 @@ export const MeScreen: React.FC<MeScreenProps> = ({
             <RowLink icon={<ShieldCheck className={`${icon} text-[#E0A43A]`} />} label="Switch to admin" detail="Review and manage" onClick={onSwitchToAdmin} />
           </GroupedList>
         )}
+        {myProfile && (
+          <section aria-labelledby="communities-title">
+            <h2 id="communities-title" className="mx-5 mb-2 app-label">
+              Communities
+            </h2>
+            <GroupedList>
+              {joinedCommunities.map(({ m, c }) => (
+                <RowLink
+                  key={c.id}
+                  icon={<CommunityLogo c={c} size={32} />}
+                  label={c.community_name}
+                  detail={m.role === 'lead' ? 'You lead' : undefined}
+                  onClick={() => onOpenCommunity(c.id)}
+                />
+              ))}
+              <RowLink
+                icon={<Users className={icon} />}
+                label={joinedCommunities.length ? 'Join another' : 'Join your community'}
+                detail={`${memberCount}/${MAX_COMMUNITIES}`}
+                onClick={() => onJoinCommunity(false)}
+              />
+              <RowLink icon={<KeyRound className={icon} />} label="I lead a community" onClick={() => onJoinCommunity(true)} />
+            </GroupedList>
+          </section>
+        )}
+
         <GroupedList>
           <RowLink icon={<Bookmark className={icon} />} label="My plan" detail={String(savedCount)} onClick={onOpenPlan} />
           <RowLink icon={<ScanLine className={icon} />} label="Scan" onClick={onScan} />

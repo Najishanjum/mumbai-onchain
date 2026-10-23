@@ -63,6 +63,8 @@ import { MeScreen } from './MeScreen';
 import { AppearanceScreen } from './AppearanceScreen';
 import { AboutScreen } from './AboutScreen';
 import { FindProfileSheet } from './FindProfileSheet';
+import { CommunitySheet, JoinCommunitySheet } from './CommunitySheet';
+import { communityAsked, markCommunityAsked, useCommunities, useJoinFromRef } from '../lib/useCommunities';
 import { istDateKey, WEEK_DAYS, WEEK_START, type AppTab } from './time';
 import { useAdminMode, useAdminRole } from '../lib/useAdmin';
 import { AdminSwitch } from './admin/AdminSwitch';
@@ -149,7 +151,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   onSignOut,
   getConnectionStatus,
 }) => {
-  const { setConnectionStatus } = usePeopleStore();
+  const { setConnectionStatus, authUser } = usePeopleStore();
   useApplyAppPrefs();
   const tab = toApp[activeTab] ?? 'today';
   // Tabs stay mounted once opened and are only hidden when you leave, so
@@ -168,6 +170,46 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
   const [isFindOpen, setIsFindOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+
+  // Communities: ?community=<id> opens a space, ?claim=<code> the leader code.
+  const [openCommunityId, setOpenCommunityId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('community'));
+  const [joinSheet, setJoinSheet] = useState<{ claim: boolean; code: string | null } | null>(() => {
+    const code = new URLSearchParams(window.location.search).get('claim');
+    return code ? { claim: true, code } : null;
+  });
+  const { mine: myCommunities } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
+  const joinedFromRef = useJoinFromRef(authUser?.id ?? null, myProfile?.id ?? null);
+  const [askDismissed, setAskDismissed] = useState(communityAsked);
+  const showCommunityAsk = Boolean(myProfile && myCommunities && myCommunities.length === 0 && !askDismissed && !joinedFromRef);
+  const communityCard = joinedFromRef ? (
+    <p role="status" className="mx-4 mb-7 rounded-2xl bg-[var(--app-primary-soft)] px-4 py-3 text-[15px] font-semibold">
+      You joined {joinedFromRef} 🎉 Find it in Me → Communities.
+    </p>
+  ) : showCommunityAsk ? (
+    <section aria-label="Your community" className="mx-4 mb-7 rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
+      <p className="text-[17px] font-bold">Part of a community?</p>
+      <p className="mt-1 text-[15px] text-[var(--app-muted)]">Join it here to hear from them during the week and meet its members.</p>
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setJoinSheet({ claim: false, code: null })}
+          className="app-press h-10 px-5 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold"
+        >
+          Pick my community
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            markCommunityAsked();
+            setAskDismissed(true);
+          }}
+          className="app-press h-10 px-4 rounded-full text-[15px] font-semibold text-[var(--app-muted)]"
+        >
+          Not now
+        </button>
+      </div>
+    </section>
+  ) : null;
 
   const goTo = (next: AppTab) => {
     if (next === tab) {
@@ -213,12 +255,13 @@ export const AppShell: React.FC<AppShellProps> = ({
     setAdminSwitch('in');
   };
 
-  // Drop ?open=map and ?admin= once used, so a reload doesn't open them again.
+  // Drop one-time links (?open=map, ?admin=, ?claim=, ?community=, ?c=) once
+  // used, so a reload doesn't open them again.
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (!url.searchParams.has('open') && !url.searchParams.has('admin')) return;
-    url.searchParams.delete('open');
-    url.searchParams.delete('admin');
+    const once = ['open', 'admin', 'claim', 'community', 'c'];
+    if (!once.some((k) => url.searchParams.has(k))) return;
+    once.forEach((k) => url.searchParams.delete(k));
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   }, []);
 
@@ -279,6 +322,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onFindProfile={() => setIsFindOpen(true)}
             onSaveCard={() => (myProfile ? setIsSaveCardOpen(true) : onEditProfile())}
             onSelectPerson={onSelectPerson}
+            communityCard={communityCard}
           />
           </div>
         )}
@@ -360,6 +404,8 @@ export const AppShell: React.FC<AppShellProps> = ({
             onFindProfile={() => setIsFindOpen(true)}
             onOpenAbout={() => setIsAboutOpen(true)}
             onSwitchToAdmin={adminRole ? enterAdmin : undefined}
+            onOpenCommunity={setOpenCommunityId}
+            onJoinCommunity={(claim) => setJoinSheet({ claim, code: null })}
           />
           </div>
         )}
@@ -428,6 +474,17 @@ export const AppShell: React.FC<AppShellProps> = ({
         onEditProfile={onEditProfile}
         onShowPass={showPass}
       />
+
+      <JoinCommunitySheet
+        open={joinSheet !== null}
+        startWithClaim={joinSheet?.claim}
+        initialCode={joinSheet?.code}
+        onClose={() => setJoinSheet(null)}
+        onOpenCommunity={setOpenCommunityId}
+        onCreateProfile={onEditProfile}
+      />
+      {/* Above the join list, so a community opened from it stacks on top. */}
+      <CommunitySheet communityId={openCommunityId} onClose={() => setOpenCommunityId(null)} people={realPeople} onOpenPerson={onSelectPerson} />
 
       <PassSheet person={myProfile} isOpen={isPassOpen} onClose={() => setIsPassOpen(false)} onSaveCard={() => setIsSaveCardOpen(true)} />
       <SaveCardSheet person={myProfile} isOpen={isSaveCardOpen} onClose={() => setIsSaveCardOpen(false)} />
