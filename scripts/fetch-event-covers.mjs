@@ -11,7 +11,7 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (K
 
 const source = await readFile('src/data/events.ts', 'utf8');
 // Each event object has `id: '...'` before its `officialUrl: '...'`.
-const events = [...source.matchAll(/id:\s*'([^']+)'[\s\S]*?officialUrl:\s*'([^']+)'/g)].map(([, id, url]) => ({ id, url }));
+const events = [...source.matchAll(/id:\s*['"]([^'"]+)['"][\s\S]*?officialUrl:\s*['"]([^'"]+)['"]/g)].map(([, id, url]) => ({ id, url }));
 
 const exists = (p) => access(p).then(() => true, () => false);
 
