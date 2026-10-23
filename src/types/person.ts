@@ -41,7 +41,6 @@ export interface PersonProfile {
   telegramHandle?: string;
   farcasterHandle?: string;
   websiteUrl?: string;
-  whatsapp?: string; // international number, digits with an optional leading +
   walletAddress?: string;
   attendingEvents: string[]; // event IDs matching EventItem.id
   isCurrentUser?: boolean;

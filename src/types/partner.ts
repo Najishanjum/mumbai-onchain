@@ -13,6 +13,7 @@ export interface CommunityPartnerApplicationInput {
   linkedin_url?: string;
   telegram_url?: string;
   discord_url?: string;
+  whatsapp_url?: string; // group invite, chat.whatsapp.com/…
 }
 
 export interface CommunityPartnerApplication extends CommunityPartnerApplicationInput {
@@ -34,6 +35,7 @@ export interface PublicCommunityPartner {
   linkedin_url?: string;
   telegram_url?: string;
   discord_url?: string;
+  whatsapp_url?: string;
   created_at?: string;
 }
 

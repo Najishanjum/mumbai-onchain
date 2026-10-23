@@ -36,7 +36,6 @@ type Draft = {
   linkedinUrl: string;
   farcasterHandle: string;
   websiteUrl: string;
-  whatsapp: string;
   currentlyBuilding: string;
   lookingFor: string;
   bio: string;
@@ -58,7 +57,6 @@ function toDraft(p: PersonProfile | null): Draft {
     linkedinUrl: p?.linkedinUrl ?? '',
     farcasterHandle: p?.farcasterHandle ?? '',
     websiteUrl: p?.websiteUrl ?? '',
-    whatsapp: p?.whatsapp ?? '',
     currentlyBuilding: p?.currentlyBuilding ?? '',
     lookingFor: p?.lookingFor ?? '',
     bio: p?.bio ?? '',
@@ -174,13 +172,11 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
   const xClean = cleanHandle(draft.xHandle);
-  const waClean = draft.whatsapp.replace(/[\s()-]/g, '');
   const errors = {
     name: !draft.name.trim() ? 'Add your name so people know who they met.' : null,
     xHandle: xClean && !X_HANDLE.test(xClean) ? 'X handles are up to 15 letters, numbers or underscores.' : null,
-    whatsapp: waClean && !/^\+?\d{8,15}$/.test(waClean) ? 'Use your full number with country code, like +91 98765 43210.' : null,
   };
-  const hasErrors = Boolean(errors.name || errors.xHandle || errors.whatsapp);
+  const hasErrors = Boolean(errors.name || errors.xHandle);
 
   async function choosePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -219,7 +215,6 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
       githubUrl: t(draft.githubUrl),
       linkedinUrl: t(draft.linkedinUrl),
       websiteUrl: t(draft.websiteUrl),
-      whatsapp: waClean,
       currentlyBuilding: t(draft.currentlyBuilding),
       lookingFor: t(draft.lookingFor),
       bio: t(draft.bio),
@@ -419,26 +414,6 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
                 className={`${input} pl-9`}
               />
             </div>
-          </div>
-          <div>
-            <label htmlFor="pe-wa" className={label}>
-              WhatsApp
-            </label>
-            <input
-              id="pe-wa"
-              type="tel"
-              value={draft.whatsapp}
-              onChange={(e) => set('whatsapp', e.target.value)}
-              placeholder="+91 98765 43210"
-              inputMode="tel"
-              autoComplete="tel"
-              className={input}
-            />
-            {errors.whatsapp ? (
-              <p className="mt-1.5 text-[14px] text-[var(--app-live)]">{errors.whatsapp}</p>
-            ) : (
-              <p className="mt-1.5 text-[14px] text-[var(--app-muted)]">Optional. Anyone who opens your profile can see it.</p>
-            )}
           </div>
           <div className="grid grid-cols-1 gap-4">
             {(

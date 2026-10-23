@@ -5,6 +5,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Send,
+  MessageCircle,
   Plus,
   Search,
   Users,
@@ -325,6 +326,17 @@ export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({
                       title="Discord"
                     >
                       <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                  {partner.whatsapp_url && (
+                    <a
+                      href={partner.whatsapp_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 hover:text-[#25D366] hover:scale-110 transition-transform"
+                      title="WhatsApp group"
+                    >
+                      <MessageCircle className="w-4 h-4" />
                     </a>
                   )}
                 </div>

@@ -193,6 +193,7 @@ export async function submitCommunityPartnerApplication(
       linkedin_url: input.linkedin_url?.trim() || '',
       telegram_url: input.telegram_url?.trim() || '',
       discord_url: input.discord_url?.trim() || '',
+      whatsapp_url: input.whatsapp_url?.trim() || '',
       status: 'pending',
     };
 
@@ -245,7 +246,7 @@ export async function fetchApprovedCommunityPartners(): Promise<PublicCommunityP
   try {
     const { data, error } = await supabase
       .from('community_partners_public')
-      .select('id, community_name, community_logo_url, community_description, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, created_at')
+      .select('id, community_name, community_logo_url, community_description, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, whatsapp_url, created_at')
       .order('created_at', { ascending: false });
 
     if (error || !data) {
