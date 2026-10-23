@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
   let approvedPlaceId = '';
   let partnerApplicationId = '';
   let adminEvent: { kind: string; detail: string } | null = null;
+  let checkIn = false;
   try {
     const body = await req.json();
     toProfileId = String(body.toProfileId ?? '');
@@ -96,11 +97,12 @@ Deno.serve(async (req) => {
     approvedPlaceId = String(body.approvedPlaceId ?? '');
     partnerApplicationId = String(body.partnerApplicationId ?? '');
     if (body.adminEvent) adminEvent = { kind: String(body.adminEvent.kind ?? ''), detail: String(body.adminEvent.detail ?? '') };
+    checkIn = body.checkIn === true;
   } catch {
     return json(400, { error: 'Body must be JSON' });
   }
-  if (!toProfileId && !replyId && !placeId && !approvedPlaceId && !partnerApplicationId && !adminEvent) {
-    return json(400, { error: 'toProfileId, replyId, placeId, approvedPlaceId, partnerApplicationId or adminEvent is required' });
+  if (!toProfileId && !replyId && !placeId && !approvedPlaceId && !partnerApplicationId && !adminEvent && !checkIn) {
+    return json(400, { error: 'toProfileId, replyId, placeId, approvedPlaceId, partnerApplicationId, adminEvent or checkIn is required' });
   }
 
   const url = Deno.env.get('SUPABASE_URL')!;
@@ -181,6 +183,32 @@ Deno.serve(async (req) => {
       body: `${place.name}${place.area ? ` · ${place.area}` : ''}, added by ${me?.name ?? 'someone'}`,
       url: '/?admin=places',
       tag: 'places-review',
+    });
+  } else if (checkIn) {
+    if (!me) return json(400, { error: 'No profile' });
+    // Their check-in, made just now: tell people they've added, or who added
+    // them, that are checked in at the same event. Never the whole room.
+    const { data: mine } = await db.from('check_ins').select('event_id, event_title, checked_in_at').eq('user_id', who.user.id).maybeSingle();
+    if (!mine || !isFresh(mine.checked_in_at)) return json(200, { sent: 0, reason: 'no recent check-in' });
+    const { data: room } = await db
+      .from('check_ins')
+      .select('user_id, profile_id')
+      .eq('event_id', mine.event_id)
+      .gt('expires_at', new Date().toISOString())
+      .neq('user_id', who.user.id);
+    const others = (room ?? []).map((r) => r.profile_id as string);
+    if (!others.length) return json(200, { sent: 0, reason: 'nobody else here' });
+    const [{ data: added }, { data: addedMe }] = await Promise.all([
+      db.from('connections').select('to_profile_id').eq('from_profile_id', me.id).in('to_profile_id', others),
+      db.from('connections').select('from_profile_id').eq('to_profile_id', me.id).in('from_profile_id', others),
+    ]);
+    const known = new Set([...(added ?? []).map((c) => c.to_profile_id), ...(addedMe ?? []).map((c) => c.from_profile_id)]);
+    targetUserIds = (room ?? []).filter((r) => known.has(r.profile_id)).map((r) => r.user_id as string);
+    message = JSON.stringify({
+      title: `${me.name} is here too 👋`,
+      body: `Checked in at ${mine.event_title || 'your event'}. Go say hi.`,
+      url: `/?event=${encodeURIComponent(mine.event_id)}`,
+      tag: `here:${mine.event_id}:${me.id}`,
     });
   } else if (replyId) {
     if (!me) return json(400, { error: 'No profile' });

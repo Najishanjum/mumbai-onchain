@@ -1,8 +1,10 @@
-import React from 'react';
-import { Bookmark, CalendarPlus, Camera, Clock, ExternalLink, MapPin, Navigation, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bookmark, CalendarPlus, Camera, Check, Clock, ExternalLink, MapPin, Navigation, Users } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
+import { usePeopleStore } from '../lib/usePeopleStore';
+import { canCheckIn, useCheckIns } from '../lib/useCheckIns';
 import { downloadICSFile, getGoogleCalendarUrl } from '../lib/calendar';
 import { detectPlatform } from '../lib/pwa';
 import { isRealSnap } from '../lib/samples';
@@ -41,11 +43,31 @@ function addToCalendar(e: EventItem) {
 
 export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved, toggleSaved, people, onOpenPerson }) => {
   const { getSnapsByEvent, setActiveSnapForViewer, setIsAddSnapModalOpen } = useSnapStore();
+  const { myProfile, authUser, connections } = usePeopleStore();
+  const { mine, hereAt, checkIn, leave } = useCheckIns(authUser?.id ?? null);
+  const [hereBusy, setHereBusy] = useState(false);
+  const [hereError, setHereError] = useState('');
   if (!event) return null;
 
   const saved = isSaved(event.id);
   const live = isLive(event);
   const going = people.filter((p) => p.attendingEvents?.includes(event.id));
+  const imHere = mine?.eventId === event.id;
+  const canHere = canCheckIn(event);
+  // People you've added first, then newest check-ins.
+  const here = hereAt(event.id)
+    .map((c) => people.find((p) => p.id === c.profileId))
+    .filter((p): p is PersonProfile => Boolean(p))
+    .sort((a, b) => Number(connections[b.id] === 'CONNECTED') - Number(connections[a.id] === 'CONNECTED'));
+
+  async function toggleHere() {
+    if (!event || !myProfile) return;
+    setHereBusy(true);
+    setHereError('');
+    if (imHere) await leave();
+    else setHereError((await checkIn(event, myProfile.id)) ?? '');
+    setHereBusy(false);
+  }
   const snaps = getSnapsByEvent(event.id).filter(isRealSnap);
   const venueKnown = event.location !== VENUE_TBA;
 
@@ -139,6 +161,60 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
             <CalendarPlus className="w-4 h-4" aria-hidden="true" /> Calendar
           </button>
         </div>
+
+        {(canHere || here.length > 0) && (
+          <section className="mt-7">
+            <h3 className="app-label">Here now{here.length ? ` · ${here.length}` : ''}</h3>
+            {canHere &&
+              (myProfile && authUser ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={toggleHere}
+                    disabled={hereBusy}
+                    aria-pressed={imHere}
+                    className={`app-press mt-2 w-full h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 ${
+                      imHere ? 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
+                    }`}
+                  >
+                    {imHere ? <Check className="w-[18px] h-[18px]" aria-hidden="true" /> : <MapPin className="w-[18px] h-[18px]" aria-hidden="true" />}
+                    {imHere ? 'You’re here · tap to leave' : 'I’m here'}
+                  </button>
+                  {!imHere && mine && (
+                    <p className="mt-1.5 text-[13px] text-[var(--app-muted)]">This moves your check-in from your other event.</p>
+                  )}
+                  {hereError && <p className="mt-1.5 text-[14px] text-[var(--app-live)]">{hereError}</p>}
+                </>
+              ) : (
+                <p className="mt-2 text-[15px] text-[var(--app-muted)]">Make your pass to check in and see who’s in the room.</p>
+              ))}
+            {here.length > 0 ? (
+              <div className="mt-2 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
+                {here.slice(0, 12).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onOpenPerson(p.id)}
+                    className="app-press w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--app-pressed)]"
+                  >
+                    <PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[15px] font-semibold truncate">
+                        {p.name}
+                        {p.id === myProfile?.id && <span className="font-normal text-[var(--app-muted)]"> (you)</span>}
+                      </span>
+                      <span className="block text-[13px] text-[var(--app-muted)] truncate">
+                        {connections[p.id] === 'CONNECTED' ? 'You added them' : p.headline || p.category}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-[15px] text-[var(--app-muted)]">Nobody has checked in yet. Be the first.</p>
+            )}
+          </section>
+        )}
 
         {event.description && (
           <section className="mt-7">

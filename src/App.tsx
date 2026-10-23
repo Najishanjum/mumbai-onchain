@@ -155,8 +155,12 @@ export function App() {
       const params = new URLSearchParams(window.location.search);
       const personId = params.get('person');
       const tabParam = params.get('tab');
+      const eventId = params.get('event');
 
-      if (personId) {
+      if (eventId) {
+        // "<name> is here too" pushes open the event's who's-here list.
+        setSelectedEventId(eventId);
+      } else if (personId) {
         setSelectedPersonId(personId);
         setActiveTab('people');
       } else if (tabParam === 'id-generator') {
@@ -172,7 +176,7 @@ export function App() {
     } catch (e) {
       console.error('Error parsing URL parameters:', e);
     }
-  }, [setSelectedPersonId, setActiveTab]);
+  }, [setSelectedPersonId, setActiveTab, setSelectedEventId]);
 
   // Devcon 8 Primary Event item
   const primaryDevconEvent = events.find(e => e.isPrimary || e.id === 'devcon-8-india') || events[0];
