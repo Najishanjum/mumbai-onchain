@@ -228,9 +228,12 @@ export const CommunityPartnerModal: React.FC<CommunityPartnerModalProps> = ({
       // Determine telegram vs discord
       let formattedTelegram = '';
       let formattedDiscord = '';
+      let formattedWhatsapp = '';
       if (telegramOrDiscord.trim()) {
         const val = telegramOrDiscord.trim();
-        if (val.includes('discord')) {
+        if (val.includes('chat.whatsapp.com')) {
+          formattedWhatsapp = /^https?:\/\//.test(val) ? val : `https://${val}`;
+        } else if (val.includes('discord')) {
           formattedDiscord = formatSocialUrl(val, 'discord');
         } else if (val.includes('t.me') || val.startsWith('@')) {
           formattedTelegram = formatSocialUrl(val, 'telegram');
@@ -254,6 +257,7 @@ export const CommunityPartnerModal: React.FC<CommunityPartnerModalProps> = ({
         linkedin_url: formattedLinkedin,
         telegram_url: formattedTelegram,
         discord_url: formattedDiscord,
+        whatsapp_url: formattedWhatsapp,
       });
 
       if (!res.success) {
@@ -734,7 +738,7 @@ export const CommunityPartnerModal: React.FC<CommunityPartnerModalProps> = ({
                   {/* Telegram / Discord */}
                   <div className="sm:col-span-2 space-y-1">
                     <label className="text-[11px] font-bold text-[#ECEEF1] uppercase block">
-                      Telegram / Discord
+                      Telegram / Discord / WhatsApp group
                     </label>
                     <div className="relative">
                       <input
@@ -744,7 +748,7 @@ export const CommunityPartnerModal: React.FC<CommunityPartnerModalProps> = ({
                           setTelegramOrDiscord(e.target.value);
                           if (fieldErrors.social) setFieldErrors((prev) => ({ ...prev, social: '' }));
                         }}
-                        placeholder="https://t.me/community or https://discord.gg/invite"
+                        placeholder="t.me/community, discord.gg/invite or chat.whatsapp.com/…"
                         className="w-full p-2.5 bg-[#171A21] border border-white/20 focus:border-[#F97316] text-white focus:outline-none placeholder:text-[#5F6772]"
                       />
                     </div>

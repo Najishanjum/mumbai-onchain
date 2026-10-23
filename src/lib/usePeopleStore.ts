@@ -34,8 +34,6 @@ interface DbProfileRow {
   telegram_handle?: string | null;
   farcaster_handle?: string | null;
   website_url?: string | null;
-  // supabase/migrations/20261023000000_profile_whatsapp.sql
-  whatsapp?: string | null;
 }
 
 function mapDbToPerson(row: DbProfileRow, myProfileId?: string): PersonProfile {
@@ -58,7 +56,6 @@ function mapDbToPerson(row: DbProfileRow, myProfileId?: string): PersonProfile {
     telegramHandle: row.telegram_handle || '',
     farcasterHandle: row.farcaster_handle || '',
     websiteUrl: row.website_url || '',
-    whatsapp: row.whatsapp || '',
     isCurrentUser: Boolean(myProfileId && row.id === myProfileId),
     createdAt: row.created_at || new Date().toISOString(),
   };
@@ -85,7 +82,6 @@ function personToDbRow(p: PersonProfile, ownerId: string) {
     telegram_handle: p.telegramHandle || '',
     farcaster_handle: p.farcasterHandle || '',
     website_url: p.websiteUrl || '',
-    whatsapp: p.whatsapp || '',
     updated_at: new Date().toISOString(),
   };
 }

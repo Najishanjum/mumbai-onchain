@@ -20,6 +20,7 @@ interface Row {
   linkedin_url: string | null;
   telegram_url: string | null;
   discord_url: string | null;
+  whatsapp_url: string | null;
   status: Status;
   created_at: string;
 }
@@ -37,7 +38,10 @@ const LINKS: { key: keyof Row; label: string }[] = [
   { key: 'linkedin_url', label: 'LinkedIn' },
   { key: 'telegram_url', label: 'Telegram' },
   { key: 'discord_url', label: 'Discord' },
+  { key: 'whatsapp_url', label: 'WhatsApp' },
 ];
+
+const WHATSAPP_GROUP = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/;
 
 // Applicants type these, so only real web links become links.
 const webUrl = (u: string | null) => (u && /^https?:\/\//i.test(u.trim()) ? u.trim() : null);
@@ -50,13 +54,14 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [waEdit, setWaEdit] = useState<{ id: string; value: string } | null>(null);
 
   const load = useCallback(() => {
     setRows(null);
     supabase
       .from('community_partner_applications')
       .select(
-        'id, community_name, community_logo_url, community_description, lead_name, email, phone, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, status, created_at'
+        'id, community_name, community_logo_url, community_description, lead_name, email, phone, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, whatsapp_url, status, created_at'
       )
       .eq('status', tab)
       .order('created_at', { ascending: tab === 'pending' })
@@ -87,6 +92,22 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
     notifyAdmins(event, row.community_name);
     setRows((r) => r?.filter((x) => x.id !== row.id) ?? null);
     onChanged();
+  }
+
+  /** Partners send their group link in the partners chat; an admin pastes it here. */
+  async function saveWhatsapp(row: Row, value: string) {
+    const url = value.trim().split('?')[0].replace(/^(?!https:\/\/)/, value.trim() ? 'https://' : '').replace(/\/+$/, '');
+    if (url && !WHATSAPP_GROUP.test(url)) return setError('Paste a WhatsApp group invite link, like chat.whatsapp.com/AbC123…');
+    setBusyId(row.id);
+    setError('');
+    const { error: e } = await supabase
+      .from('community_partner_applications')
+      .update({ whatsapp_url: url, updated_at: new Date().toISOString() })
+      .eq('id', row.id);
+    setBusyId(null);
+    if (e) return setError(`Couldn’t save ${row.community_name}’s WhatsApp group. Try again.`);
+    setWaEdit(null);
+    setRows((r) => r?.map((x) => (x.id === row.id ? { ...x, whatsapp_url: url } : x)) ?? null);
   }
 
   async function remove(row: Row) {
@@ -168,6 +189,41 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                       </a>
                     ))}
                   </div>
+                )}
+
+                {waEdit?.id === p.id ? (
+                  <form
+                    className="mt-2 flex gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void saveWhatsapp(p, waEdit.value);
+                    }}
+                  >
+                    <input
+                      autoFocus
+                      type="url"
+                      inputMode="url"
+                      aria-label={`${p.community_name} WhatsApp group link`}
+                      value={waEdit.value}
+                      onChange={(e) => setWaEdit({ id: p.id, value: e.target.value })}
+                      placeholder="chat.whatsapp.com/…"
+                      className="min-w-0 flex-1 h-10 px-3 rounded-xl bg-[var(--app-pressed)] border border-[var(--app-line)] text-[15px]"
+                    />
+                    <button type="submit" className={btn.good} disabled={busy}>
+                      Save
+                    </button>
+                    <button type="button" className={btn.plain} onClick={() => setWaEdit(null)}>
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    className="app-press mt-2 h-10 px-3 rounded-xl text-[13px] font-bold text-[var(--app-muted)]"
+                    onClick={() => setWaEdit({ id: p.id, value: p.whatsapp_url ?? '' })}
+                  >
+                    {p.whatsapp_url ? 'Change WhatsApp group' : '+ Add WhatsApp group'}
+                  </button>
                 )}
 
                 {confirmDelete === p.id ? (

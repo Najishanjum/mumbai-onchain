@@ -6,6 +6,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Send,
+  MessageCircle,
   Plus,
   FileText,
   Download,
@@ -253,6 +254,17 @@ export const CommunityPartnerSection: React.FC<CommunityPartnerSectionProps> = (
                       title="Discord"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                  {partner.whatsapp_url && (
+                    <a
+                      href={partner.whatsapp_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-[#25D366] transition-colors"
+                      title="WhatsApp group"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
                     </a>
                   )}
                 </div>
