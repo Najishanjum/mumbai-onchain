@@ -4,6 +4,26 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Bell, CalendarDays, Check, CircleCheck, Compass, Copy, Download, EllipsisVertical, MapPin, Share, SquarePlus, Users } from 'lucide-react';
 import { detectInAppBrowser, detectPlatform, promptInstall, useInstallState } from '../lib/pwa';
 import { Scene } from './Scene';
+import { supabase } from '../lib/supabase';
+
+// Keeps a community's invite (?c=…) on the link and QR this page hands on.
+const inviteSlug = () => new URLSearchParams(window.location.search).get('c');
+
+/** The community whose invite link (?c=…) brought them here, if any. */
+function useInviteCommunity() {
+  const [community, setCommunity] = useState<{ name: string; logo: string } | null>(null);
+  useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get('c');
+    if (!slug || !supabase) return;
+    supabase
+      .from('community_partners_public')
+      .select('community_name, community_logo_url')
+      .eq('slug', slug)
+      .maybeSingle()
+      .then(({ data }) => data && setCommunity({ name: data.community_name, logo: data.community_logo_url }));
+  }, []);
+  return community;
+}
 
 const FEATURES = [
   { icon: CalendarDays, title: 'Every event, one schedule', body: 'IBW, Devcon 8, ETHGlobal Mumbai and the side events, with what’s on now.' },
@@ -35,7 +55,8 @@ function CopyLink() {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
-      await navigator.clipboard.writeText(window.location.origin + '/app');
+      const c = inviteSlug();
+      await navigator.clipboard.writeText(window.location.origin + '/app' + (c ? `?c=${encodeURIComponent(c)}` : ''));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -55,8 +76,9 @@ function CopyLink() {
 // Chrome from an intent link. If neither works, the steps still do.
 function InAppBrowser({ app, ios }: { app: 'x' | 'telegram' | 'instagram'; ios: boolean }) {
   const name = app === 'x' ? 'X' : app === 'telegram' ? 'Telegram' : 'Instagram';
-  const { host, pathname } = window.location;
-  const href = ios ? `x-safari-https://${host}${pathname}` : `intent://${host}${pathname}#Intent;scheme=https;package=com.android.chrome;end`;
+  // search keeps a community's invite (?c=…) when hopping to the real browser.
+  const { host, pathname, search } = window.location;
+  const href = ios ? `x-safari-https://${host}${pathname}${search}` : `intent://${host}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;end`;
   return (
     <div className="space-y-3">
       <p className="text-[15px] leading-relaxed text-[var(--app-muted)]">You’re inside {name}, which can’t install apps. Open this page in {ios ? 'Safari' : 'Chrome'} first.</p>
@@ -82,7 +104,8 @@ function InAppBrowser({ app, ios }: { app: 'x' | 'telegram' | 'instagram'; ios: 
 function DesktopQr() {
   const [qr, setQr] = useState('');
   useEffect(() => {
-    QRCode.toDataURL(window.location.origin + '/app?source=qr', { margin: 1, width: 360, color: { dark: '#0A0A0C', light: '#FFFFFF' } })
+    const c = inviteSlug();
+    QRCode.toDataURL(window.location.origin + '/app?source=qr' + (c ? `&c=${encodeURIComponent(c)}` : ''), { margin: 1, width: 360, color: { dark: '#0A0A0C', light: '#FFFFFF' } })
       .then(setQr)
       .catch(() => setQr(''));
   }, []);
@@ -191,6 +214,7 @@ export function InstallPage() {
   }, []);
   // So the app works offline from its first launch.
   useRegisterSW({ immediate: true });
+  const invite = useInviteCommunity();
 
   return (
     <div className="app app-root relative isolate min-h-[100svh] overflow-x-hidden">
@@ -199,6 +223,15 @@ export function InstallPage() {
         <img src="/icons/icon-192.png" alt="" className="w-22 h-22 rounded-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.5)]" />
         <h1 className="mt-5 text-[34px] leading-[1.05] font-extrabold tracking-[-0.02em]">Mumbai Onchain</h1>
         <p className="mt-2 text-[17px] leading-relaxed text-[var(--app-muted)]">Your app for India Blockchain Week, Devcon 8 and ETHGlobal Mumbai. Free, and no App Store needed.</p>
+
+        {invite && (
+          <div className="mt-5 flex items-center gap-3 rounded-2xl bg-[var(--app-surface)]/85 backdrop-blur-xl border border-[var(--app-line)] p-3.5">
+            {invite.logo && <img src={invite.logo} alt="" className="w-11 h-11 rounded-xl object-cover bg-white shrink-0" />}
+            <p className="text-[15px] leading-snug">
+              <b>{invite.name}</b> invited you. When you make your pass, pick <b>{invite.name}</b> as your community.
+            </p>
+          </div>
+        )}
 
         <section aria-labelledby="install-title" className="mt-7 rounded-[28px] bg-[var(--app-surface)]/85 backdrop-blur-xl border border-[var(--app-line)] p-4">
           <h2 id="install-title" className="font-['Red_Hat_Mono'] text-[12px] font-semibold tracking-[0.16em] text-[var(--app-muted)] mb-3 px-1">

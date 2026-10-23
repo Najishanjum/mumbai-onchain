@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ArrowUpRight, Loader2, Mail, Phone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
+import { CoLeadCard } from '../CommunitySheet';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins, timeAgo, type AdminEventKind } from './shared';
 
 type Status = 'pending' | 'approved' | 'rejected';
@@ -48,8 +49,28 @@ const webUrl = (u: string | null) => (u && /^https?:\/\//i.test(u.trim()) ? u.tr
 
 /** Community partner applications from the website: approve, reject, or delete. */
 export function AdminPartners({ onChanged }: { onChanged: () => void }) {
-  const { authUser } = usePeopleStore();
+  const { authUser, people } = usePeopleStore();
   const [tab, setTab] = useState<Status>('pending');
+  // Approved partners: who leads them and how many joined.
+  const [members, setMembers] = useState<{ community_id: string; user_id: string; profile_id: string; role: string; credited: boolean }[]>([]);
+  const [leaderCodeFor, setLeaderCodeFor] = useState<string | null>(null);
+  const loadMembers = useCallback(() => {
+    supabase
+      .from('community_members')
+      .select('community_id, user_id, profile_id, role, credited')
+      .then(({ data }) => setMembers(data ?? []));
+  }, []);
+  useEffect(() => {
+    if (tab === 'approved') loadMembers();
+  }, [tab, loadMembers]);
+
+  async function removeLeader(row: Row, userId: string, name: string) {
+    setBusyId(row.id);
+    const { error: e } = await supabase.from('community_members').delete().eq('community_id', row.id).eq('user_id', userId);
+    setBusyId(null);
+    if (e) return setError(`Couldn’t remove ${name}. Try again.`);
+    loadMembers();
+  }
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -190,6 +211,47 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                     ))}
                   </div>
                 )}
+
+                {p.status === 'approved' &&
+                  (() => {
+                    const here = members.filter((m) => m.community_id === p.id);
+                    const leaders = here.filter((m) => m.role === 'lead');
+                    const counted = here.filter((m) => m.role === 'member' && m.credited).length;
+                    return (
+                      <div className="mt-3 rounded-2xl border border-[var(--app-line)] p-3">
+                        <p className="text-[13px] text-[var(--app-muted)]">
+                          {here.length - leaders.length} member{here.length - leaders.length === 1 ? '' : 's'} · {counted} counted for them
+                        </p>
+                        <p className="mt-2 text-[13px] font-bold">Leaders</p>
+                        {leaders.length === 0 ? (
+                          <p className="text-[14px] text-[var(--app-muted)]">None linked yet. They link by signing in with {p.email}, or with a leader code.</p>
+                        ) : (
+                          <ul className="mt-1 space-y-1">
+                            {leaders.map((l) => {
+                              const name = people.find((x) => x.id === l.profile_id)?.name ?? 'Someone';
+                              return (
+                                <li key={l.user_id} className="flex items-center gap-2 text-[15px]">
+                                  <span className="flex-1 truncate">{name}</span>
+                                  <button type="button" className="h-8 px-3 rounded-full text-[13px] font-semibold text-[var(--app-muted)]" disabled={busy} onClick={() => removeLeader(p, l.user_id, name)}>
+                                    Remove
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                        {leaderCodeFor === p.id ? (
+                          <div className="mt-2">
+                            <CoLeadCard c={{ id: p.id, community_name: p.community_name }} />
+                          </div>
+                        ) : (
+                          <button type="button" className="app-press mt-1 h-9 text-[13px] font-bold text-[var(--app-primary)]" onClick={() => setLeaderCodeFor(p.id)}>
+                            + Add a leader with a code
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                 {waEdit?.id === p.id ? (
                   <form

@@ -7,6 +7,7 @@ import { useSavedEvents } from '../lib/useSavedEvents';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { Sheet } from './ui';
 import { dayLabel, sortByStart } from './time';
+import { readCommunityRef, rememberCommunity, useCommunities } from '../lib/useCommunities';
 
 interface ProfileEditorSheetProps {
   isOpen: boolean;
@@ -163,6 +164,12 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
   const [triedSave, setTriedSave] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { savedIds } = useSavedEvents();
+  // New passes only: which community they're part of. Pre-picked when they
+  // came through its invite link; joined once the pass is saved.
+  const isNew = !currentProfile;
+  const { communities } = useCommunities(null, null);
+  const [ref] = useState(() => (isNew ? readCommunityRef() : null));
+  const [communitySlug, setCommunitySlug] = useState(ref?.slug ?? '');
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
   const toggleIn = (key: 'skills' | 'interests' | 'attendingEvents', v: string) =>
@@ -203,6 +210,7 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
   function save() {
     setTriedSave(true);
     if (hasErrors) return;
+    if (isNew && communitySlug !== (ref?.slug ?? '')) rememberCommunity(communitySlug || null, 'picked');
     const t = (s: string) => s.trim();
     onSave({
       ...draft,
@@ -375,6 +383,24 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
             </div>
           </div>
         </Group>
+
+        {isNew && communities.length > 0 && (
+          <Group title="Your community" hint="Optional. You'll hear from them during the week. You can join up to 3 later in Me.">
+            <div>
+              <label htmlFor="pe-community" className={label}>
+                Community
+              </label>
+              <select id="pe-community" value={communitySlug} onChange={(e) => setCommunitySlug(e.target.value)} className={input}>
+                <option value="">None for now</option>
+                {communities.map((c) => (
+                  <option key={c.id} value={c.slug}>
+                    {c.community_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Group>
+        )}
 
         <Group title="Where to find you" hint="Shown on your pass so people can follow up after you meet.">
           <div>
