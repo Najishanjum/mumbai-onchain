@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Bookmark, CalendarPlus, Camera, Check, Clock, ExternalLink, MapPin, Navigation, Users } from 'lucide-react';
+import { Bookmark, CalendarPlus, Camera, Check, Clock, ExternalLink, MapPin, Navigation, TramFront, Users } from 'lucide-react';
+import { formatDistance, nearestStations } from '../lib/nearestStation';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
@@ -122,6 +123,17 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
               )}
               {!venueKnown && (
                 <div className="text-[15px] text-[var(--app-muted)]">Check the event page for the latest details.</div>
+              )}
+              {/* Getting there without traffic: the closest metro and local train. */}
+              {venueKnown && event.latitude != null && event.longitude != null && (
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[14px] text-[var(--app-muted)]">
+                  {nearestStations(event.latitude, event.longitude).map(({ station, metres }) => (
+                    <span key={station.kind} className="inline-flex items-center gap-1">
+                      <TramFront className="w-3.5 h-3.5" aria-hidden="true" />
+                      {station.name} {station.kind === 'metro' ? 'metro' : 'station'} · {formatDistance(metres)}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           </div>

@@ -120,6 +120,7 @@ Scripts:
 | `npm run lint` | Oxlint |
 | `npm run icons` | Regenerate app icons |
 | `npm run covers` | Fetch event cover images |
+| `npm run transit` | Rebuild the metro and local train map data from OpenStreetMap |
 | `npm run push -- "Title" "Body" [url]` | Send a push (needs `PUSH_ADMIN_SECRET` in `.env.local`) |
 
 ## Supabase
