@@ -3,7 +3,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 // The user's own plan: event IDs they saved in the app. Kept apart from
 // EventItem.status, which is seeded with the site owner's personal plan
 // (e.g. Devcon = VOLUNTEER) and would show up as everyone's plan.
-// lean-ctx: device-local for now; syncs to the profile once accounts land (phase 3).
+// Kept on the phone; useSavedSync copies it to the account for reminders.
 const KEY = 'mo_saved_events_v1';
 
 let saved: string[] = read();
@@ -37,6 +37,12 @@ if (typeof window !== 'undefined') {
       listeners.forEach((l) => l());
     }
   });
+}
+
+/** Adds events saved on another device (from the account), keeping this phone's. */
+export function mergeSaved(ids: string[]) {
+  const extra = ids.filter((id) => !saved.includes(id));
+  if (extra.length) write([...saved, ...extra]);
 }
 
 export function useSavedEvents() {

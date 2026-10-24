@@ -12,6 +12,7 @@ import { ScannerSheet } from './ScannerSheet';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import { useApplyAppPrefs } from '../lib/useAppPrefs';
 import { useSavedEvents } from '../lib/useSavedEvents';
+import { useSavedSync } from '../lib/useSavedSync';
 import { isRealPerson } from '../lib/samples';
 import { TodayScreen } from './TodayScreen';
 import { Scene } from './Scene';
@@ -160,6 +161,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   if (!visited.has(tab)) setVisited(new Set(visited).add(tab));
   const realPeople = people.filter(isRealPerson);
   const { savedIds, isSaved, toggleSaved } = useSavedEvents();
+  // Saved events in the account, for "starts in 15 min" pushes.
+  useSavedSync(authUser?.id ?? null, events);
   const [scheduleDay, setScheduleDay] = useState(defaultDay);
   const [isPassOpen, setIsPassOpen] = useState(false);
   const [isSaveCardOpen, setIsSaveCardOpen] = useState(false);
