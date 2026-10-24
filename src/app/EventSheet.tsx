@@ -9,6 +9,7 @@ import { downloadICSFile, getGoogleCalendarUrl } from '../lib/calendar';
 import { detectPlatform } from '../lib/pwa';
 import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
+import { BadgeRing } from './BadgeRing';
 import { Chip, CoverHero, LiveDot, Sheet } from './ui';
 import { eventCover } from './covers';
 import { dayLabel, directionsUrl, isLive, startsIn, VENUE_TBA } from './time';
@@ -197,14 +198,14 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
                     onClick={() => onOpenPerson(p.id)}
                     className="app-press w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--app-pressed)]"
                   >
-                    <PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" />
+                    <BadgeRing personId={p.id}><PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" /></BadgeRing>
                     <span className="flex-1 min-w-0">
                       <span className="block text-[15px] font-semibold truncate">
                         {p.name}
                         {p.id === myProfile?.id && <span className="font-normal text-[var(--app-muted)]"> (you)</span>}
                       </span>
                       <span className="block text-[13px] text-[var(--app-muted)] truncate">
-                        {connections[p.id] === 'CONNECTED' ? 'You added them' : p.headline || p.category}
+                        {connections[p.id] === 'CONNECTED' ? 'You follow them' : p.headline || p.category}
                       </span>
                     </span>
                   </button>
@@ -247,7 +248,7 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
                   onClick={() => onOpenPerson(p.id)}
                   className="app-press w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--app-pressed)]"
                 >
-                  <PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" />
+                  <BadgeRing personId={p.id}><PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" /></BadgeRing>
                   <span className="flex-1 min-w-0">
                     <span className="block text-[15px] font-semibold truncate">{p.name}</span>
                     <span className="block text-[13px] text-[var(--app-muted)] truncate">{p.headline || p.category}</span>

@@ -212,7 +212,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       }),
     [replies, people, recentSnaps]
   );
-  const { reminders, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy, repliedBy);
+  const { reminders, older: olderNotes, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy, repliedBy);
   // What was unread when the bell was tapped: the New section.
   const [freshNotes, setFreshNotes] = useState<Set<string>>(() => new Set());
 
@@ -319,6 +319,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         isOpen={notesOpen}
         onClose={() => setNotesOpen(false)}
         reminders={reminders}
+        older={olderNotes}
         fresh={freshNotes}
         onOpenEvent={onOpenEvent}
         onCreateProfile={onCreateProfile}

@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { Check, Copy, Crown, KeyRound, Loader2, QrCode, Search, Share2, UserPlus, Users } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
+import { BadgeRing } from './BadgeRing';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import { useAdminRole } from '../lib/useAdmin';
 import {
@@ -256,7 +257,7 @@ export const CommunitySheet: React.FC<CommunitySheetProps> = ({ communityId, onC
                     onClick={() => onOpenPerson(p.id)}
                     className="app-press w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--app-pressed)]"
                   >
-                    <PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" />
+                    <BadgeRing personId={p.id}><PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" /></BadgeRing>
                     <span className="flex-1 min-w-0">
                       <span className="block text-[15px] font-semibold truncate">{p.name}</span>
                       <span className="block text-[13px] text-[var(--app-muted)] truncate">{canManage ? VIA[m.joinedVia] : p.headline || p.category}</span>

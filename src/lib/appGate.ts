@@ -19,6 +19,14 @@ export function requireApp(action: AppOnlyAction): boolean {
   return false;
 }
 
+// Following someone needs your own pass first (they see who follows them).
+// App.tsx listens and opens "Create your pass".
+export const NEED_PROFILE_EVENT = 'mo:need-profile';
+
+export function askForProfile() {
+  window.dispatchEvent(new CustomEvent(NEED_PROFILE_EVENT));
+}
+
 export const NEED_APP_COPY: Record<AppOnlyAction, { title: string; body: string }> = {
   profile: { title: 'Make your pass in the app', body: 'Profiles and passes live in the Mumbai Onchain app, so only people at the events can see them.' },
   connect: { title: 'Connect in the app', body: 'Connecting with people happens in the Mumbai Onchain app, where your network stays private.' },

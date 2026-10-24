@@ -422,7 +422,7 @@ function StoryViewer({
             }`}
           >
             {connected ? <Check className="w-4 h-4" aria-hidden="true" /> : <UserPlus className="w-4 h-4" aria-hidden="true" />}
-            {connected ? 'Connected' : 'Connect'}
+            {connected ? 'Following' : 'Follow'}
           </button>
         )}
         {canDelete && (

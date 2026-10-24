@@ -4,6 +4,7 @@ import { keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
 import { AtSign, Check, ImageUp, RefreshCw, SwitchCamera, UserPlus, X } from 'lucide-react';
 import type { ConnectionStatus, PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
+import { BadgeRing } from './BadgeRing';
 import { findPersonFromQr } from './qr';
 
 interface ScannerSheetProps {
@@ -191,7 +192,7 @@ function Scanner({ onClose, people, getConnectionStatus, onAdd, onOpenPerson }: 
             {person ? (
               <>
                 <div className="flex items-center gap-3">
-                  <PersonAvatar name={person.name} avatarUrl={person.avatar} size="md" className="rounded-full! border-0! w-14! h-14!" />
+                  <BadgeRing personId={person.id}><PersonAvatar name={person.name} avatarUrl={person.avatar} size="md" className="rounded-full! border-0! w-14! h-14!" /></BadgeRing>
                   <div className="min-w-0">
                     <div className="app-title text-[20px] font-bold truncate">{person.name}</div>
                     <div className="text-[14px] text-[var(--app-muted)] truncate">
@@ -207,7 +208,7 @@ function Scanner({ onClose, people, getConnectionStatus, onAdd, onOpenPerson }: 
                     className="app-press h-12 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold inline-flex items-center justify-center gap-2 disabled:bg-[var(--app-bg)] disabled:text-[var(--app-muted)]"
                   >
                     {added ? <Check className="w-[18px] h-[18px]" /> : <UserPlus className="w-[18px] h-[18px]" />}
-                    {added ? 'Added' : 'Add'}
+                    {added ? 'Following' : 'Follow'}
                   </button>
                   <button
                     type="button"

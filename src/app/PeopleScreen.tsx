@@ -5,6 +5,7 @@ import { usePeopleStore } from '../lib/usePeopleStore';
 import { calculateMatchScore } from '../lib/matchingEngine';
 import { isRealPerson } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
+import { BadgeRing } from './BadgeRing';
 import { GroupedList } from './ui';
 import { StoriesRow } from './Stories';
 import { roleColor } from './Badge';
@@ -21,7 +22,7 @@ type Filter = 'all' | 'mine' | PersonCategory;
 
 const ROLE_FILTERS: { id: Filter; label: string }[] = [
   { id: 'all', label: 'Everyone' },
-  { id: 'mine', label: 'My people' },
+  { id: 'mine', label: 'Following' },
   { id: 'Builder', label: 'Builders' },
   { id: 'Founder', label: 'Founders' },
   { id: 'Volunteer', label: 'Volunteers' },
@@ -32,11 +33,8 @@ function subtitle(p: PersonProfile): string {
   return [p.headline || p.category, p.city].filter(Boolean).join(' · ');
 }
 
-/**
- * "Add" keeps someone in your own list. It is not a request: the other person
- * isn't notified until accounts exist (phase 3), so the UI doesn't pretend.
- */
-function AddButton({ added, onToggle, name }: { added: boolean; onToggle: () => void; name: string }) {
+/** Follow, Following, or Follow back when they already follow you. */
+function AddButton({ added, onToggle, name, followsMe = false }: { added: boolean; onToggle: () => void; name: string; followsMe?: boolean }) {
   return (
     <button
       type="button"
@@ -45,13 +43,13 @@ function AddButton({ added, onToggle, name }: { added: boolean; onToggle: () => 
         onToggle();
       }}
       aria-pressed={added}
-      aria-label={added ? `Remove ${name} from my people` : `Add ${name} to my people`}
+      aria-label={added ? `Unfollow ${name}` : `Follow ${name}`}
       className={`app-press shrink-0 h-8 px-3.5 rounded-full text-[14px] font-semibold inline-flex items-center gap-1 ${
         added ? 'bg-[var(--app-bg)] text-[var(--app-muted)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
       }`}
     >
       {added ? <Check className="w-4 h-4" aria-hidden="true" /> : <UserPlus className="w-4 h-4" aria-hidden="true" />}
-      {added ? 'Added' : 'Add'}
+      {added ? 'Following' : followsMe ? 'Follow back' : 'Follow'}
     </button>
   );
 }
@@ -63,7 +61,8 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
   onSelectPerson,
   onAddSnap,
 }) => {
-  const { people, myProfile, connections, setConnectionStatus } = usePeopleStore();
+  const { people, myProfile, connections, setConnectionStatus, addedMe } = usePeopleStore();
+  const followers = useMemo(() => new Set(addedMe.map((a) => a.profileId)), [addedMe]);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
@@ -160,14 +159,14 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
                     onKeyDown={(e) => e.key === 'Enter' && onSelectPerson(person.id)}
                     className="app-press shrink-0 w-[168px] p-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] flex flex-col items-center text-center cursor-pointer"
                   >
-                    <PersonAvatar name={person.name} avatarUrl={person.avatar} size="lg" className="rounded-full! border-0!" />
+                    <BadgeRing personId={person.id}><PersonAvatar name={person.name} avatarUrl={person.avatar} size="lg" className="rounded-full! border-0!" /></BadgeRing>
                     <span className="mt-2 text-[15px] font-semibold w-full truncate">{person.name}</span>
                     <span className="mt-1 h-5 px-2 rounded text-[11px] font-extrabold tracking-[0.08em] text-[#0D1316] inline-flex items-center" style={{ background: roleColor(person.category) }}>{person.category.toUpperCase()}</span>
                     <span className="mt-2 text-[13px] leading-snug text-[var(--app-ink)] line-clamp-2 min-h-[2.5em]">
                       {match.reasons[0]}
                     </span>
                     <div className="mt-3">
-                      <AddButton added={isAdded(person.id)} onToggle={() => toggleAdded(person.id)} name={person.name} />
+                      <AddButton added={isAdded(person.id)} onToggle={() => toggleAdded(person.id)} name={person.name} followsMe={followers.has(person.id)} />
                     </div>
                   </div>
                 ))}
@@ -226,13 +225,13 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
                   className="app-press flex items-center gap-3 px-4 py-3 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--app-primary)]"
                 >
                   <span className="shrink-0 rounded-full p-[3px]" style={{ boxShadow: `inset 0 0 0 2px ${roleColor(p.category)}` }}>
-                    <PersonAvatar name={p.name} avatarUrl={p.avatar} size="md" className="rounded-full! border-0! w-10! h-10!" />
+                    <BadgeRing personId={p.id}><PersonAvatar name={p.name} avatarUrl={p.avatar} size="md" className="rounded-full! border-0! w-10! h-10!" /></BadgeRing>
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[16px] font-semibold truncate">{p.name}</div>
                     <div className="text-[14px] text-[var(--app-muted)] truncate">{subtitle(p)}</div>
                   </div>
-                  <AddButton added={isAdded(p.id)} onToggle={() => toggleAdded(p.id)} name={p.name} />
+                  <AddButton added={isAdded(p.id)} onToggle={() => toggleAdded(p.id)} name={p.name} followsMe={followers.has(p.id)} />
                 </div>
               ))}
             </GroupedList>
@@ -240,7 +239,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
             <div className="mx-4 py-10 text-center">
               <Users className="w-8 h-8 mx-auto text-[var(--app-faint)]" aria-hidden="true" />
               <p className="mt-3 text-[16px] font-semibold">
-                {q ? 'Nobody matches that' : filter === 'mine' ? 'No one added yet' : 'No one here yet'}
+                {q ? 'Nobody matches that' : filter === 'mine' ? 'You’re not following anyone yet' : 'No one here yet'}
               </p>
               <p className="mt-1 text-[15px] text-[var(--app-muted)] max-w-[32ch] mx-auto">
                 {q
