@@ -77,6 +77,12 @@ if (typeof window !== 'undefined') {
     emit({ deferred: e as BeforeInstallPromptEvent });
   });
   window.addEventListener('appinstalled', () => emit({ deferred: null, installed: true }));
+  // Already installed, browsing the website in Chrome: Chrome won't offer an
+  // install, so say so instead of showing steps that lead nowhere.
+  const nav = navigator as Navigator & { getInstalledRelatedApps?: () => Promise<unknown[]> };
+  nav.getInstalledRelatedApps?.()
+    .then((apps) => apps.length > 0 && emit({ installed: true }))
+    .catch(() => undefined);
 }
 
 export function useInstallState(): InstallState {

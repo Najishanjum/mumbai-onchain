@@ -180,6 +180,9 @@ export default defineConfig(({ mode }) => {
           // The website and the app share one origin, so without this desktop
           // Chrome opens every mumbaionchain.site link inside the installed app.
           handle_links: 'not-preferred',
+          // Lets the /app page ask Chrome whether the app is already installed
+          // (getInstalledRelatedApps), since it then never offers to install.
+          related_applications: [{ platform: 'webapp', url: 'https://www.mumbaionchain.site/manifest.webmanifest' }],
           display: 'standalone',
           orientation: 'portrait',
           // Launch splash + title bar match the app's default dark theme.

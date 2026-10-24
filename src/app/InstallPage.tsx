@@ -128,7 +128,9 @@ function HowToInstall() {
       <div className="flex items-start gap-3">
         <CircleCheck className="w-7 h-7 shrink-0 text-[#3CC48C]" aria-hidden="true" />
         <p className="text-[16px] leading-snug">
-          <b>Installed.</b> Open Mumbai Onchain from your home screen.
+          <b>You have the app.</b> Open Mumbai Onchain from your home screen.
+          {/* Chrome and the installed app share storage on Android, so ?c= carries over. */}
+          {inviteSlug() && platform === 'android' && ' Your invite is saved and joins you when you open it.'}
         </p>
       </div>
     );
@@ -195,6 +197,13 @@ function HowToInstall() {
           </>,
         ]}
       </Steps>
+      {/* Some phones don't report the installed app; the menu gives it away. */}
+      {!deferred && (
+        <p className="px-1 text-[14px] leading-snug text-[var(--app-muted)]">
+          Menu says <b className="text-[var(--app-ink)]">Open Mumbai Onchain</b> instead? You already have the app. Open it from your home screen
+          {inviteSlug() ? ', and your invite comes with you.' : '.'}
+        </p>
+      )}
     </div>
   );
 }
