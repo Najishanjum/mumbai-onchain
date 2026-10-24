@@ -5,7 +5,6 @@ import { usePeopleStore } from '../lib/usePeopleStore';
 import { calculateMatchScore } from '../lib/matchingEngine';
 import { isRealPerson } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
-import { BadgeRing } from './BadgeRing';
 import { GroupedList } from './ui';
 import { StoriesRow } from './Stories';
 import { roleColor } from './Badge';
@@ -159,7 +158,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
                     onKeyDown={(e) => e.key === 'Enter' && onSelectPerson(person.id)}
                     className="app-press shrink-0 w-[168px] p-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] flex flex-col items-center text-center cursor-pointer"
                   >
-                    <BadgeRing personId={person.id}><PersonAvatar name={person.name} avatarUrl={person.avatar} size="lg" className="rounded-full! border-0!" /></BadgeRing>
+                    <PersonAvatar name={person.name} avatarUrl={person.avatar} size="lg" className="rounded-full! border-0!" />
                     <span className="mt-2 text-[15px] font-semibold w-full truncate">{person.name}</span>
                     <span className="mt-1 h-5 px-2 rounded text-[11px] font-extrabold tracking-[0.08em] text-[#0D1316] inline-flex items-center" style={{ background: roleColor(person.category) }}>{person.category.toUpperCase()}</span>
                     <span className="mt-2 text-[13px] leading-snug text-[var(--app-ink)] line-clamp-2 min-h-[2.5em]">
@@ -225,7 +224,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
                   className="app-press flex items-center gap-3 px-4 py-3 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--app-primary)]"
                 >
                   <span className="shrink-0 rounded-full p-[3px]" style={{ boxShadow: `inset 0 0 0 2px ${roleColor(p.category)}` }}>
-                    <BadgeRing personId={p.id}><PersonAvatar name={p.name} avatarUrl={p.avatar} size="md" className="rounded-full! border-0! w-10! h-10!" /></BadgeRing>
+                    <PersonAvatar name={p.name} avatarUrl={p.avatar} size="md" className="rounded-full! border-0! w-10! h-10!" />
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[16px] font-semibold truncate">{p.name}</div>

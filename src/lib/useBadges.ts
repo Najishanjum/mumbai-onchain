@@ -3,8 +3,8 @@ import { supabase } from './supabase';
 
 export type Badge = 'team' | 'lead';
 
-// Who wears a ring: the Mumbai Onchain team, and leads of partner
-// communities (with which ones). Loaded once and shared by every avatar.
+// The line under a name on a profile: the Mumbai Onchain team, and leads of
+// partner communities (with which ones). Loaded once and shared.
 interface State {
   team: Set<string>;
   leads: Map<string, string[]>; // profile id → community ids
@@ -31,7 +31,7 @@ async function load() {
   listeners.forEach((l) => l());
 }
 
-/** The ring a person gets (team wins over lead), and the communities they lead. */
+/** Team or community lead (team wins), and the communities they lead. */
 export function useBadge(profileId: string | undefined): { badge: Badge | null; leads: string[] } {
   const s = useSyncExternalStore(subscribe, () => state);
   useEffect(() => {
@@ -41,9 +41,3 @@ export function useBadge(profileId: string | undefined): { badge: Badge | null; 
   const leads = s.leads.get(profileId) ?? [];
   return { badge: s.team.has(profileId) ? 'team' : leads.length ? 'lead' : null, leads };
 }
-
-/** Ring colours: gold for the team, the app's saffron-to-pink for community leads. */
-export const BADGE_RING: Record<Badge, string> = {
-  team: 'linear-gradient(135deg, #F7D774, #E0A43A 55%, #B9781E)',
-  lead: 'linear-gradient(135deg, #FF8A3D, #FF5FA8)',
-};

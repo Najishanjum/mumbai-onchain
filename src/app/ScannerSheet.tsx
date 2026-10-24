@@ -4,7 +4,6 @@ import { keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
 import { AtSign, Check, ImageUp, RefreshCw, SwitchCamera, UserPlus, X } from 'lucide-react';
 import type { ConnectionStatus, PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
-import { BadgeRing } from './BadgeRing';
 import { findPersonFromQr } from './qr';
 
 interface ScannerSheetProps {
@@ -192,7 +191,7 @@ function Scanner({ onClose, people, getConnectionStatus, onAdd, onOpenPerson }: 
             {person ? (
               <>
                 <div className="flex items-center gap-3">
-                  <BadgeRing personId={person.id}><PersonAvatar name={person.name} avatarUrl={person.avatar} size="md" className="rounded-full! border-0! w-14! h-14!" /></BadgeRing>
+                  <PersonAvatar name={person.name} avatarUrl={person.avatar} size="md" className="rounded-full! border-0! w-14! h-14!" />
                   <div className="min-w-0">
                     <div className="app-title text-[20px] font-bold truncate">{person.name}</div>
                     <div className="text-[14px] text-[var(--app-muted)] truncate">
