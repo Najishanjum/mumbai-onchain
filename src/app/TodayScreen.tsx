@@ -8,7 +8,7 @@ import { BlankBadge, LanyardBadge, Mandala } from './Badge';
 import { useStoryReplies } from '../lib/useStoryReplies';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import { useCommunities } from '../lib/useCommunities';
-import { useMyMessages } from '../lib/useBroadcasts';
+import { useLeadAnnouncements, useMyMessages } from '../lib/useBroadcasts';
 import { useSnapStore } from '../lib/useSnapStore';
 import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
 import { StoriesRow } from './Stories';
@@ -221,16 +221,19 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const { mine: myCommunities, communities } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
   const mutedIds = useMemo(() => (myCommunities ?? []).filter((m) => m.muted).map((m) => m.communityId), [myCommunities]);
   const myMessages = useMyMessages(authUser?.id ?? null, mutedIds);
+  const isLead = (myCommunities ?? []).some((m) => m.role === 'lead');
+  const { unseen: unseenAnnouncements, gotIt } = useLeadAnnouncements(authUser?.id ?? null, isLead);
   const messages = useMemo(
     () =>
       myMessages.flatMap((m) => {
         if (!m.sentAt) return [];
         // The team writing to community leads.
-        if (!m.communityId) return [{ id: m.id, communityId: '', name: 'Mumbai Onchain team', logo: '/icons/icon-192.png', title: m.title, body: m.body, at: m.sentAt }];
+        if (!m.communityId)
+          return [{ id: m.id, communityId: '', name: 'Mumbai Onchain team', logo: '/icons/icon-192.png', title: m.title, body: m.body, at: m.sentAt, needsAck: unseenAnnouncements.some((u) => u.id === m.id) }];
         const c = communities.find((x) => x.id === m.communityId);
         return c ? [{ id: m.id, communityId: c.id, name: c.community_name, logo: c.community_logo_url, title: m.title, body: m.body, at: m.sentAt }] : [];
       }),
-    [myMessages, communities]
+    [myMessages, communities, unseenAnnouncements]
   );
   const { reminders, older: olderNotes, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy, repliedBy, messages);
   // What was unread when the bell was tapped: the New section.
@@ -345,6 +348,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         onCreateProfile={onCreateProfile}
         onOpenPerson={onSelectPerson}
         onOpenCommunity={onOpenCommunity}
+        onGotIt={gotIt}
       />
 
       {/* Happening now */}

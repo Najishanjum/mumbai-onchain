@@ -4,7 +4,7 @@ import type { PersonProfile } from '../types/person';
 import type { AdminRole } from '../lib/useAdmin';
 import { usePeopleStore } from '../lib/usePeopleStore';
 import { useCommunities, type Community } from '../lib/useCommunities';
-import { shortAgo, useBroadcasts } from '../lib/useBroadcasts';
+import { shortAgo, useBroadcasts, useLeadAnnouncements } from '../lib/useBroadcasts';
 import { CoLeadCard, CommunityLogo, CommunityNumbers, InviteCard, MemberList, useCommunityRows } from './CommunitySheet';
 import { CommunityMessages } from './CommunityMessages';
 import { ModeMenu, type ModeTarget } from './ModeMenu';
@@ -26,12 +26,42 @@ function Heading({ title, detail }: { title: string; detail?: string }) {
   );
 }
 
-function HomeTab({ c, data, goTo }: { c: Community; data: ReturnType<typeof useCommunityRows>; goTo: (t: Tab) => void }) {
+/** The team's announcements to leads, pinned until the lead taps Got it. */
+function Announcements({ isLead }: { isLead: boolean }) {
+  const { authUser } = usePeopleStore();
+  const { unseen, gotIt } = useLeadAnnouncements(authUser?.id ?? null, isLead);
+  if (!unseen.length) return null;
+  return (
+    <div className="mx-4 mb-4 space-y-3">
+      {unseen.map((b) => (
+        <div key={b.id} className="rounded-3xl bg-[var(--app-primary-soft)] border border-[var(--app-primary)]/40 p-4">
+          <div className="flex items-center gap-2">
+            <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-md" />
+            <span className="flex-1 text-[13px] font-bold">From the Mumbai Onchain team</span>
+            <span className="text-[13px] text-[var(--app-muted)]">{shortAgo(b.sentAt)}</span>
+          </div>
+          <p className="mt-2 text-[16px] font-bold leading-snug">{b.title}</p>
+          {b.body && <p className="mt-0.5 text-[15px] leading-snug whitespace-pre-line">{b.body}</p>}
+          <button
+            type="button"
+            onClick={() => gotIt(b.id)}
+            className="app-press mt-3 w-full h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-bold"
+          >
+            Got it
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HomeTab({ c, data, goTo, isLead }: { c: Community; data: ReturnType<typeof useCommunityRows>; goTo: (t: Tab) => void; isLead: boolean }) {
   const { items } = useBroadcasts(c.id, 5);
   const last = items?.find((b) => b.status === 'sent');
   const waiting = items?.filter((b) => b.status === 'pending').length ?? 0;
   return (
     <div>
+      <Announcements isLead={isLead} />
       <div className="mx-4 mb-4 flex items-center gap-3.5">
         <CommunityLogo c={c} size={64} />
         <div className="min-w-0">
@@ -120,7 +150,7 @@ export function CommunityMode({
           <p className="pt-16 px-6 text-center text-[15px] text-[var(--app-muted)]">This community isn’t listed right now.</p>
         ) : (
           <>
-            {tab === 'home' && <HomeTab c={c} data={data} goTo={setTab} />}
+            {tab === 'home' && <HomeTab c={c} data={data} goTo={setTab} isLead={led.length > 0} />}
             {tab === 'messages' && (
               <div>
                 <Heading title="Messages" detail="Pushes to your members' phones, with your community's name on them." />

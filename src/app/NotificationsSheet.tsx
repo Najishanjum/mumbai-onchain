@@ -29,6 +29,8 @@ export interface Reminder {
   thumb?: string;
   /** A community's message: opens its page. */
   communityId?: string;
+  /** The team's announcement to leads, not yet marked Got it: stays and shows the button. */
+  needsAck?: boolean;
 }
 
 /** A message from one of your communities. */
@@ -40,6 +42,7 @@ export interface CommunityNote {
   title: string;
   body: string;
   at: string;
+  needsAck?: boolean;
 }
 
 export interface AddedBy {
@@ -113,6 +116,7 @@ export function useReminders(
         title: m.name,
         detail: m.body ? `${m.title}. ${m.body}` : m.title,
         communityId: m.communityId,
+        needsAck: m.needsAck,
         at: m.at,
         person: { name: m.name, avatar: m.logo },
       })),
@@ -136,7 +140,7 @@ export function useReminders(
   const [seen, setSeen] = useState<Record<string, number>>(readSeen);
   // People who added you and replies stay until seen, then for 48 hours.
   const visible = useMemo(
-    () => all.filter((r) => !((r.tone === 'added' || r.tone === 'reply' || r.tone === 'message') && seen[r.id] && now.getTime() - seen[r.id] > KEEP_SEEN_MS)),
+    () => all.filter((r) => r.needsAck || !((r.tone === 'added' || r.tone === 'reply' || r.tone === 'message') && seen[r.id] && now.getTime() - seen[r.id] > KEEP_SEEN_MS)),
     [all, seen, now]
   );
   const unread = visible.some((r) => !seen[r.id]);
@@ -220,6 +224,7 @@ export function NotificationsSheet({
   onCreateProfile,
   onOpenPerson,
   onOpenCommunity,
+  onGotIt,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -232,6 +237,8 @@ export function NotificationsSheet({
   onCreateProfile: () => void;
   onOpenPerson: (id: string) => void;
   onOpenCommunity?: (id: string) => void;
+  /** A lead tapping Got it on the team's announcement. */
+  onGotIt?: (id: string) => void;
 }) {
   const { getConnectionStatus, setConnectionStatus } = usePeopleStore();
   const [showOlder, setShowOlder] = useState(false);
@@ -260,13 +267,22 @@ export function NotificationsSheet({
       <li key={r.id} className="relative">
         <button type="button" onClick={() => open(r)} className={row}>
           <PersonMark person={r.person!} tone={r.tone as 'added' | 'reply' | 'message'} />
-          <span className={`flex-1 min-w-0 text-[15px] leading-snug line-clamp-3 ${r.tone === 'added' ? 'pr-24' : ''}`}>
+          <span className={`flex-1 min-w-0 text-[15px] leading-snug line-clamp-3 ${r.tone === 'added' || r.needsAck ? 'pr-24' : ''}`}>
             <b className="font-bold">{r.title}</b>{' '}
             {r.tone === 'added' ? 'started following you.' : r.tone === 'message' ? r.detail : <>replied to your story: “{r.detail}”</>}{' '}
             <span className="text-[var(--app-muted)]">{ago(r.at, now)}</span>
           </span>
           {r.tone === 'reply' && r.thumb && <img src={r.thumb} alt="" className="shrink-0 w-10 h-[52px] rounded-md object-cover bg-[var(--app-line)]" />}
         </button>
+        {r.needsAck && onGotIt && (
+          <button
+            type="button"
+            onClick={() => onGotIt(r.id.replace(/^msg:/, ''))}
+            className="app-press absolute right-5 top-1/2 -translate-y-1/2 h-8 px-3.5 rounded-lg text-[14px] font-bold bg-[var(--app-primary)] text-[var(--app-on-primary)]"
+          >
+            Got it
+          </button>
+        )}
         {/* Outside the row button, so it adds instead of opening the profile. */}
         {r.tone === 'added' && r.personId && (
           <button

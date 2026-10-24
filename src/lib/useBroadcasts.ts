@@ -126,6 +126,84 @@ export async function setMuted(communityId: string, muted: boolean): Promise<boo
   return !error;
 }
 
+// ── The team's announcements to leads, and "Got it" ───────────────────────
+// One list for the bell and lead mode, so tapping Got it in one clears both.
+let unseenLeadNotes: Broadcast[] = [];
+let unseenFor: string | null = null;
+const unseenListeners = new Set<() => void>();
+const emitUnseen = () => unseenListeners.forEach((l) => l());
+
+async function loadUnseen(userId: string) {
+  if (!supabase) return;
+  const [{ data: notes }, { data: reads }] = await Promise.all([
+    supabase
+      .from('broadcasts')
+      .select(COLUMNS)
+      .eq('audience', 'leads')
+      .eq('status', 'sent')
+      .gte('sent_at', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
+      .order('sent_at', { ascending: false }),
+    supabase.from('broadcast_reads').select('broadcast_id').eq('user_id', userId),
+  ]);
+  const read = new Set((reads ?? []).map((r) => r.broadcast_id as string));
+  unseenLeadNotes = ((notes ?? []) as Row[]).map(toBroadcast).filter((b) => !read.has(b.id));
+  unseenFor = userId;
+  emitUnseen();
+}
+
+/** The team's announcements this lead hasn't marked "Got it" yet (empty for everyone else). */
+export function useLeadAnnouncements(userId: string | null, isLead: boolean) {
+  const [, rerender] = useState(0);
+  useEffect(() => {
+    const l = () => rerender((n) => n + 1);
+    unseenListeners.add(l);
+    return () => {
+      unseenListeners.delete(l);
+    };
+  }, []);
+  useEffect(() => {
+    if (userId && isLead) void loadUnseen(userId);
+  }, [userId, isLead]);
+  const gotIt = useCallback(
+    async (id: string) => {
+      if (!supabase || !userId) return;
+      unseenLeadNotes = unseenLeadNotes.filter((b) => b.id !== id);
+      emitUnseen();
+      await supabase.from('broadcast_reads').upsert({ broadcast_id: id, user_id: userId });
+    },
+    [userId]
+  );
+  return { unseen: userId && isLead && unseenFor === userId ? unseenLeadNotes : [], gotIt };
+}
+
+/** For admins: who has marked each announcement to leads seen. */
+export function useAnnouncementReads(ids: string[]) {
+  const [reads, setReads] = useState<Record<string, Set<string>>>({});
+  const key = ids.join(',');
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !key) return;
+    let live = true;
+    client
+      .from('broadcast_reads')
+      .select('broadcast_id, user_id')
+      .in('broadcast_id', key.split(','))
+      .then(({ data }) => {
+        if (!live) return;
+        const next: Record<string, Set<string>> = {};
+        for (const r of data ?? []) (next[r.broadcast_id] ??= new Set()).add(r.user_id);
+        setReads(next);
+      });
+    return () => {
+      live = false;
+    };
+  }, [key]);
+  return reads;
+}
+
+/** The same message for the leads' WhatsApp group: bold title, then the text. */
+export const whatsAppText = (b: Pick<Broadcast, 'title' | 'body'>) => `*${b.title.trim()}*${b.body.trim() ? `\n\n${b.body.trim()}` : ''}`;
+
 /** "now", "5m", "2h", "3d". */
 export function shortAgo(iso: string | null): string {
   if (!iso) return '';
