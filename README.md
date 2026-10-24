@@ -1,9 +1,33 @@
-# Mumbai Onchain
+<p align="center">
+  <img src="docs/readme-cover.png" alt="Mumbai Onchain: the community app for IBW, Devcon 8 and ETHGlobal Mumbai, 31 Oct – 8 Nov 2026" width="100%">
+</p>
 
-The community app for **India Blockchain Week, Devcon 8 and ETHGlobal Mumbai** (31 Oct – 8 Nov 2026): every event and side event in one schedule, a pass with a QR to meet people, stories from the week, and a map of Mumbai.
+<p align="center">
+  <a href="https://www.mumbaionchain.site"><img src="https://img.shields.io/badge/Website-mumbaionchain.site-FF8A3D?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website"></a>
+  <a href="https://www.mumbaionchain.site/app"><img src="https://img.shields.io/badge/Get_the_app-iPhone_%26_Android-FF5FA8?style=for-the-badge&logo=pwa&logoColor=white" alt="Get the app"></a>
+  <a href="https://x.com/Mumbai_onchain"><img src="https://img.shields.io/badge/Follow-@Mumbai__onchain-000000?style=for-the-badge&logo=x&logoColor=white" alt="Follow on X"></a>
+</p>
 
-- Website: [mumbaionchain.site](https://www.mumbaionchain.site)
-- Install the app: [mumbaionchain.site/app](https://www.mumbaionchain.site/app) (free, no App Store: it installs from the browser)
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white" alt="TypeScript 6">
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite 8">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
+  <img src="https://img.shields.io/badge/Supabase-Postgres_%C2%B7_Auth_%C2%B7_Edge-3FCF8E?logo=supabase&logoColor=white" alt="Supabase">
+  <img src="https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white" alt="PWA">
+  <a href="https://github.com/Najishanjum/mumbai-onchain/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+</p>
+
+<p align="center">
+  <a href="#whats-in-the-app">Features</a> ·
+  <a href="#run-it-locally">Run it locally</a> ·
+  <a href="#supabase">Supabase</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
+
+---
+
+**Mumbai Onchain** is the community app for **India Blockchain Week, Devcon 8 and ETHGlobal Mumbai**: every event and side event in one schedule, a pass with a QR to meet people, stories from the week, and a map of Mumbai. It's free and installs from the browser, with no App Store.
 
 It's one codebase with two faces:
 
