@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link2, Loader2, Pencil, Search } from 'lucide-react';
+import { CalendarDays, ChevronLeft, Link2, Loader2, Pencil, Search } from 'lucide-react';
 import type { EventItem } from '../../types/event';
 import { INITIAL_EVENTS } from '../../data/events';
 import { supabase } from '../../lib/supabase';
@@ -14,11 +14,42 @@ import {
   type AppEventRow,
 } from '../../lib/appEvents';
 import { dayLabel, sortByStart } from '../time';
+import { eventCover } from '../covers';
+import { useBackToClose } from '../../lib/useBackToClose';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins } from './shared';
 
 const field =
   'w-full px-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]';
 const label = 'block text-[13px] font-bold text-[var(--app-muted)] mb-1';
+// iPhone draws date and time inputs its own way (centred text, its own height
+// and a minimum width that overflows a half-width column): line them up with
+// the other fields.
+const dateField = `${field} h-12 w-full min-w-0 appearance-none text-left leading-[48px] [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:min-h-[1.5em] [&::-webkit-datetime-edit]:p-0`;
+
+/** A small cover beside an event's name, or a calendar tile when there's none. */
+function Thumb({ src }: { src: string | null | undefined }) {
+  const [broken, setBroken] = useState(false);
+  return src && !broken ? (
+    <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} className="w-11 h-11 shrink-0 rounded-lg object-cover bg-[var(--app-pressed)]" />
+  ) : (
+    <span className="w-11 h-11 shrink-0 rounded-lg bg-[var(--app-pressed)] flex items-center justify-center text-[var(--app-muted)]" aria-hidden="true">
+      <CalendarDays className="w-5 h-5" />
+    </span>
+  );
+}
+
+/** Title with a way back to the list (the phone's back gesture does the same). */
+function BackHeader({ title, detail, onBack }: { title: string; detail?: string; onBack: () => void }) {
+  return (
+    <header className="px-3 pt-1 pb-4">
+      <button type="button" onClick={onBack} className="app-press h-10 pl-1 pr-3 rounded-full inline-flex items-center text-[16px] font-semibold text-[var(--app-primary)]">
+        <ChevronLeft className="w-5 h-5" aria-hidden="true" /> Events
+      </button>
+      <h2 className="px-2 mt-1 app-title text-[28px] font-bold">{title}</h2>
+      {detail && <p className="px-2 mt-1 text-[15px] text-[var(--app-muted)]">{detail}</p>}
+    </header>
+  );
+}
 
 type Draft = Omit<AppEventRow, 'priority' | 'updated_at'> & { priority: AppEventRow['priority'] };
 
@@ -53,10 +84,13 @@ function EventForm({
   initial,
   partial,
   builtIn,
+  cover,
   onSaved,
   onCancel,
 }: {
   initial: Draft;
+  /** The cover the app shows now (built-in events keep theirs apart from image_url). */
+  cover?: string | null;
   partial: boolean;
   /** Editing one of the events built into the app: saved as a change on top of it. */
   builtIn: boolean;
@@ -109,17 +143,17 @@ function EventForm({
       value={d[k] === 'TBA' ? '' : d[k]}
       onChange={(e) => set(k, e.target.value)}
       aria-label={k === 'start_time' ? 'Start time' : 'End time'}
-      className={`${field} h-12`}
+      className={dateField}
     />
   );
 
   return (
     <form onSubmit={save} className="mx-4 space-y-4">
+      {(d.image_url || cover) && <img src={d.image_url || cover!} alt="" className="w-full aspect-[2/1] object-cover rounded-2xl border border-[var(--app-line)]" />}
       {partial && (
         <p className="rounded-2xl bg-[var(--app-primary-soft)] px-4 py-3 text-[14px]">The page didn’t have every detail. Check the date, time and venue before publishing.</p>
       )}
       {builtIn && <p className="rounded-2xl bg-[var(--app-pressed)] px-4 py-3 text-[14px]">This event is built into the app. Your changes show on top of it.</p>}
-      {d.image_url && <img src={d.image_url} alt="" className="w-full aspect-[2/1] object-cover rounded-2xl border border-[var(--app-line)]" />}
       <div>
         <label htmlFor="ev-title" className={label}>Title</label>
         <input id="ev-title" value={d.title} maxLength={200} onChange={(e) => set('title', e.target.value)} className={`${field} h-12`} />
@@ -140,12 +174,12 @@ function EventForm({
       </div>
       <fieldset className="grid grid-cols-2 gap-3">
         <legend className={label}>Starts (IST)</legend>
-        <input type="date" value={d.start_date} onChange={(e) => set('start_date', e.target.value)} aria-label="Start date" className={`${field} h-12`} />
+        <input type="date" value={d.start_date} onChange={(e) => set('start_date', e.target.value)} aria-label="Start date" className={dateField} />
         {time('start_time')}
       </fieldset>
       <fieldset className="grid grid-cols-2 gap-3">
         <legend className={label}>Ends (IST)</legend>
-        <input type="date" value={d.end_date} onChange={(e) => set('end_date', e.target.value)} aria-label="End date" className={`${field} h-12`} />
+        <input type="date" value={d.end_date} onChange={(e) => set('end_date', e.target.value)} aria-label="End date" className={dateField} />
         {time('end_time')}
       </fieldset>
       <p className="-mt-2 text-[13px] text-[var(--app-muted)]">No time yet? Leave it empty and it shows as “Time TBA”.</p>
@@ -230,7 +264,7 @@ function CalendarPicker({
 
   return (
     <div>
-      <AdminHeading title={name || 'Luma calendar'} detail={`${sorted.length} upcoming · ${fresh.length} not in the app yet`} />
+      <BackHeader title={name || 'Luma calendar'} detail={`${sorted.length} upcoming · ${fresh.length} not in the app yet`} onBack={onCancel} />
       <div className="mx-4 space-y-3">
         {!complete && (
           <p className="rounded-2xl bg-[var(--app-primary-soft)] px-4 py-3 text-[14px]">Luma only sent the first {sorted.length} events this time. Add these, then read the calendar again in a minute for the rest.</p>
@@ -258,7 +292,8 @@ function CalendarPicker({
             return (
               <li key={e.official_url} className={already ? 'opacity-55' : ''}>
                 <label htmlFor={id} className="flex items-start gap-3 px-4 py-3">
-                  <input id={id} type="checkbox" className="mt-1 w-5 h-5 accent-[var(--app-primary)]" disabled={Boolean(already)} checked={!already && picked.has(e.official_url)} onChange={() => toggle(e.official_url)} />
+                  <input id={id} type="checkbox" className="mt-3 w-5 h-5 shrink-0 accent-[var(--app-primary)]" disabled={Boolean(already)} checked={!already && picked.has(e.official_url)} onChange={() => toggle(e.official_url)} />
+                  <Thumb src={e.image_url} />
                   <span className="flex-1 min-w-0">
                     <span className="block text-[15px] font-semibold leading-snug">{e.title}</span>
                     <span className="block text-[13px] text-[var(--app-muted)]">
@@ -292,12 +327,15 @@ export function AdminEvents() {
   const [error, setError] = useState('');
   const [link, setLink] = useState('');
   const [reading, setReading] = useState(false);
-  const [editing, setEditing] = useState<{ draft: Draft; partial: boolean; builtIn: boolean } | null>(null);
+  const [editing, setEditing] = useState<{ draft: Draft; partial: boolean; builtIn: boolean; cover?: string | null } | null>(null);
   const [query, setQuery] = useState('');
   const [done, setDone] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   // A Luma calendar that was read: its events to pick from.
   const [picking, setPicking] = useState<{ name: string; events: Draft[]; complete: boolean } | null>(null);
+  // The phone's back gesture leaves the edit or calendar screen, not admin mode.
+  useBackToClose(editing !== null, () => setEditing(null));
+  useBackToClose(picking !== null, () => setPicking(null));
 
   const load = useCallback(() => {
     supabase
@@ -379,11 +417,12 @@ export function AdminEvents() {
   if (editing) {
     return (
       <div>
-        <AdminHeading title={editing.draft.id ? 'Edit event' : 'New event'} />
+        <BackHeader title={editing.draft.id ? 'Edit event' : 'New event'} onBack={() => setEditing(null)} />
         <EventForm
           initial={editing.draft}
           partial={editing.partial}
           builtIn={editing.builtIn}
+          cover={editing.cover}
           onCancel={() => setEditing(null)}
           onSaved={(title, isNew) => {
             setEditing(null);
@@ -457,6 +496,7 @@ export function AdminEvents() {
                 const tag = hidden ? 'Hidden' : !builtInIds.has(ev.id) ? 'Added' : row ? 'Edited' : null;
                 return (
                   <li key={ev.id} className={`px-4 py-3 flex items-center gap-3 ${hidden ? 'opacity-60' : ''}`}>
+                    <Thumb src={eventCover(ev)} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[15px] font-semibold leading-snug truncate">{ev.title}</p>
                       <p className="text-[13px] text-[var(--app-muted)] truncate">
@@ -470,7 +510,7 @@ export function AdminEvents() {
                       className="app-press w-9 h-9 rounded-full bg-[var(--app-pressed)] flex items-center justify-center"
                       onClick={() => {
                         setDone('');
-                        setEditing({ draft: { ...blank(), ...eventToRow(ev), source_url: row?.source_url ?? null, hidden }, partial: false, builtIn: builtInIds.has(ev.id) });
+                        setEditing({ draft: { ...blank(), ...eventToRow(ev), source_url: row?.source_url ?? null, hidden }, partial: false, builtIn: builtInIds.has(ev.id), cover: eventCover(ev) });
                       }}
                     >
                       <Pencil className="w-4 h-4" aria-hidden="true" />
