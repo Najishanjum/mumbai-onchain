@@ -456,6 +456,157 @@ function drawBadgeOnly(ctx: CanvasRenderingContext2D, person: PersonProfile, p: 
   centerText(ctx, 'Mumbai Onchain · Nov 2026', w / 2, h * 0.08 + 362 * s + h * 0.06, w * 0.8);
 }
 
+// ── Community invite cards ───────────────────────────────────────────────
+// For partner communities to post with their invite link: their logo, the
+// QR to /app?c=<slug>, and the link written out for anyone who can't scan.
+
+export type CommunityCardFormat = 'post' | 'story';
+
+export const COMMUNITY_FORMATS: Record<CommunityCardFormat, { label: string; w: number; h: number; hint: string }> = {
+  post: { label: 'Post', w: 1600, h: 900, hint: 'For X, Telegram and LinkedIn. Post it with the link.' },
+  story: { label: 'Story', w: 1080, h: 1920, hint: 'For Instagram, WhatsApp status and Telegram stories.' },
+};
+
+// The app's saffron, deep enough on the white QR tile for any camera.
+const COMMUNITY_PALETTE: Palette = { role: '#FF8A3D', roleDeep: '#C2410C', card: '#FFFFFF', cardInk: INK, cardMuted: '#5A616B', accent: '#C2410C' };
+
+/** Their logo on a white rounded tile, or their first letter. */
+function drawLogoTile(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, name: string, x: number, y: number, size: number) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = size * 0.12;
+  ctx.shadowOffsetY = size * 0.04;
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(ctx, x, y, size, size, size * 0.22);
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  roundRect(ctx, x, y, size, size, size * 0.22);
+  ctx.clip();
+  if (logo) drawCover(ctx, logo, x, y, size, size);
+  else {
+    ctx.fillStyle = '#C2410C';
+    ctx.font = `800 ${size * 0.5}px ${SANS}`;
+    ctx.textBaseline = 'middle';
+    centerText(ctx, initials(name).slice(0, 1) || '?', x + size / 2, y + size / 2 + size * 0.02, size);
+    ctx.textBaseline = 'alphabetic';
+  }
+  ctx.restore();
+}
+
+/** Wraps a name onto at most two lines that fit maxW. */
+function twoLines(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > maxW && line) {
+      lines.push(line);
+      line = word;
+    } else line = next;
+  }
+  lines.push(line);
+  return lines.length > 2 ? [lines[0], lines.slice(1).join(' ')] : lines;
+}
+
+interface CommunityCardInput {
+  name: string;
+  logoUrl: string;
+  slug: string;
+}
+
+function drawCommunityPost(ctx: CanvasRenderingContext2D, c: CommunityCardInput, logo: HTMLImageElement | null, appLogo: HTMLImageElement | null, matrix: BitMatrix, w: number, h: number) {
+  drawAurora(ctx, w, h);
+  const pad = w * 0.07;
+  const tile = h * 0.2;
+  drawLogoTile(ctx, logo, c.name, pad, h * 0.13, tile);
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.font = `600 ${h * 0.03}px ${MONO}`;
+  ctx.fillText('IBW · DEVCON 8 · ETHGLOBAL MUMBAI', pad, h * 0.47, w * 0.55);
+  const qrSize = h * 0.62;
+  const textW = w - pad * 2 - qrSize - w * 0.05;
+  ctx.fillStyle = '#FFFFFF';
+  fitFont(ctx, c.name, 800, h * 0.085, SANS, textW * 1.6);
+  const lines = twoLines(ctx, c.name, textW);
+  lines.forEach((l, i) => ctx.fillText(l, pad, h * 0.58 + i * h * 0.095, textW));
+  const after = h * 0.58 + lines.length * h * 0.095;
+  ctx.fillStyle = '#FF9A55';
+  ctx.font = `800 ${h * 0.06}px ${SANS}`;
+  ctx.fillText('× Mumbai Onchain', pad, after, textW);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = `600 ${h * 0.032}px ${SANS}`;
+  ctx.fillText('Join us in the app for the week', pad, after + h * 0.07, textW);
+
+  const qx = w - pad - qrSize;
+  const qy = (h - qrSize) / 2 - h * 0.03;
+  drawQr(ctx, { logo: appLogo, avatar: null, matrix }, COMMUNITY_PALETTE, qx, qy, qrSize);
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = `600 ${h * 0.03}px ${MONO}`;
+  centerText(ctx, `${window.location.host}/app?c=${c.slug}`, qx + qrSize / 2, qy + qrSize + h * 0.06, qrSize * 1.25);
+}
+
+function drawCommunityStory(ctx: CanvasRenderingContext2D, c: CommunityCardInput, logo: HTMLImageElement | null, appLogo: HTMLImageElement | null, matrix: BitMatrix, w: number, h: number) {
+  drawAurora(ctx, w, h);
+  const cx = w / 2;
+  // Below the story's top bar, above its reply box.
+  const tile = w * 0.26;
+  drawLogoTile(ctx, logo, c.name, cx - tile / 2, h * 0.14, tile);
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#FFFFFF';
+  fitFont(ctx, c.name, 800, w * 0.085, SANS, w * 1.4);
+  const lines = twoLines(ctx, c.name, w * 0.84);
+  lines.forEach((l, i) => centerText(ctx, l, cx, h * 0.355 + i * w * 0.095, w * 0.84));
+  const after = h * 0.355 + lines.length * w * 0.095;
+  ctx.fillStyle = '#FF9A55';
+  ctx.font = `800 ${w * 0.06}px ${SANS}`;
+  centerText(ctx, '× Mumbai Onchain', cx, after, w * 0.84);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = `600 ${w * 0.03}px ${MONO}`;
+  centerText(ctx, 'IBW · DEVCON 8 · ETHGLOBAL MUMBAI', cx, after + w * 0.075, w * 0.84);
+
+  const qrSize = w * 0.56;
+  const qy = after + w * 0.14;
+  drawQr(ctx, { logo: appLogo, avatar: null, matrix }, COMMUNITY_PALETTE, cx - qrSize / 2, qy, qrSize);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `800 ${w * 0.045}px ${SANS}`;
+  centerText(ctx, 'Scan to join us in the app', cx, qy + qrSize + w * 0.09, w * 0.84);
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.font = `600 ${w * 0.032}px ${MONO}`;
+  centerText(ctx, `${window.location.host}/app?c=${c.slug}`, cx, qy + qrSize + w * 0.15, w * 0.9);
+}
+
+/** A partner community's invite card as a PNG file. */
+export async function renderCommunityCard(c: CommunityCardInput, format: CommunityCardFormat): Promise<File> {
+  const { w, h } = COMMUNITY_FORMATS[format];
+  await Promise.all([document.fonts.load(`800 40px Manrope`), document.fonts.load(`600 20px "Red Hat Mono"`)]).catch(() => undefined);
+  const matrix = QRCode.create(`${window.location.origin}/app?c=${encodeURIComponent(c.slug)}`, { errorCorrectionLevel: 'H' }).modules;
+  const [appLogo, logo] = await Promise.all([loadImage('/icons/icon-192.png'), loadPhoto(c.logoUrl)]);
+  const draw = (communityLogo: HTMLImageElement | null) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    if (format === 'post') drawCommunityPost(ctx, c, communityLogo, appLogo, matrix, w, h);
+    else drawCommunityStory(ctx, c, communityLogo, appLogo, matrix, w, h);
+    return canvas;
+  };
+  const toFile = (canvas: HTMLCanvasElement) =>
+    new Promise<File>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) return reject(new Error('Could not create the image'));
+        resolve(new File([blob], `${c.slug}-mumbai-onchain-${format}.png`, { type: 'image/png' }));
+      }, 'image/png');
+    });
+  try {
+    return await toFile(draw(logo));
+  } catch {
+    // A logo served without CORS taints the canvas; use their initial instead.
+    return toFile(draw(null));
+  }
+}
+
 /** Renders one format to a PNG file. */
 export async function renderCard(person: PersonProfile, format: CardFormat): Promise<File> {
   const { w, h } = FORMATS[format];

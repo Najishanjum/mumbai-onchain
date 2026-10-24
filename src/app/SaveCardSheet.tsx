@@ -6,10 +6,10 @@ import { FORMATS, renderCard, type CardFormat } from './cardImage';
 
 const ORDER: CardFormat[] = ['wallpaper', 'post', 'badge'];
 // Older browsers have no file sharing; they get a plain download instead.
-const canShareFiles = 'canShare' in navigator;
+export const canShareFiles = 'canShare' in navigator;
 
 /** Opens the share sheet with the image (Save Image, X, WhatsApp…), or downloads it. */
-async function shareOrDownload(file: File, text: string): Promise<'shared' | 'downloaded' | 'cancelled'> {
+export async function shareOrDownload(file: File, text: string): Promise<'shared' | 'downloaded' | 'cancelled'> {
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], text });
