@@ -10,7 +10,6 @@ import { calculateMatchScore } from '../lib/matchingEngine';
 import { useConnectionCounts, type ConnectionCounts } from '../lib/useConnectionCounts';
 import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
-import { BadgeRing } from './BadgeRing';
 import { useBadge } from '../lib/useBadges';
 import { useCommunities } from '../lib/useCommunities';
 import { Chip, Sheet } from './ui';
@@ -100,7 +99,7 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
       {/* clear-both: the sheet's close button floats right, and a flex column
           beside a float shrinks to make room, pushing the profile to the left. */}
       <div className="clear-both px-5 pt-1 flex flex-col items-center text-center">
-        <BadgeRing personId={person.id} width={3}><PersonAvatar name={person.name} avatarUrl={person.avatar} size="xl" className="rounded-full! border-0! w-24! h-24!" /></BadgeRing>
+        <PersonAvatar name={person.name} avatarUrl={person.avatar} size="xl" className="rounded-full! border-0! w-24! h-24!" />
         <h2 className="app-title mt-3 text-[26px] font-bold leading-tight">{person.name}</h2>
         {badgeLine && (
           <p className="mt-1 text-[13px] font-bold tracking-[0.02em]" style={{ color: badge === 'team' ? '#C98A2B' : 'var(--app-primary)' }}>
