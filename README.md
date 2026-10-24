@@ -1,256 +1,155 @@
-# 🇮🇳 MUMBAI ONCHAIN — Devcon 8 & Web3 Ecosystem Command Center
-
-[![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-8.1-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4.3-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-> **01 — 08 NOVEMBER 2026 // MUMBAI, INDIA**  
-> **ONE WEEK. ONE CITY. MULTIPLE ECOSYSTEMS.**
-
-**Mumbai Onchain** is the premier personal Web3 command center, community directory, and live event navigator for **Devcon 8**, **India Blockchain Week (IBW)**, **ETHGlobal Mumbai**, hackathons, and side events across Mumbai.
-
-Designed with a high-contrast editorial cyber-industrial aesthetic, Mumbai Onchain unites builders, founders, researchers, and creators worldwide with real-time schedule tracking, on-site QR networking, interactive map exploration, and an AI-powered assistant.
-
----
-
-## 🌟 Key Highlights & Features
-
-### 1. 📅 Master Schedule & Event Directory
-- **Comprehensive Event Index**: Curated catalog of conferences, hackathons, demo days, dinners, and ecosystem side events (Ethereum, Solana, Polygon, Base, Arbitrum, Bitcoin, and more).
-- **Interactive Multi-Filter System**: Filter by date (01–08 Nov), category, attendance status, and free-text search across titles, organizers, and locations.
-- **Detailed Event Drawer**: Slide-out event dossier featuring exact IST timings, venue address, entry requirements, ticket links, and organizers.
-- **Personal Status Tracking**: Mark events as *Attending*, *Interested*, or *Attended* with immediate local persistence.
-- **Private Notes & Log**: Write personal agendas, notes, and key takeaways directly attached to any event.
-- **One-Click Calendar Sync**: Export any session to Google Calendar, Apple iCal, or Microsoft Outlook with precise IST timezone conversion.
-
-### 2. ⚡ Live Today Mode & Timeline
-- **Real-Time IST Command Strip**: Live IST clock with dynamic indicators showing happening-now and upcoming events.
-- **Day-by-Day Visual Timeline**: Chronological schedule blocks highlighting primary sessions and side events.
-- **Conflict & Overlap Alerts**: Automatic detection and visual alerts when attending multiple overlapping events.
-- **Marquee Telemetry Streams**: Real-time ticker streaming event headlines, speakers, and ecosystem news across the viewport.
-
-### 3. 👥 Profile Match & Networking Compatibility
-- **Deterministic 5-Dimensional Algorithm**: Calculates **YOU × THEM** compatibility score (e.g. `92% Match`) based on skills, technical interests, event attendance overlap, geographic hub, and mutual connections.
-- **Detailed Sub-Score Breakdown**:
-  - 🎯 **Interests** (AI Agents, Ethereum, ZK, DeFi, L2s, etc.)
-  - 🛠️ **Skills** (Solidity, Rust, TypeScript, Foundry, Python, etc.)
-  - 🎟️ **Events Attending** (Shared conferences, hackathons, and side events)
-  - 📍 **Location Hub** (City proximity and regional synergy)
-  - 🤝 **Network Synergy** (Direct connections, mutual contacts, and Builder × Founder synergy)
-- **Natural-Language "Why You Match"**: Human-readable alignment reasons (e.g., *"Both attending Devcon 8"*, *"Both building AI developer tools"*, *"2 mutual connections"*).
-- **Match Categories**: 🔥 *90–100% Excellent Match*, ⚡ *80–89% Strong Match*, ✦ *70–79% Good Match*, ○ *Below 70% Potential Connection*.
-- **"✦ Who Should I Meet?"**: Top 5 personalized builder recommendations at the head of the directory.
-- **"⚡ 15 Min Builder Match"**: Round-robin networking sessions with a live countdown timer and instant IRL/Chat meeting matching.
-- **"✦ Surprise Me"**: Serendipitous discovery channel that highlights unexpected high-compatibility builders.
-- **Non-Intrusive Live Match Toast**: Dismissible popup notification when a high-compatibility attendee is discovered.
-- **Event-Level Attendee Matching**: Match ranking and filters (90%+, 80%+, Builders, Founders, AI, Students) on every event dossier.
-
-### 4. 📸 Snaps — Visual Event Memories
-- **Lightweight Visual Memory Feed**: See Mumbai Onchain Week through the eyes of the attendees who captured it.
-- **Image-Only Stream**: Zero text clutter; focused entirely on real moments, stages, hackathons, and cityscapes.
-- **Client-Side Image Optimization**: High-performance in-browser canvas compression, automatic WebP conversion, and thumbnail generation to ensure low storage footprint and zero lag.
-- **Interactive Lightbox Viewer**: Full-screen photo lightbox showing date, event badge, caption, and creator credentials.
-- **Natural Discovery Loop**: `Photo → Person → 92% Match → Connect → Meet IRL`.
-- **People Tagging**: Manual profile tagging in Snaps with one-click navigation to tagged attendees.
-- **Lightweight Reactions**: Instant reaction bar (❤️ Love, 🔥 Fire, 👀 Eyes, 👏 Clap) with local state sync.
-- **Event Photo Wall**: Dedicated Snaps grid inside each event dossier showing attendee photos from that specific session.
-
-### 5. 🪪 Identity Passes & Camera Scanner
-- **Instant QR Profile Pass**: Generate your personal high-resolution QR profile card for instant physical networking at venues.
-- **Live In-App Camera Scanner**: Built-in camera scanner (`jsQR`) to scan other attendees' QR passes instantly without leaving the app.
-- **Connection Pipeline**: Manage your network with status badges (*Connected*, *Pending*, *Follow-up*) and vCard export.
-- **People Marquee**: Live animated ticker featuring active community profiles directly on the home page.
-
-### 6. 🗺️ Multi-Mode Interactive Map
-- **Interactive Venue Locations**: Explore key event hubs across Mumbai (BKC, Lower Parel, Powai, Andheri, South Mumbai).
-- **3D & 2D Visualization**: Switch between 3D Shining India Map, 3D Planet Globe, and 2D states map projections.
-- **Venue Directions & Clusters**: Direct links to Google Maps navigation for each venue.
-
-### 7. 🤖 "Ask Mumbai" Multilingual AI Assistant
-- **Floating Intelligent Assistant**: Quick-access AI assistant floating throughout the platform.
-- **Real-Time Knowledge Retrieval**: Instantly answer queries regarding schedules, speaker sessions, side events, venue directions, and attendees.
-- **Multilingual Support**: Full support for 11 languages:
-  - English (`en`), हिन्दी / Hindi (`hi`), Español (`es`), Français (`fr`), Deutsch (`de`), 日本語 / Japanese (`ja`), 한국어 / Korean (`ko`), 中文 / Chinese (`zh`), Português (`pt`), Русский (`ru`), العربية (`ar`).
-- **Quick Query Prompts**: Instant one-tap suggestion chips for fast discovery.
-
-### 8. 🪪 Devcon 8 ID Generator Integration
-- Seamless navigation and deep-linking to the official [Devcon 8 ID Generator](https://devcon8-id.vercel.app/) web application.
-
-### 9. 📓 My Mumbai (Personal Dashboard)
-- **Personalized Schedule**: View only the events you have RSVP'd or saved.
-- **Post-Event Recap**: Dedicated networking logs, contacts made, and follow-ups.
-- **Export & Backup**: Export your customized itinerary and notes.
-
----
-
-## 🛠️ Tech Stack & Architecture
-
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Frontend Framework** | [React 19](https://react.dev/) | Component architecture & modern state primitives |
-| **Language** | [TypeScript 6](https://www.typescriptlang.org/) | Strict static typing and interface definitions |
-| **Build Tool** | [Vite 8](https://vite.dev/) | Lightning-fast development & production bundling |
-| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) | Modern CSS design tokens, tech-grid aesthetic, typography |
-| **Animations** | [Framer Motion](https://www.framer.com/motion/) | Smooth UI transitions, drawer slides, and micro-interactions |
-| **Icons** | [Lucide React](https://lucide.dev/) | Clean, consistent SVG icon set |
-| **QR Code Engine** | [qrcode](https://www.npmjs.com/package/qrcode) & [jsQR](https://github.com/cozmo/jsQR) | Generating profile QR passes and live camera scanning |
-| **Timezone & Dates** | [date-fns](https://date-fns.org/) & `date-fns-tz` | Accurate Indian Standard Time (IST / UTC+5:30) calculations |
-| **Database / Sync** | [Supabase](https://supabase.com/) (`@supabase/supabase-js`) | Cloud persistence readiness + LocalStorage offline-first fallback |
-| **Linter** | [Oxlint](https://oxc.rs/) | Blazing-fast Rust-based JavaScript/TypeScript linter |
-
----
-
-## 📁 Project Directory Structure
-
-```text
-mumbai-onchain/
-├── public/
-│   ├── assets/              # Static branding and media assets
-│   ├── videos/              # Intro video streams
-│   └── favicon.ico          # Platform favicon
-├── src/
-│   ├── components/          # Reusable React components
-│   │   ├── AskMumbaiAssistant.tsx   # Floating AI assistant chatbot
-│   │   ├── CalendarButton.tsx       # Export to Google/iCal/Outlook
-│   │   ├── ConflictAlert.tsx        # Event schedule overlap detector
-│   │   ├── Countdown.tsx            # Live event countdown ticker
-│   │   ├── EditProfileModal.tsx     # Profile creation and editing
-│   │   ├── EventCard.tsx            # Standard grid event card
-│   │   ├── EventDrawer.tsx          # Comprehensive event details drawer
-│   │   ├── EventFilters.tsx         # Date, ecosystem, and category filters
-│   │   ├── Footer.tsx               # Platform footer & social links
-│   │   ├── Hero.tsx                 # Home hero section & primary CTAs
-│   │   ├── MapView.tsx              # Interactive 2D/3D map & globe
-│   │   ├── MarqueeTicker.tsx        # Top telemetry broadcast stream
-│   │   ├── MobileNav.tsx            # Mobile responsive bottom navigation bar
-│   │   ├── MyMumbai.tsx             # Personal itinerary & notes dashboard
-│   │   ├── Navbar.tsx               # Desktop header navigation
-│   │   ├── NextEvent.tsx            # Next upcoming event spotlight
-│   │   ├── NotesPanel.tsx           # Private event note-taking interface
-│   │   ├── OnchainIntroVideo.tsx    # Official Mumbai Onchain video player
-│   │   ├── PeopleDirectory.tsx      # Community attendees catalog & search
-│   │   ├── PeopleMarquee.tsx        # Animated attendee ticker
-│   │   ├── PersonCard.tsx           # Attendee card with connect options
-│   │   ├── ProfileDrawer.tsx        # Slide-out attendee profile dossier
-│   │   ├── ProfileQrModal.tsx       # User's sharable QR digital pass
-│   │   ├── ProfileScannerModal.tsx  # In-browser QR camera scanner
-│   │   ├── SideEvents.tsx           # Curated side events catalog
-│   │   ├── Timeline.tsx             # Interactive chronological timeline
-│   │   └── TodayMode.tsx            # Dynamic "Today in Mumbai" schedule view
-│   ├── data/
-│   │   ├── events.ts        # Comprehensive database of Devcon 8 & side events
-│   │   └── people.ts        # Initial community members and attendee profiles
-│   ├── lib/
-│   │   ├── assistant/       # AI Assistant query engine, Gemini client & translations
-│   │   ├── store.ts         # Global app state management (tabs, filters, notes)
-│   │   ├── usePeopleStore.ts# Profile state, networking connections & local storage
-│   │   ├── calendar.ts      # .ics file generator and calendar URI builders
-│   │   └── supabaseClient.ts# Supabase database client
-│   ├── types/
-│   │   ├── event.ts         # Event data structures, filters & statuses
-│   │   └── person.ts        # Person profile, social handles & connections
-│   ├── App.tsx              # Application root & view switcher
-│   ├── main.tsx             # Vite React entrypoint
-│   └── index.css            # Tailwind directives, fonts & custom utilities
-├── package.json             # Project dependencies & scripts
-├── vite.config.ts           # Vite configuration
-└── README.md                # Project documentation
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-Ensure you have the following installed on your machine:
-- **Node.js**: v18.0.0 or higher (v20+ recommended)
-- **npm** (v9+) or **pnpm** or **yarn**
-- **Git**
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Najishanjum/mumbai-onchain.git
-   cd mumbai-onchain
-   ```
-
-2. Install project dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the local development server:
-   ```bash
-   npm run dev
-   ```
-
-4. Open your browser and navigate to:
-   ```text
-   http://localhost:5173
-   ```
-
----
-
-## 📦 Build & Deployment
-
-### Production Build
-
-To compile TypeScript and create an optimized production build:
-
-```bash
-npm run build
-```
-
-The compiled assets will be output to the `dist/` folder.
-
-### Local Preview
-
-To preview the production build locally:
-
-```bash
-npm run preview
-```
-
-### Linting & Code Quality
-
-Run the high-performance Oxlint checker:
-
-```bash
-npm run lint
-```
-
----
-
-## 🌐 Community & Links
-
-- **Devcon 8 Official**: [devcon.org](https://devcon.org/)
-- **Devcon 8 ID Generator**: [devcon8-id.vercel.app](https://devcon8-id.vercel.app/)
-- **Repository**: [github.com/Najishanjum/mumbai-onchain](https://github.com/Najishanjum/mumbai-onchain)
-
----
-
-## 🤝 Contributing
-
-Contributions to event listings, features, and optimizations are welcome!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-Distributed under the **MIT License**. See `LICENSE` for more information.
-
----
+<p align="center">
+  <img src="docs/readme-cover.png" alt="Mumbai Onchain: the community app for IBW, Devcon 8 and ETHGlobal Mumbai, 31 Oct – 8 Nov 2026" width="100%">
+</p>
 
 <p align="center">
-  <b>Built for the Global Web3 Community & Mumbai Onchain Week 2026</b>
+  <a href="https://www.mumbaionchain.site"><img src="https://img.shields.io/badge/Website-mumbaionchain.site-FF8A3D?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website"></a>
+  <a href="https://www.mumbaionchain.site/app"><img src="https://img.shields.io/badge/Get_the_app-iPhone_%26_Android-FF5FA8?style=for-the-badge&logo=pwa&logoColor=white" alt="Get the app"></a>
+  <a href="https://x.com/Mumbai_onchain"><img src="https://img.shields.io/badge/Follow-@Mumbai__onchain-000000?style=for-the-badge&logo=x&logoColor=white" alt="Follow on X"></a>
 </p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white" alt="TypeScript 6">
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite 8">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
+  <img src="https://img.shields.io/badge/Supabase-Postgres_%C2%B7_Auth_%C2%B7_Edge-3FCF8E?logo=supabase&logoColor=white" alt="Supabase">
+  <img src="https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white" alt="PWA">
+  <a href="https://github.com/Najishanjum/mumbai-onchain/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+</p>
+
+<p align="center">
+  <a href="#whats-in-the-app">Features</a> ·
+  <a href="#run-it-locally">Run it locally</a> ·
+  <a href="#supabase">Supabase</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
+
+---
+
+**Mumbai Onchain** is the community app for **India Blockchain Week, Devcon 8 and ETHGlobal Mumbai**: every event and side event in one schedule, a pass with a QR to meet people, stories from the week, and a map of Mumbai. It's free and installs from the browser, with no App Store.
+
+It's one codebase with two faces:
+
+- **Website**: the schedule, venues, the community partners page and the partner application.
+- **App** (installed PWA, iPhone and Android): everything below. In a desktop browser, add `?app=1` to any URL to preview the app layout.
+
+## What's in the app
+
+**Today and Schedule**
+- Every event and side event, with what's on now and what's next. Save events to your plan and swipe through the day's saved ones.
+- A push **15 minutes before** a saved event starts, even with the app closed.
+- **"I'm here"**: check in at an event that's on and see who's in the room. People you follow who are there get a push.
+
+**People**
+- Your **pass**: a badge with a QR, plus a lock-screen wallpaper and share images. Each badge has its own pattern, generated from the profile.
+- Scan someone's pass to follow them. **Following / Followers**, Follow back, and a Message button that opens their Telegram or X.
+- Stories that last **48 hours**, then stay as Highlights on the profile. You can see who viewed your story, and replies come to you privately.
+
+**Communities**
+- Partner communities each get a space: members, an **invite link** (`/app?c=<community>`) with QR, and a share card for X, Telegram and stories.
+- Leaders are linked by the email they applied with, or with a one-use code from an admin or another leader.
+- New people pick their community when making their pass (up to 3; the first one gets the credit).
+
+**Map and Ask**
+- MapLibre map of venues and places the community adds and rates (food, cafés, ATMs, SIMs). Admins approve new places.
+- **Ask Mumbai**: an assistant for questions about the week and the city (Gemini).
+
+**Admin mode** (Me → Switch to admin, for accounts in `app_admins`)
+- **Events**: add an event from a Luma link, pick from a whole Luma calendar (e.g. `luma.com/ibw`), or add one by hand. Edit or hide any event, built-in ones included.
+- **Places, Partners, Stories**: review and moderate. On partners you can set leaders, WhatsApp groups and logos.
+- **Notify**: send a push to everyone.
+- **Team** (owner only): add and remove admins.
+- Admins get a push when another admin does something.
+
+## Tech
+
+| | |
+|---|---|
+| App | React 19, TypeScript, Vite 8, Tailwind CSS v4 |
+| PWA | vite-plugin-pwa (Workbox), Web Push with VAPID |
+| Map | MapLibre GL |
+| Backend | Supabase: Postgres with row-level security, email-code sign-in, Storage, Edge Functions (Deno), pg_cron |
+| Assistant | Gemini |
+| Hosting | Vercel (`main` deploys to production) |
+
+## Project layout
+
+```text
+src/
+  app/            The installed app: screens (Today, Schedule, People, Me), sheets, admin/
+  components/     The website
+  lib/            Stores and hooks: people, events, communities, check-ins, push, PWA install
+  data/           Built-in events (events.ts) and their covers
+  types/
+api/x/            Vercel function for X profile lookups (see docs/X_API_SETUP.md)
+supabase/
+  migrations/     Database changes, in date order
+  functions/      Edge Functions (see below)
+  cron/           Scheduled jobs
+scripts/          Icons, event covers, sending a push from the terminal
+public/           Icons, images, the push service worker
+```
+
+## Run it locally
+
+Needs Node 20+.
+
+```bash
+npm install
+cp .env.example .env.local   # then fill in the values
+npm run dev                  # http://localhost:5173, add ?app=1 for the app
+```
+
+`.env.local`:
+
+| Variable | What it's for |
+|---|---|
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Your Supabase project. Use a dev project, not production. |
+| `VITE_GEMINI_API_KEY` | Ask Mumbai |
+| `X_BEARER_TOKEN` | X profile lookups (server side only) |
+
+Scripts:
+
+| Command | Does |
+|---|---|
+| `npm run dev` | Dev server |
+| `npm run build` | Type-check and build to `dist/` |
+| `npm run preview` | Serve the build |
+| `npm run lint` | Oxlint |
+| `npm run icons` | Regenerate app icons |
+| `npm run covers` | Fetch event cover images |
+| `npm run push -- "Title" "Body" [url]` | Send a push (needs `PUSH_ADMIN_SECRET` in `.env.local`) |
+
+## Supabase
+
+**Database.** Run the files in `supabase/migrations/` in date order, in the SQL Editor or with `supabase db push`. Each one is safe to re-run. `supabase/schema.sql` is the original base schema. Admins are rows in `app_admins` with the role `owner` or `admin`.
+
+**Edge Functions:**
+
+| Function | Does |
+|---|---|
+| `notify-connection` | Pushes for follows, story replies, check-ins, place and partner reviews, and admin activity |
+| `send-push` | Push to everyone or chosen users (Admin → Notify, `npm run push`) |
+| `event-reminders` | "Starts in 15 min" pushes for saved events. Deploy with `--no-verify-jwt`, then run `supabase/cron/event-reminders.sql` once |
+| `event-import` | Reads a Luma event or calendar page for Admin → Events |
+
+```bash
+supabase functions deploy <name>
+```
+
+Function secrets (`supabase secrets set …`): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `PUSH_ADMIN_SECRET`. Never commit them.
+
+## Contributing
+
+- Branch from `main` and open a pull request; `main` goes straight to production.
+- Commit messages are one line, in the conventional style: `feat(app): …`, `fix(admin): …`, `docs: …`.
+- Database changes go in a new dated file in `supabase/migrations/`. Say in the PR what to run before deploying.
+
+## Team
+
+- **Najish** ([@najish_anjum](https://x.com/najish_anjum)): Mumbai Onchain lead
+- **Nimsara** ([@nimsaraonline](https://x.com/nimsaraonline)): built the app
+- **Moinuddin** ([@md_moinuddin1](https://x.com/md_moinuddin1)): partnerships
+
+Unofficial community app, not affiliated with the Ethereum Foundation, Devcon, IBW or ETHGlobal. Follow along on X at [@Mumbai_onchain](https://x.com/Mumbai_onchain).
