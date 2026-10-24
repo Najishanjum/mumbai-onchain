@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Check, Copy, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { useCommunities } from '../../lib/useCommunities';
-import { reviewMessage, shortAgo, useBroadcasts, type Broadcast } from '../../lib/useBroadcasts';
+import { reviewMessage, shortAgo, useAnnouncementReads, useBroadcasts, whatsAppText, type Broadcast } from '../../lib/useBroadcasts';
 import { CommunityLogo } from '../CommunitySheet';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins } from './shared';
 
@@ -18,6 +18,50 @@ const DESTINATIONS = [
 const field =
   'w-full px-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]';
 
+interface Lead {
+  userId: string;
+  name: string;
+}
+
+/** Every community lead (once each, even when leading two), with their name. */
+function useLeads(enabled: boolean): Lead[] | null {
+  const [leads, setLeads] = useState<Lead[] | null>(null);
+  useEffect(() => {
+    if (!enabled || leads) return;
+    void (async () => {
+      const { data } = await supabase.from('community_members').select('user_id, profile_id').eq('role', 'lead');
+      const rows = [...new Map((data ?? []).map((r) => [r.user_id as string, r.profile_id as string])).entries()];
+      const { data: profiles } = rows.length ? await supabase.from('profiles').select('id, name').in('id', rows.map(([, p]) => p)) : { data: [] };
+      const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.name as string]));
+      setLeads(rows.map(([userId, profileId]) => ({ userId, name: nameOf.get(profileId) || 'A lead' })));
+    })();
+  }, [enabled, leads]);
+  return leads;
+}
+
+/** Puts the message on the clipboard for the leads' WhatsApp group. */
+function CopyForWhatsApp({ b }: { b: Pick<Broadcast, 'title' | 'body'> }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        navigator.clipboard
+          .writeText(whatsAppText(b))
+          .then(() => {
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+          })
+          .catch(() => undefined)
+      }
+      className="app-press h-9 px-3.5 rounded-full bg-[#25D366]/15 text-[#1DA851] text-[14px] font-bold inline-flex items-center gap-1.5"
+    >
+      {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
+      {copied ? 'Copied' : 'Copy for WhatsApp'}
+    </button>
+  );
+}
+
 /** Send a push notification to everyone with notifications on (or a test to yourself). */
 function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void }) {
   const { authUser, myProfile } = usePeopleStore();
@@ -28,15 +72,9 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
   const [busy, setBusy] = useState<'test' | 'all' | null>(null);
   // Everyone, or only the leads of partner communities (e.g. "send us your side events").
   const [audience, setAudience] = useState<'everyone' | 'leads'>('everyone');
-  const [leadIds, setLeadIds] = useState<string[] | null>(null);
-  useEffect(() => {
-    if (audience !== 'leads' || leadIds) return;
-    supabase
-      .from('community_members')
-      .select('user_id')
-      .eq('role', 'lead')
-      .then(({ data }) => setLeadIds([...new Set((data ?? []).map((r) => r.user_id as string))]));
-  }, [audience, leadIds]);
+  const leadIds = useLeads(audience === 'leads')?.map((l) => l.userId) ?? null;
+  // The last message to leads, to paste into their WhatsApp group too.
+  const [sentToLeads, setSentToLeads] = useState<{ title: string; body: string } | null>(null);
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
 
@@ -47,6 +85,7 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
     setBusy(toAll ? 'all' : 'test');
     setError('');
     setResult('');
+    setSentToLeads(null);
     const toLeads = toAll && audience === 'leads';
     if (toLeads && !leadIds?.length) {
       setBusy(null);
@@ -77,6 +116,7 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
         sent_at: new Date().toISOString(),
       });
       onSent();
+      if (toLeads) setSentToLeads({ title: title.trim(), body: body.trim() });
       setTitle('');
       setBody('');
     } else {
@@ -110,7 +150,9 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
           </div>
           {audience === 'leads' && (
             <p className="mt-1.5 px-1 text-[13px] text-[var(--app-muted)]">
-              {leadIds === null ? 'Counting leads…' : `${leadIds.length} lead${leadIds.length === 1 ? '' : 's'} of partner communities. It also shows in their notifications list.`}
+              {leadIds === null
+                ? 'Counting leads…'
+                : `${leadIds.length} lead${leadIds.length === 1 ? '' : 's'} of partner communities. It stays in their notifications and lead mode until they tap Got it; History shows who has.`}
             </p>
           )}
         </div>
@@ -173,6 +215,12 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
 
       <div className="mx-4 mt-5 space-y-2">
         {result && <p className="text-[14px] font-semibold text-[#3CC48C]">{result}</p>}
+        {sentToLeads && (
+          <div className="flex items-center gap-3">
+            <p className="flex-1 text-[14px] text-[var(--app-muted)]">Post the same in the leads’ WhatsApp group:</p>
+            <CopyForWhatsApp b={sentToLeads} />
+          </div>
+        )}
         {error && <p className="text-[14px] text-[var(--app-live)]">{error}</p>}
         {confirming ? (
           <div className="rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
@@ -293,8 +341,36 @@ function Requests({ items, nameOf, logoOf, onDone }: { items: Broadcast[]; nameO
   );
 }
 
+/** An announcement to leads: how many tapped Got it, and who hasn't. */
+function LeadsSeen({ b, leads, seen }: { b: Broadcast; leads: Lead[] | null; seen: Set<string> | undefined }) {
+  const [open, setOpen] = useState(false);
+  if (!leads) return null;
+  const missing = leads.filter((l) => !seen?.has(l.userId));
+  const count = leads.length - missing.length;
+  return (
+    <div className="pt-1 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          disabled={!missing.length}
+          aria-expanded={open}
+          className={`h-9 px-3.5 rounded-full text-[14px] font-bold ${missing.length ? 'app-press bg-[var(--app-pressed)]' : 'bg-[#3CC48C]/15 text-[#3CC48C]'}`}
+        >
+          {count} of {leads.length} seen{missing.length ? (open ? ' ▴' : ' ▾') : ' ✓'}
+        </button>
+        <CopyForWhatsApp b={b} />
+      </div>
+      {open && missing.length > 0 && <p className="text-[14px] text-[var(--app-muted)]">Not yet: {missing.map((l) => l.name).join(', ')}</p>}
+    </div>
+  );
+}
+
 /** Every notification that went to people, newest first. */
 function History({ items, nameOf, logoOf }: { items: Broadcast[]; nameOf: (b: Broadcast) => string; logoOf: (b: Broadcast) => string | undefined }) {
+  const toLeads = items.filter((b) => b.audience === 'leads' && b.status === 'sent');
+  const leads = useLeads(toLeads.length > 0);
+  const reads = useAnnouncementReads(toLeads.map((b) => b.id));
   if (!items.length) return <EmptyState title="Nothing sent yet" body="Notifications from Notify and from communities show up here." />;
   return (
     <ul className="mx-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
@@ -308,6 +384,7 @@ function History({ items, nameOf, logoOf }: { items: Broadcast[]; nameOf: (b: Br
               ? `Declined${b.reviewNote ? ` · “${b.reviewNote}”` : ''}`
               : `${b.audience === 'everyone' ? 'Everyone' : b.audience === 'leads' ? 'Community leads' : 'Members'} · reached ${b.recipients} ${b.recipients === 1 ? 'phone' : 'phones'}`}
           </p>
+          {b.audience === 'leads' && b.status === 'sent' && <LeadsSeen b={b} leads={leads} seen={reads[b.id]} />}
         </li>
       ))}
     </ul>

@@ -253,7 +253,12 @@ export async function fetchApprovedCommunityPartners(): Promise<PublicCommunityP
       return [];
     }
 
-    return data as PublicCommunityPartner[];
+    // Champions (100 counted members) are pinned first. Best effort: without
+    // levels the list keeps its order.
+    const { data: levels } = await supabase.rpc('community_levels');
+    const champion = new Set(((levels ?? []) as { community_id: string; level: number }[]).filter((l) => l.level >= 3).map((l) => l.community_id));
+    const partners = data as PublicCommunityPartner[];
+    return [...partners.filter((p) => champion.has(p.id)), ...partners.filter((p) => !champion.has(p.id))];
   } catch {
     return [];
   }

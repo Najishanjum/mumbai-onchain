@@ -16,13 +16,16 @@ export interface Broadcast {
   recipients: number;
   createdAt: string;
   sentAt: string | null;
+  /** When an admin approved or declined it; null for messages that needed no approval. */
+  reviewedAt: string | null;
 }
 
-export const DAILY_LIMIT = 2;
+/** Messages to members a day: 2, or 3 from the Featured level (same as the community-message function). */
+export const dailyLimit = (level: number) => (level >= 2 ? 3 : 2);
 // Anything that looks like a link (same as LINK in the community-message function).
 export const LINK = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|xyz|io|me|ly|gg|org|net|app|site|co|in|link|to|fi|money|finance|so|ai|dev|tech|club|lol)\b|t\.me\/|wa\.me\/)/i;
 
-const COLUMNS = 'id, community_id, sender_profile_id, title, body, audience, status, review_note, recipients, created_at, sent_at';
+const COLUMNS = 'id, community_id, sender_profile_id, title, body, audience, status, review_note, recipients, created_at, sent_at, reviewed_at';
 
 type Row = {
   id: string;
@@ -36,6 +39,7 @@ type Row = {
   recipients: number;
   created_at: string;
   sent_at: string | null;
+  reviewed_at: string | null;
 };
 const toBroadcast = (r: Row): Broadcast => ({
   id: r.id,
@@ -49,6 +53,7 @@ const toBroadcast = (r: Row): Broadcast => ({
   recipients: r.recipients,
   createdAt: r.created_at,
   sentAt: r.sent_at,
+  reviewedAt: r.reviewed_at,
 });
 
 /**
@@ -125,6 +130,84 @@ export async function setMuted(communityId: string, muted: boolean): Promise<boo
   const { error } = await supabase.rpc('set_community_muted', { p_community_id: communityId, p_muted: muted });
   return !error;
 }
+
+// ── The team's announcements to leads, and "Got it" ───────────────────────
+// One list for the bell and lead mode, so tapping Got it in one clears both.
+let unseenLeadNotes: Broadcast[] = [];
+let unseenFor: string | null = null;
+const unseenListeners = new Set<() => void>();
+const emitUnseen = () => unseenListeners.forEach((l) => l());
+
+async function loadUnseen(userId: string) {
+  if (!supabase) return;
+  const [{ data: notes }, { data: reads }] = await Promise.all([
+    supabase
+      .from('broadcasts')
+      .select(COLUMNS)
+      .eq('audience', 'leads')
+      .eq('status', 'sent')
+      .gte('sent_at', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
+      .order('sent_at', { ascending: false }),
+    supabase.from('broadcast_reads').select('broadcast_id').eq('user_id', userId),
+  ]);
+  const read = new Set((reads ?? []).map((r) => r.broadcast_id as string));
+  unseenLeadNotes = ((notes ?? []) as Row[]).map(toBroadcast).filter((b) => !read.has(b.id));
+  unseenFor = userId;
+  emitUnseen();
+}
+
+/** The team's announcements this lead hasn't marked "Got it" yet (empty for everyone else). */
+export function useLeadAnnouncements(userId: string | null, isLead: boolean) {
+  const [, rerender] = useState(0);
+  useEffect(() => {
+    const l = () => rerender((n) => n + 1);
+    unseenListeners.add(l);
+    return () => {
+      unseenListeners.delete(l);
+    };
+  }, []);
+  useEffect(() => {
+    if (userId && isLead) void loadUnseen(userId);
+  }, [userId, isLead]);
+  const gotIt = useCallback(
+    async (id: string) => {
+      if (!supabase || !userId) return;
+      unseenLeadNotes = unseenLeadNotes.filter((b) => b.id !== id);
+      emitUnseen();
+      await supabase.from('broadcast_reads').upsert({ broadcast_id: id, user_id: userId });
+    },
+    [userId]
+  );
+  return { unseen: userId && isLead && unseenFor === userId ? unseenLeadNotes : [], gotIt };
+}
+
+/** For admins: who has marked each announcement to leads seen. */
+export function useAnnouncementReads(ids: string[]) {
+  const [reads, setReads] = useState<Record<string, Set<string>>>({});
+  const key = ids.join(',');
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !key) return;
+    let live = true;
+    client
+      .from('broadcast_reads')
+      .select('broadcast_id, user_id')
+      .in('broadcast_id', key.split(','))
+      .then(({ data }) => {
+        if (!live) return;
+        const next: Record<string, Set<string>> = {};
+        for (const r of data ?? []) (next[r.broadcast_id] ??= new Set()).add(r.user_id);
+        setReads(next);
+      });
+    return () => {
+      live = false;
+    };
+  }, [key]);
+  return reads;
+}
+
+/** The same message for the leads' WhatsApp group: bold title, then the text. */
+export const whatsAppText = (b: Pick<Broadcast, 'title' | 'body'>) => `*${b.title.trim()}*${b.body.trim() ? `\n\n${b.body.trim()}` : ''}`;
 
 /** "now", "5m", "2h", "3d". */
 export function shortAgo(iso: string | null): string {

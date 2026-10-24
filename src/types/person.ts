@@ -41,6 +41,8 @@ export interface PersonProfile {
   telegramHandle?: string;
   farcasterHandle?: string;
   websiteUrl?: string;
+  /** Instagram, YouTube, Facebook, Discord, Lens: platform → username or link. */
+  links?: Partial<Record<string, string>>;
   walletAddress?: string;
   attendingEvents: string[]; // event IDs matching EventItem.id
   isCurrentUser?: boolean;

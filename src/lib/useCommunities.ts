@@ -223,6 +223,53 @@ export function useCommunities(userId: string | null, profileId: string | null) 
   };
 }
 
+// ── Levels (supabase/migrations/20261103000000_community_levels.sql) ──────
+export const LEVELS = [
+  { level: 0, name: 'Partner', at: 0, unlock: 'Your page, invite link and card, and 2 messages a day to members' },
+  { level: 1, name: 'Rising', at: 15, unlock: 'Stories posted as your community' },
+  { level: 2, name: 'Featured', at: 50, unlock: 'A spot in Featured communities on Today, and 3 messages a day' },
+  { level: 3, name: 'Champion', at: 100, unlock: 'Pinned on the Partners page, and one message to everyone without approval' },
+] as const;
+
+export interface CommunityLevel {
+  level: number;
+  /** Members whose first community this is, with a photo or headline. */
+  counted: number;
+}
+
+let levels: Map<string, CommunityLevel> | null = null;
+let levelsLoading = false;
+const levelListeners = new Set<() => void>();
+
+async function loadLevels() {
+  if (!supabase || levelsLoading) return;
+  levelsLoading = true;
+  const { data, error } = await supabase.rpc('community_levels');
+  levelsLoading = false;
+  if (error) return;
+  levels = new Map(((data ?? []) as { community_id: string; level: number; counted: number }[]).map((r) => [r.community_id, { level: r.level, counted: r.counted }]));
+  levelListeners.forEach((l) => l());
+}
+
+/** Every community's level, loaded once per app start (refresh after joining, say). */
+export function useCommunityLevels() {
+  const map = useSyncExternalStore(
+    (l) => {
+      levelListeners.add(l);
+      return () => levelListeners.delete(l);
+    },
+    () => levels
+  );
+  useEffect(() => {
+    if (!levels) void loadLevels();
+  }, []);
+  return {
+    levelOf: (id: string): CommunityLevel => map?.get(id) ?? { level: 0, counted: 0 },
+    loaded: map !== null,
+    refresh: loadLevels,
+  };
+}
+
 /**
  * After signup: if they came through a community's link, join it (credited
  * to the link) once their pass exists. Returns the community it joined.

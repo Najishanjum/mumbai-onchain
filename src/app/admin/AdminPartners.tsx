@@ -3,6 +3,7 @@ import { ArrowUpRight, Loader2, Mail, Phone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { CoLeadCard } from '../CommunitySheet';
+import { LEVELS, useCommunityLevels } from '../../lib/useCommunities';
 import { uploadCommunityLogo } from '../../lib/communityPartner';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins, timeAgo, type AdminEventKind } from './shared';
 
@@ -23,6 +24,8 @@ interface Row {
   telegram_url: string | null;
   discord_url: string | null;
   whatsapp_url: string | null;
+  /** Set by hand, wins over the count; null: from the count. */
+  level_override: number | null;
   status: Status;
   created_at: string;
 }
@@ -77,13 +80,14 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [waEdit, setWaEdit] = useState<{ id: string; value: string } | null>(null);
+  const { levelOf, refresh: refreshLevels } = useCommunityLevels();
 
   const load = useCallback(() => {
     setRows(null);
     supabase
       .from('community_partner_applications')
       .select(
-        'id, community_name, community_logo_url, community_description, lead_name, email, phone, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, whatsapp_url, status, created_at'
+        'id, community_name, community_logo_url, community_description, lead_name, email, phone, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, whatsapp_url, level_override, status, created_at'
       )
       .eq('status', tab)
       .order('created_at', { ascending: tab === 'pending' })
@@ -151,6 +155,20 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
     if (e) return setError(`Couldn’t save ${row.community_name}’s WhatsApp group. Try again.`);
     setWaEdit(null);
     setRows((r) => r?.map((x) => (x.id === row.id ? { ...x, whatsapp_url: url } : x)) ?? null);
+  }
+
+  /** A level by hand for special cases, or back to the count (null). */
+  async function saveLevel(row: Row, level: number | null) {
+    setBusyId(row.id);
+    setError('');
+    const { error: e } = await supabase
+      .from('community_partner_applications')
+      .update({ level_override: level, updated_at: new Date().toISOString() })
+      .eq('id', row.id);
+    setBusyId(null);
+    if (e) return setError(`Couldn’t change ${row.community_name}’s level. Try again.`);
+    setRows((r) => r?.map((x) => (x.id === row.id ? { ...x, level_override: level } : x)) ?? null);
+    void refreshLevels();
   }
 
   async function remove(row: Row) {
@@ -262,6 +280,26 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                             })}
                           </ul>
                         )}
+                        <p className="mt-3 text-[13px] font-bold">
+                          Level: {LEVELS[levelOf(p.id).level].name} · {levelOf(p.id).counted} with a photo or headline
+                        </p>
+                        <div role="radiogroup" aria-label={`${p.community_name} level`} className="mt-1.5 flex flex-wrap gap-1.5">
+                          {[null, 0, 1, 2, 3].map((lv) => (
+                            <button
+                              key={String(lv)}
+                              type="button"
+                              role="radio"
+                              aria-checked={p.level_override === lv}
+                              disabled={busy}
+                              onClick={() => saveLevel(p, lv)}
+                              className={`h-8 px-3 rounded-full text-[13px] font-semibold border ${
+                                p.level_override === lv ? 'bg-[var(--app-ink)] text-[var(--app-bg)] border-[var(--app-ink)]' : 'border-[var(--app-line)]'
+                              }`}
+                            >
+                              {lv === null ? 'By count' : LEVELS[lv].name}
+                            </button>
+                          ))}
+                        </div>
                         {leaderCodeFor === p.id ? (
                           <div className="mt-2">
                             <CoLeadCard c={{ id: p.id, community_name: p.community_name }} />
