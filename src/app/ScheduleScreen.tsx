@@ -74,7 +74,10 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
       <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
       <div
         className={`sticky top-[env(safe-area-inset-top)] z-20 transition-colors ${
-          stuck ? 'bg-[var(--app-bg)]/95 backdrop-blur-md' : ''
+          stuck
+            ? // Also fills the strip behind the clock, so the list never shows above the search.
+              "bg-[var(--app-bg)]/95 backdrop-blur-md before:content-[''] before:absolute before:inset-x-0 before:bottom-full before:h-[env(safe-area-inset-top)] before:bg-[var(--app-bg)]"
+            : ''
         }`}
       >
         <div className="px-5 pt-3 pb-3 flex items-center gap-3">
