@@ -20,14 +20,20 @@ let checkIns: CheckIn[] = [];
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
+// Reads overlap (the minute timer, checking in, signing in): only the newest
+// one's answer counts, or a read from before you checked in could arrive
+// last and wipe your check-in off the screen.
+let latestRead = 0;
+
 async function refresh() {
   if (!supabase) return;
+  const read = ++latestRead;
   const { data, error } = await supabase
     .from('check_ins')
     .select('user_id, profile_id, event_id, checked_in_at, expires_at')
     .gt('expires_at', new Date().toISOString())
     .order('checked_in_at', { ascending: false });
-  if (error) return;
+  if (error || read !== latestRead) return;
   checkIns = (data ?? []).map((r) => ({
     userId: r.user_id,
     profileId: r.profile_id,
@@ -39,15 +45,21 @@ async function refresh() {
 }
 
 let timer: number | undefined;
+// Back in the app after a while: fresh check-ins, not the ones from before.
+const onVisible = () => document.visibilityState === 'visible' && void refresh();
 function subscribe(listener: () => void) {
   listeners.add(listener);
   if (listeners.size === 1) {
     void refresh();
     timer = window.setInterval(() => void refresh(), REFRESH_MS);
+    document.addEventListener('visibilitychange', onVisible);
   }
   return () => {
     listeners.delete(listener);
-    if (!listeners.size) window.clearInterval(timer);
+    if (!listeners.size) {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    }
   };
 }
 
