@@ -23,7 +23,62 @@ export interface ImportedEvent {
   source_url: string;
 }
 
-export type ParseResult = { event: Partial<ImportedEvent>; partial: boolean } | { error: string };
+export type ParseResult =
+  | { event: Partial<ImportedEvent>; partial: boolean }
+  | { calendar: { name: string; events: ImportedEvent[]; complete: boolean } }
+  | { error: string };
+
+// ── Luma calendars (luma.com/ibw) ───────────────────────────────────────
+// The page carries the calendar's id and its first 20 upcoming events;
+// api.lu.ma/calendar/get-items (what the page loads more from) has them all.
+
+/** A Luma calendar page: its id, name, and the upcoming events it shipped with. */
+export function lumaCalendar(html: string): { apiId: string; name: string; entries: unknown[] } | null {
+  const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  try {
+    const data = JSON.parse(m[1])?.props?.pageProps?.initialData?.data;
+    const apiId = data?.calendar?.api_id;
+    // Event pages carry their calendar too; only a calendar page lists upcoming events.
+    if (typeof apiId !== 'string' || !apiId.startsWith('cal-') || data.event || !data.upcoming) return null;
+    return { apiId, name: text(data.calendar.name), entries: Array.isArray(data.upcoming?.entries) ? data.upcoming.entries : [] };
+  } catch {
+    return null;
+  }
+}
+
+/** One calendar entry (get-items or the page) as an event for the form. */
+export function lumaEntry(entry: unknown): ImportedEvent | null {
+  const e = ((entry as Obj)?.event ?? {}) as Obj;
+  const start = ist(e.start_at);
+  const name = text(e.name);
+  if (!start || !name) return null;
+  const end = ist(e.end_at) ?? start;
+  const geo = (e.geo_address_info ?? {}) as Obj;
+  const online = e.location_type === 'online' || e.location_type === 'zoom';
+  // Hidden until you register: only the area is known, and the point is rough.
+  const exact = e.geo_address_visibility === 'public';
+  const coord = (e.coordinate ?? {}) as Obj;
+  const slug = text(e.url);
+  const link = /^https?:\/\//.test(slug) ? slug : slug ? `https://luma.com/${slug}` : '';
+  const hosts = (((entry as Obj).hosts ?? []) as Obj[]).map((h) => text(h.name)).filter(Boolean);
+  return {
+    title: name.slice(0, 200),
+    description: '',
+    organizer: hosts.slice(0, 3).join(', ').slice(0, 200),
+    start_date: start.date,
+    start_time: start.time,
+    end_date: end.date,
+    end_time: end.time,
+    location: online ? 'Online' : text(geo.address) || 'Mumbai, India',
+    address: online ? '' : text(geo.full_address),
+    latitude: exact && Number.isFinite(Number(coord.latitude)) ? Number(coord.latitude) : null,
+    longitude: exact && Number.isFinite(Number(coord.longitude)) ? Number(coord.longitude) : null,
+    image_url: text(e.cover_url),
+    official_url: link,
+    source_url: link,
+  };
+}
 
 /** "2026-11-01T17:00:00.000+05:30" → { date: "2026-11-01", time: "17:00" } in IST. */
 export function ist(iso: unknown): { date: string; time: string } | null {

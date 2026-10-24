@@ -190,6 +190,101 @@ function EventForm({
   );
 }
 
+/** A Luma calendar's upcoming events: tick the ones to add, all with one category. */
+function CalendarPicker({
+  name,
+  events,
+  complete,
+  inApp,
+  onCancel,
+  onAdded,
+}: {
+  name: string;
+  events: Draft[];
+  complete: boolean;
+  /** The title it's in the app under, if it's there already. */
+  inApp: (e: Draft) => string | null;
+  onCancel: () => void;
+  onAdded: (n: number) => void;
+}) {
+  const sorted = useMemo(() => [...events].sort((a, b) => `${a.start_date} ${a.start_time}`.localeCompare(`${b.start_date} ${b.start_time}`)), [events]);
+  const fresh = sorted.filter((e) => !inApp(e));
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(fresh.map((e) => e.official_url)));
+  const [category, setCategory] = useState('Ecosystem');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const toggle = (url: string) => setPicked((s) => (s.has(url) ? new Set([...s].filter((x) => x !== url)) : new Set([...s, url])));
+
+  async function add() {
+    const rows = fresh
+      .filter((e) => picked.has(e.official_url))
+      .map((e) => ({ ...e, id: newEventId(e.title), category, end_date: e.end_date || e.start_date, updated_at: new Date().toISOString() }));
+    if (!rows.length) return;
+    setBusy(true);
+    setError('');
+    const { error: err } = await supabase.from('app_events').insert(rows);
+    setBusy(false);
+    if (err) return setError(err.message.includes('source') ? 'Some of these were just added by someone else. Go back and read the calendar again.' : `Couldn’t add them: ${err.message}`);
+    onAdded(rows.length);
+  }
+
+  return (
+    <div>
+      <AdminHeading title={name || 'Luma calendar'} detail={`${sorted.length} upcoming · ${fresh.length} not in the app yet`} />
+      <div className="mx-4 space-y-3">
+        {!complete && (
+          <p className="rounded-2xl bg-[var(--app-primary-soft)] px-4 py-3 text-[14px]">Luma only sent the first {sorted.length} events this time. Add these, then read the calendar again in a minute for the rest.</p>
+        )}
+        <div className="flex items-center gap-3">
+          <label htmlFor="cal-cat" className="text-[14px] font-bold text-[var(--app-muted)]">
+            Category
+          </label>
+          <select id="cal-cat" value={category} onChange={(e) => setCategory(e.target.value)} className={`${field} h-11 flex-1`}>
+            {EVENT_CATEGORIES.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center justify-between text-[14px]">
+          <span className="text-[var(--app-muted)]">{picked.size} picked</span>
+          <button type="button" className="font-bold text-[var(--app-primary)]" onClick={() => setPicked(picked.size === fresh.length ? new Set() : new Set(fresh.map((e) => e.official_url)))}>
+            {picked.size === fresh.length ? 'Pick none' : 'Pick all new'}
+          </button>
+        </div>
+        <ul className="rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
+          {sorted.map((e) => {
+            const already = inApp(e);
+            const id = `cal-${e.official_url}`;
+            return (
+              <li key={e.official_url} className={already ? 'opacity-55' : ''}>
+                <label htmlFor={id} className="flex items-start gap-3 px-4 py-3">
+                  <input id={id} type="checkbox" className="mt-1 w-5 h-5 accent-[var(--app-primary)]" disabled={Boolean(already)} checked={!already && picked.has(e.official_url)} onChange={() => toggle(e.official_url)} />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[15px] font-semibold leading-snug">{e.title}</span>
+                    <span className="block text-[13px] text-[var(--app-muted)]">
+                      {dayLabel(e.start_date)} · {e.start_time} · {e.location}
+                    </span>
+                    {already && <span className="block text-[12px] font-bold text-[var(--app-muted)]">In the app{already !== e.title ? ` as “${already}”` : ''}</span>}
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+        {error && <p className="text-[14px] text-[var(--app-live)]">{error}</p>}
+        <div className="sticky bottom-0 flex gap-2 py-3 bg-[var(--app-bg)]">
+          <button type="button" className={`${btn.plain} flex-1 h-12`} onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className={`${btn.primary} flex-1 h-12`} disabled={busy || picked.size === 0} onClick={add}>
+            {busy ? 'Adding…' : `Add ${picked.size} event${picked.size === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Admin → Events: add from a Luma link or by hand, edit and hide. */
 export function AdminEvents() {
   const [tab, setTab] = useState<'add' | 'all'>('add');
@@ -201,6 +296,8 @@ export function AdminEvents() {
   const [query, setQuery] = useState('');
   const [done, setDone] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  // A Luma calendar that was read: its events to pick from.
+  const [picking, setPicking] = useState<{ name: string; events: Draft[]; complete: boolean } | null>(null);
 
   const load = useCallback(() => {
     supabase
@@ -242,6 +339,9 @@ export function AdminEvents() {
     setReading(false);
     if (err || !data) return setError('Couldn’t read that link. Try again, or add the event by hand.');
     if (data.error) return setError(data.error);
+    if (data.calendar) {
+      return setPicking({ name: data.calendar.name, complete: Boolean(data.calendar.complete), events: (data.calendar.events as Partial<Draft>[]).map((e) => ({ ...blank(), ...e })) });
+    }
     setEditing({ draft: { ...blank(), ...data.event, category: 'Ecosystem' }, partial: Boolean(data.partial), builtIn: false });
   }
 
@@ -255,6 +355,25 @@ export function AdminEvents() {
     if (err) return setError(`Couldn’t ${hidden ? 'hide' : 'show'} ${ev.title}.`);
     if (hidden) notifyAdmins('event_hidden', ev.title);
     changed(hidden ? `${ev.title} is hidden from the app.` : `${ev.title} is back in the app.`);
+  }
+
+  if (picking) {
+    return (
+      <CalendarPicker
+        name={picking.name}
+        events={picking.events}
+        complete={picking.complete}
+        inApp={(e) => all.find((ev) => sameLink(ev.officialUrl, e.official_url) || sameLink(byId.get(ev.id)?.source_url ?? '', e.official_url))?.title ?? null}
+        onCancel={() => setPicking(null)}
+        onAdded={(n) => {
+          notifyAdmins('event_added', `${n} event${n === 1 ? '' : 's'} from ${picking.name}`);
+          setPicking(null);
+          setLink('');
+          changed(`${n} event${n === 1 ? '' : 's'} from ${picking.name} ${n === 1 ? 'is' : 'are'} live in the app.`);
+          setTab('all');
+        }}
+      />
+    );
   }
 
   if (editing) {
@@ -306,8 +425,8 @@ export function AdminEvents() {
             <label htmlFor="ev-link" className="block text-[17px] font-bold">
               From a link
             </label>
-            <p className="-mt-2 text-[14px] text-[var(--app-muted)]">Paste a Luma event link. The title, time, venue, map pin and cover fill in for you to check.</p>
-            <input id="ev-link" type="url" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://luma.com/abc123" className={`${field} h-12`} />
+            <p className="-mt-2 text-[14px] text-[var(--app-muted)]">Paste a Luma event link to fill in one event, or a Luma calendar link (like luma.com/ibw) to pick from all its events.</p>
+            <input id="ev-link" type="url" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="luma.com/abc123 or luma.com/ibw" className={`${field} h-12`} />
             <button type="submit" className={`${btn.primary} w-full h-12 inline-flex items-center justify-center gap-2`} disabled={reading || !link.trim()}>
               {reading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Link2 className="w-4 h-4" aria-hidden="true" />}
               {reading ? 'Reading the page…' : 'Read event'}

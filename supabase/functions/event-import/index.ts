@@ -3,12 +3,13 @@
 //
 // POST /functions/v1/event-import
 //   headers: Authorization: Bearer <an admin's access token>
-//   body:    { "url": "https://luma.com/abc123" }
-// Answers { event, partial } or { error } (status 200, so the app shows the
-// message); parse.ts does the reading.
+//   body:    { "url": "https://luma.com/abc123" }  an event
+//        or  { "url": "https://luma.com/ibw" }     a Luma calendar
+// Answers { event, partial }, { calendar: { name, events } } or { error }
+// (status 200, so the app shows the message); parse.ts does the reading.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { parseEventPage } from './parse.ts';
+import { lumaCalendar, lumaEntry, parseEventPage } from './parse.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -53,6 +54,37 @@ Deno.serve(async (req) => {
     html = new TextDecoder().decode(buf);
   } catch {
     return json(200, { error: 'Couldn’t open that page. Check the link, or fill the event in by hand.' });
+  }
+
+  // A Luma calendar (luma.com/ibw): every upcoming event, to pick from.
+  const cal = lumaCalendar(html);
+  if (cal) {
+    let entries = cal.entries;
+    let complete = false;
+    try {
+      const all: unknown[] = [];
+      let cursor = '';
+      for (let page = 0; page < 5; page++) {
+        const api = new URL('https://api.lu.ma/calendar/get-items');
+        api.searchParams.set('calendar_api_id', cal.apiId);
+        api.searchParams.set('period', 'future');
+        api.searchParams.set('pagination_limit', '100');
+        if (cursor) api.searchParams.set('pagination_cursor', cursor);
+        const res = await fetch(api, { signal: AbortSignal.timeout(10_000), headers: { accept: 'application/json' } });
+        if (!res.ok) throw new Error(String(res.status));
+        const body = await res.json();
+        all.push(...(body.entries ?? []));
+        if (!body.has_more || !body.next_cursor) break;
+        cursor = body.next_cursor;
+      }
+      entries = all;
+      complete = true;
+    } catch {
+      // Luma's list didn't answer (it rate-limits): the 20 on the page will do.
+    }
+    const events = entries.map(lumaEntry).filter((e): e is NonNullable<typeof e> => e !== null);
+    if (!events.length) return json(200, { error: 'That calendar has no upcoming events.' });
+    return json(200, { calendar: { name: cal.name, events, complete } });
   }
 
   return json(200, parseEventPage(html, url.toString()));
