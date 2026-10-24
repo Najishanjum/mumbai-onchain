@@ -81,17 +81,17 @@ export const canVerify = (e: EventItem) => e.latitude != null && e.longitude != 
 /**
  * One location reading, compared with the venue's pin: within 500 m (allowing
  * for the reading's own error, indoor GPS drifts) counts as there. Stays on
- * the phone; only the yes/no is saved. No pin, no permission or no fix: false.
+ * the phone; only the yes/no is saved. No permission or no fix: 'unknown'.
  */
-export function isNearVenue(e: EventItem): Promise<boolean> {
-  if (!canVerify(e) || !('geolocation' in navigator)) return Promise.resolve(false);
+export function isNearVenue(e: EventItem): Promise<'near' | 'far' | 'unknown'> {
+  if (!canVerify(e) || !('geolocation' in navigator)) return Promise.resolve('unknown');
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const d = metres(pos.coords.latitude, pos.coords.longitude, e.latitude!, e.longitude!);
-        resolve(d <= NEAR_M + Math.min(pos.coords.accuracy ?? 0, 300));
+        resolve(d <= NEAR_M + Math.min(pos.coords.accuracy ?? 0, 300) ? 'near' : 'far');
       },
-      () => resolve(false),
+      () => resolve('unknown'),
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 }
     );
   });

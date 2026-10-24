@@ -185,7 +185,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
           >
             <span className="flex-1 min-w-0">
               <span className="block text-[15px] font-semibold truncate">No event</span>
-              <span className="block text-[13px] text-[var(--app-muted)]">Disappears after 48 hours. Pick an event to keep it as a Highlight.</span>
+              <span className="block text-[13px] text-[var(--app-muted)]">For everyone on Mumbai Onchain</span>
             </span>
             {eventId === NO_EVENT_ID && <Check className="w-5 h-5 text-[var(--app-primary)]" aria-hidden="true" />}
           </button>

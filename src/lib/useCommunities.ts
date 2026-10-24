@@ -127,14 +127,18 @@ async function loadCommunities() {
   if (!error) set({ communities: (data ?? []) as Community[] });
 }
 
-async function loadMine(userId: string | null) {
-  if (!supabase || !userId) return set({ mine: userId ? [] : null, userId });
+// Reads overlap (opening a screen, joining, muting): only the newest answer counts.
+let latestMine = 0;
+
+async function loadMine(userId: string) {
+  if (!supabase) return set({ mine: [], userId });
+  const read = ++latestMine;
   const { data, error } = await supabase
     .from('community_members')
     .select('community_id, role, joined_via, credited, joined_at, muted')
     .eq('user_id', userId)
     .order('joined_at');
-  if (!error) set({ mine: (data ?? []).map(toMembership), userId });
+  if (!error && read === latestMine) set({ mine: (data ?? []).map(toMembership), userId });
 }
 
 // Once per account per session: link communities that applied with this email.
@@ -151,8 +155,10 @@ export function useCommunities(userId: string | null, profileId: string | null) 
     if (state.communities === null) void loadCommunities();
   }, []);
 
+  // Screens that only need the list of communities pass no account: they
+  // must not touch the signed-in person's memberships.
   useEffect(() => {
-    void loadMine(userId);
+    if (userId) void loadMine(userId);
   }, [userId]);
 
   // A pass and an account: link by email, then finish a join from a referral link.
@@ -213,7 +219,7 @@ export function useCommunities(userId: string | null, profileId: string | null) 
     leave,
     claim,
     /** Re-read this account's memberships (after muting, say). */
-    refresh: () => loadMine(userId),
+    refresh: () => (userId ? loadMine(userId) : Promise.resolve()),
   };
 }
 
