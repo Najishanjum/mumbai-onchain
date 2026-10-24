@@ -2,27 +2,33 @@ import { useState, useEffect } from 'react';
 import type { EventItem, UserEventNote, EventStatus, FilterState } from '../types/event';
 import { INITIAL_EVENTS } from '../data/events';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { EVENTS_CHANGED, fetchAppEventRows, mergeEvents, readCachedRows } from './appEvents';
 
 const EVENTS_STORAGE_KEY = 'mumbai_onchain_week_events_v3';
 const NOTES_STORAGE_KEY = 'mumbai_onchain_week_notes_v1';
 
-export function useAppStore() {
-  const [events, setEvents] = useState<EventItem[]>(() => {
-    const saved = localStorage.getItem(EVENTS_STORAGE_KEY) || localStorage.getItem('mumbai_onchain_week_events_v2');
-    if (saved) {
-      try {
-        const parsed: EventItem[] = JSON.parse(saved);
-        const savedMap = new Map(parsed.map((e) => [e.id, e]));
-        return INITIAL_EVENTS.map((initEvt) => {
-          const existing = savedMap.get(initEvt.id);
-          return existing ? { ...initEvt, status: existing.status } : initEvt;
-        });
-      } catch (e) {
-        console.error(e);
-      }
+/** The built-in events, with any status this phone set on them. */
+function builtInEvents(): EventItem[] {
+  const saved = localStorage.getItem(EVENTS_STORAGE_KEY) || localStorage.getItem('mumbai_onchain_week_events_v2');
+  if (saved) {
+    try {
+      const parsed: EventItem[] = JSON.parse(saved);
+      const savedMap = new Map(parsed.map((e) => [e.id, e]));
+      return INITIAL_EVENTS.map((initEvt) => {
+        const existing = savedMap.get(initEvt.id);
+        return existing ? { ...initEvt, status: existing.status } : initEvt;
+      });
+    } catch (e) {
+      console.error(e);
     }
-    return INITIAL_EVENTS;
-  });
+  }
+  return INITIAL_EVENTS;
+}
+
+export function useAppStore() {
+  // Built-in events plus what admins added or changed (app_events), from the
+  // last launch's copy until the fresh one arrives.
+  const [events, setEvents] = useState<EventItem[]>(() => mergeEvents(builtInEvents(), readCachedRows()));
 
   const [notes, setNotes] = useState<Record<string, UserEventNote>>(() => {
     const saved = localStorage.getItem(NOTES_STORAGE_KEY);
@@ -102,48 +108,21 @@ export function useAppStore() {
     localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
   }, [notes]);
 
-  // Load from Supabase if configured
+  // Events admins added or changed, now and whenever Admin → Events saves.
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) return;
-    const client = supabase;
-
-    async function loadFromSupabase() {
-      if (!client) return;
-      try {
-        const { data: remoteEvents, error } = await client.from('events').select('*');
-        if (!error && remoteEvents && remoteEvents.length > 0) {
-          // Map DB fields to EventItem
-          const mappedEvents: EventItem[] = remoteEvents.map(e => ({
-            id: e.id,
-            title: e.title,
-            slug: e.slug,
-            description: e.description,
-            organizer: e.organizer,
-            category: e.category,
-            startDate: e.start_date,
-            startTime: e.start_time,
-            endDate: e.end_date,
-            endTime: e.end_time,
-            timezone: e.timezone || 'Asia/Kolkata',
-            location: e.location,
-            address: e.address,
-            latitude: e.latitude,
-            longitude: e.longitude,
-            officialUrl: e.official_url,
-            mapUrl: e.map_url,
-            status: e.status,
-            priority: e.priority || 'NORMAL',
-            isPrimary: e.is_primary || false,
-            devconTracks: e.devcon_tracks,
-          }));
-          setEvents(mappedEvents);
-        }
-      } catch (err) {
-        console.warn('Supabase fetch failed, falling back to cached state:', err);
-      }
-    }
-
-    loadFromSupabase();
+    let live = true;
+    const load = () =>
+      fetchAppEventRows().then((rows) => {
+        // Offline or not migrated yet: keep what's showing.
+        if (live && rows) setEvents((prev) => mergeEvents(builtInEvents().map((e) => ({ ...e, status: prev.find((p) => p.id === e.id)?.status ?? e.status })), rows));
+      });
+    void load();
+    window.addEventListener(EVENTS_CHANGED, load);
+    return () => {
+      live = false;
+      window.removeEventListener(EVENTS_CHANGED, load);
+    };
   }, []);
 
   // Update status of an event

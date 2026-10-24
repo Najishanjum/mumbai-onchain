@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { BarChart3, Bell, ChevronLeft, Handshake, Images, MapPin, Users } from 'lucide-react';
+import { BarChart3, Bell, CalendarDays, ChevronLeft, Handshake, Images, MapPin, Users } from 'lucide-react';
+import { AdminEvents } from './AdminEvents';
 import type { AdminRole } from '../../lib/useAdmin';
 import { useOverview } from './shared';
 import { AdminOverview } from './AdminOverview';
@@ -9,11 +10,12 @@ import { AdminStories } from './AdminStories';
 import { AdminNotify } from './AdminNotify';
 import { AdminTeam } from './AdminTeam';
 
-export const ADMIN_TABS = ['overview', 'places', 'partners', 'stories', 'notify', 'team'] as const;
+export const ADMIN_TABS = ['overview', 'events', 'places', 'partners', 'stories', 'notify', 'team'] as const;
 export type AdminTab = (typeof ADMIN_TABS)[number];
 
 const TABS: { id: AdminTab; label: string; icon: typeof BarChart3 }[] = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
+  { id: 'events', label: 'Events', icon: CalendarDays },
   { id: 'places', label: 'Places', icon: MapPin },
   { id: 'partners', label: 'Partners', icon: Handshake },
   { id: 'stories', label: 'Stories', icon: Images },
@@ -58,6 +60,7 @@ export default function AdminMode({ role, initialTab = 'overview', onExit }: { r
 
       <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain pt-3 pb-8">
         {tab === 'overview' && <AdminOverview data={overview.data} error={overview.error} onReviewPlaces={() => setTab('places')} onReviewPartners={() => setTab('partners')} />}
+        {tab === 'events' && <AdminEvents />}
         {tab === 'places' && <AdminPlaces onChanged={overview.refresh} />}
         {tab === 'partners' && <AdminPartners onChanged={overview.refresh} />}
         {tab === 'stories' && <AdminStories onChanged={overview.refresh} />}
@@ -77,7 +80,8 @@ export default function AdminMode({ role, initialTab = 'overview', onExit }: { r
                 aria-current={active ? 'page' : undefined}
                 className={`relative flex flex-col items-center justify-center gap-[3px] ${active ? 'text-[var(--app-ink)]' : 'text-[var(--app-muted)]'}`}
               >
-                <span className={`w-14 h-8 rounded-full flex items-center justify-center ${active ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : ''}`}>
+                {/* Seven tabs (owner) leave ~53px each on a phone: a narrower pill. */}
+                <span className={`${tabs.length > 6 ? 'w-11' : 'w-14'} h-8 rounded-full flex items-center justify-center ${active ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : ''}`}>
                   <Icon className="w-[22px] h-[22px]" strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" />
                 </span>
                 <span className={`text-[11px] ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
