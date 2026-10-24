@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { supabase } from './supabase';
 import type { EventItem } from '../types/event';
 import { getEventEndDateTime, getEventStartDateTime } from './date';
+import { VENUE_TBA } from '../app/time';
 
 export interface CheckIn {
   userId: string;
@@ -75,8 +76,12 @@ function metres(lat1: number, lng1: number, lat2: number, lng2: number): number 
   return 2 * 6371000 * Math.asin(Math.sqrt(a));
 }
 
-/** The event has a map pin, so a check-in there can be verified. */
-export const canVerify = (e: EventItem) => e.latitude != null && e.longitude != null;
+/**
+ * The venue is confirmed and pinned, so a check-in there can be checked.
+ * Venue TBA events may still carry a city-centre pin: those take your word.
+ */
+export const canVerify = (e: EventItem) =>
+  e.location !== VENUE_TBA && !/to be announced|\btba\b/i.test(e.location) && e.latitude != null && e.longitude != null;
 
 /**
  * One location reading, compared with the venue's pin: within 500 m (allowing
