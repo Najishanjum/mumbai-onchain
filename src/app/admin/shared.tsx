@@ -30,7 +30,10 @@ export type AdminEventKind =
   | 'partner_deleted'
   | 'broadcast_sent'
   | 'admin_added'
-  | 'admin_removed';
+  | 'admin_removed'
+  | 'event_added'
+  | 'event_updated'
+  | 'event_hidden';
 
 /** Tells the other admins what you just did ("Najish approved a place"). Best effort. */
 export function notifyAdmins(kind: AdminEventKind, detail: string) {

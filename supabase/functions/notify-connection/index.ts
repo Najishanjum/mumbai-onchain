@@ -46,6 +46,9 @@ const ADMIN_EVENTS: Record<string, { what: string; tab: string }> = {
   broadcast_sent: { what: 'sent a notification to everyone', tab: 'notify' },
   admin_added: { what: 'added an admin', tab: 'team' },
   admin_removed: { what: 'removed an admin', tab: 'team' },
+  event_added: { what: 'added an event', tab: 'events' },
+  event_updated: { what: 'changed an event', tab: 'events' },
+  event_hidden: { what: 'hid an event', tab: 'events' },
 };
 
 const adminIds = async (db: SupabaseClient) => ((await db.from('app_admins').select('user_id')).data ?? []).map((a) => a.user_id as string);
