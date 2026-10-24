@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Bookmark, ChevronRight, Clock, MapPin, X } from 'lucide-react';
 import type { EventItem } from '../types/event';
-import { isLive, VENUE_TBA } from './time';
+import { hasEnded, isLive, VENUE_TBA } from './time';
 import { eventCover } from './covers';
 import { useBackToClose } from '../lib/useBackToClose';
 import { useKeyboardViewport } from '../lib/useKeyboardViewport';
@@ -90,7 +90,7 @@ export function CoverThumb({
 }: {
   src: string | null;
   title: string;
-  badge?: { label: string; tone: 'live' | 'saved' } | null;
+  badge?: { label: string; tone: 'live' | 'saved' | 'ended' } | null;
   size?: number;
 }) {
   const [failed, setFailed] = useState(false);
@@ -108,7 +108,9 @@ export function CoverThumb({
           className={`absolute left-1/2 -translate-x-1/2 bottom-0 h-6 px-2.5 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap border-2 border-[var(--app-surface)] ${
             badge.tone === 'live'
               ? 'bg-[var(--app-live)] text-white'
-              : 'bg-[var(--app-saved)] text-[var(--app-on-primary)]'
+              : badge.tone === 'ended'
+                ? 'bg-[var(--app-segment)] text-[var(--app-muted)]'
+                : 'bg-[var(--app-saved)] text-[var(--app-on-primary)]'
           }`}
         >
           {badge.tone === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-white" aria-hidden="true" />}
@@ -165,14 +167,21 @@ export function EventRow({
   showDate?: string;
 }) {
   const live = isLive(event);
-  const badge = live ? { label: 'Now', tone: 'live' as const } : saved ? { label: 'Saved', tone: 'saved' as const } : null;
+  const ended = !live && hasEnded(event);
+  const badge = live
+    ? { label: 'Now', tone: 'live' as const }
+    : ended
+      ? { label: saved ? 'Saved · Ended' : 'Ended', tone: 'ended' as const }
+      : saved
+        ? { label: 'Saved', tone: 'saved' as const }
+        : null;
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen())}
-      className="app-press flex gap-3.5 pl-4 pr-2 py-3.5 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-primary)] focus-visible:ring-inset"
+      className={`app-press flex gap-3.5 pl-4 pr-2 py-3.5 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-primary)] focus-visible:ring-inset ${ended ? 'opacity-60' : ''}`}
     >
       <CoverThumb src={eventCover(event)} title={event.title} badge={badge} />
       <div className="flex-1 min-w-0 pt-0.5">
@@ -187,9 +196,12 @@ export function EventRow({
           <span className="truncate">{event.location === VENUE_TBA ? 'Venue TBA' : event.location}</span>
         </div>
       </div>
-      <div className="self-start">
-        <SaveButton saved={saved} onToggle={onToggleSave} title={event.title} />
-      </div>
+      {/* Ended: nothing to save any more, but a saved one can still be removed. */}
+      {(!ended || saved) && (
+        <div className="self-start">
+          <SaveButton saved={saved} onToggle={onToggleSave} title={event.title} />
+        </div>
+      )}
     </div>
   );
 }

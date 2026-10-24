@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, X, CalendarX } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { EventRow, GroupedList } from './ui';
-import { dayLabel, dayNumber, eventDays, istDateKey, sortByStart, weekdayShort, WEEK_DAYS } from './time';
+import { dayLabel, dayNumber, eventDays, hasEnded, istDateKey, sortByStart, weekdayShort, WEEK_DAYS } from './time';
 
 interface ScheduleScreenProps {
   events: EventItem[];
@@ -59,8 +59,11 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
     !q || [e.title, e.organizer, e.location, e.category].some((f) => f?.toLowerCase().includes(q));
 
   const pool = events.filter((e) => (view === 'mine' ? isSaved(e.id) : true)).filter(matches);
-  // While searching, show matches across all days.
-  const list = (q ? pool : pool.filter((e) => eventDays(e).includes(day))).sort(sortByStart);
+  // While searching, show matches across all days. Ended events go last.
+  const now = new Date();
+  const list = (q ? pool : pool.filter((e) => eventDays(e).includes(day))).sort(
+    (a, b) => Number(hasEnded(a, now)) - Number(hasEnded(b, now)) || sortByStart(a, b)
+  );
 
   const savedCount = events.filter((e) => isSaved(e.id)).length;
 
@@ -127,6 +130,8 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
           <div className="app-scroll-x flex gap-1.5 overflow-x-auto px-5 pb-3 border-b border-[var(--app-line)]">
             {days.map((d) => {
               const active = d === day;
+              // Ended days in red, today in green, as the team asked.
+              const past = d < today;
               return (
                 <button
                   key={d}
@@ -136,13 +141,23 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
                   type="button"
                   onClick={() => onDayChange(d)}
                   aria-pressed={active}
-                  aria-label={dayLabel(d, today)}
+                  aria-label={`${dayLabel(d, today)}${past ? ', ended' : ''}`}
                   className={`app-press shrink-0 w-12 py-1.5 rounded-xl flex flex-col items-center ${
-                    active ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : d === today ? 'text-[var(--app-live)]' : ''
+                    active
+                      ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
+                      : d === today
+                        ? 'text-[var(--app-today)] ring-2 ring-inset ring-[var(--app-today)]'
+                        : past
+                          ? 'text-[var(--app-live)]'
+                          : ''
                   }`}
                 >
-                  <span className={`text-[11px] font-semibold uppercase ${active ? 'text-[var(--app-on-primary)]/70' : 'text-[var(--app-muted)]'}`}>
-                    {weekdayShort(d)}
+                  <span
+                    className={`text-[11px] font-semibold uppercase ${
+                      active ? 'text-[var(--app-on-primary)]/70' : d === today ? 'text-[var(--app-today)]' : past ? 'text-[var(--app-live)]/80' : 'text-[var(--app-muted)]'
+                    }`}
+                  >
+                    {d === today ? 'Today' : weekdayShort(d)}
                   </span>
                   <span className="text-[18px] font-bold leading-tight">{dayNumber(d)}</span>
                 </button>

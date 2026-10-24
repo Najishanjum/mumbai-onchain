@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, BedDouble, ChevronLeft, Coffee, Crosshair, Heart, Laptop, Loader2, LocateFixed, Maximize2, Minimize2, MessageCircle, Navigation, Phone, Pill, Plus, Smartphone, TramFront, UtensilsCrossed, WashingMachine, X, type LucideIcon } from 'lucide-react';
-import { LngLatBounds, Map as MapLibre, Marker, setWorkerUrl, type LayerSpecification, type StyleSpecification } from 'maplibre-gl';
+import { LngLatBounds, Map as MapLibre, Marker, setWorkerUrl, type GeoJSONSourceSpecification, type LayerSpecification, type StyleSpecification } from 'maplibre-gl';
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { EventItem } from '../types/event';
@@ -10,6 +10,7 @@ import { useBackToClose } from '../lib/useBackToClose';
 import { VENUE_TBA } from './time';
 import { useCommunityPlaces, useRatingSummary, type RatingSummary } from '../lib/useCommunityPlaces';
 import { AddPlaceSheet, GoogleReviewsLink, PlaceReviews, RatingBadge } from './MapCommunity';
+import { STATIONS, TRANSIT_LINES, type TransitKind } from '../data/transit';
 
 // Free OpenStreetMap tiles from OpenFreeMap: no key, no limits, attribution
 // shown by MapLibre. Its dark style is recoloured for both themes below.
@@ -17,6 +18,81 @@ const MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 // Devcon 8 is at Jio World Centre; distances are measured from there.
 const HOME = { lat: 19.0626, lng: 72.8656, name: 'Jio World Centre' };
 const VENUE_COLOR = '#FF8A3D';
+
+// The week's three big venues wear their event's name instead of our logo, so
+// they stand out. Drawn as labels in each event's colour, not their logo files.
+const HEADLINE: Record<string, { label: string; color: string }> = {
+  'Jio World Centre': { label: 'DEVCON 8', color: '#7B5CFF' },
+  'Fairmont Mumbai': { label: 'IBW', color: '#FF7A1F' },
+  'NESCO Center': { label: 'ETHGLOBAL', color: '#FF4FA3' },
+};
+
+// ── Metro and local train ────────────────────────────────────────────────
+const STATIONS_GEOJSON: GeoJSONSourceSpecification['data'] = {
+  type: 'FeatureCollection',
+  features: STATIONS.map((s) => ({ type: 'Feature', properties: { name: s.name, kind: s.kind }, geometry: { type: 'Point', coordinates: [s.lng, s.lat] } })),
+};
+
+/** Lines and stations on top of the basemap; added again after every style change. */
+function addTransit(m: MapLibre, on: Record<TransitKind, boolean>) {
+  if (!m.getSource('transit-lines')) {
+    m.addSource('transit-lines', { type: 'geojson', data: TRANSIT_LINES as GeoJSONSourceSpecification['data'] });
+    m.addSource('transit-stations', { type: 'geojson', data: STATIONS_GEOJSON });
+  }
+  // The basemap's own font, so labels render with glyphs it already serves.
+  const symbol = m.getStyle().layers.find((l) => l.type === 'symbol' && l.layout && 'text-font' in l.layout);
+  const font = symbol?.type === 'symbol' ? (symbol.layout?.['text-font'] as string[] | undefined) : undefined;
+  if (!m.getLayer('transit-train')) {
+    m.addLayer({
+      id: 'transit-train',
+      type: 'line',
+      source: 'transit-lines',
+      filter: ['==', ['get', 'kind'], 'train'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.6, 14, 3.2], 'line-dasharray': [2.5, 1.2] },
+    });
+    m.addLayer({
+      id: 'transit-metro',
+      type: 'line',
+      source: 'transit-lines',
+      filter: ['==', ['get', 'kind'], 'metro'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2.4, 14, 5] },
+    });
+    m.addLayer({
+      id: 'transit-stations',
+      type: 'circle',
+      source: 'transit-stations',
+      minzoom: 11,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 2.5, 15, 5.5],
+        'circle-color': '#FFFFFF',
+        'circle-stroke-color': '#121419',
+        'circle-stroke-width': 1.5,
+      },
+    });
+    m.addLayer({
+      id: 'transit-labels',
+      type: 'symbol',
+      source: 'transit-stations',
+      minzoom: 12.5,
+      layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', ...(font ? { 'text-font': font } : {}) },
+      paint: { 'text-color': '#F4F4F6', 'text-halo-color': '#000000', 'text-halo-width': 1.4 },
+    });
+  }
+  showTransit(m, on);
+}
+
+function showTransit(m: MapLibre, on: Record<TransitKind, boolean>) {
+  if (!m.getLayer('transit-train')) return;
+  m.setLayoutProperty('transit-train', 'visibility', on.train ? 'visible' : 'none');
+  m.setLayoutProperty('transit-metro', 'visibility', on.metro ? 'visible' : 'none');
+  const kinds = (Object.keys(on) as TransitKind[]).filter((k) => on[k]);
+  for (const id of ['transit-stations', 'transit-labels']) {
+    m.setLayoutProperty(id, 'visibility', kinds.length ? 'visible' : 'none');
+    m.setFilter(id, ['in', ['get', 'kind'], ['literal', kinds]]);
+  }
+}
 const ALIASES: Record<string, string> = { 'Jio World Convention Centre': 'Jio World Centre' };
 
 // MapLibre looks for its worker next to its own file, which Vite doesn't copy;
@@ -187,10 +263,13 @@ function applyStyle(m: MapLibre, theme: 'dark' | 'light') {
 function pinElement(pin: Pin, onSelect: (id: string) => void): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
-  el.className = `map-pin${pin.kind === 'venue' ? ' is-venue' : ''}`;
-  el.style.setProperty('--pin', pin.color);
-  el.setAttribute('aria-label', `${pin.name}, ${pin.label}`);
-  if (pin.kind === 'venue') {
+  const headline = pin.kind === 'venue' ? HEADLINE[pin.name] : undefined;
+  el.className = `map-pin${pin.kind === 'venue' ? ' is-venue' : ''}${headline ? ' is-headline' : ''}`;
+  el.style.setProperty('--pin', headline?.color ?? pin.color);
+  el.setAttribute('aria-label', `${pin.name}, ${headline ? headline.label : pin.label}`);
+  if (headline) {
+    el.textContent = headline.label;
+  } else if (pin.kind === 'venue') {
     const img = document.createElement('img');
     img.src = '/icons/icon-192.png';
     img.alt = '';
@@ -240,6 +319,13 @@ export default function MapScreen({
   }, [expanded]);
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibre | null>(null);
+  // Metro and local train layers. While either is on the colour wash steps
+  // back, so line colours match the legend.
+  const [transit, setTransit] = useState<Record<TransitKind, boolean>>({ metro: false, train: false });
+  const transitRef = useRef(transit);
+  transitRef.current = transit;
+  const washRef = useRef<HTMLDivElement | null>(null);
+  const transitOn = transit.metro || transit.train;
   const markers = useRef<Map<string, Marker>>(new Map());
   // The basemap comes from the internet: show that it's loading, or that it
   // can't, instead of an empty dark box.
@@ -294,6 +380,9 @@ export default function MapScreen({
     const wash = document.createElement('div');
     wash.className = 'map-neon';
     m.getCanvas().after(wash);
+    washRef.current = wash;
+    // Every style change (load, theme) drops our layers: put them back.
+    m.on('style.load', () => addTransit(m, transitRef.current));
     m.on('click', () => setSelectedId(null));
     setMapState('loading');
     m.once('load', () => setMapState('ready'));
@@ -324,6 +413,12 @@ export default function MapScreen({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the style follows the theme below
   }, [open]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (m?.isStyleLoaded()) showTransit(m, transit);
+    if (washRef.current) washRef.current.style.opacity = transitOn ? '0' : '';
+  }, [transit, transitOn]);
 
   useEffect(() => {
     if (styleRef.current === resolved) return;
@@ -440,6 +535,52 @@ export default function MapScreen({
               <Crosshair className="w-12 h-12" strokeWidth={1.6} />
               <span className="absolute w-2.5 h-2.5 rounded-full bg-[var(--app-primary)]" />
             </span>
+          </div>
+        )}
+        <div className={`absolute z-10 left-3 flex flex-col gap-1.5 ${expanded ? 'top-[calc(env(safe-area-inset-top)+60px)]' : 'top-3'}`}>
+          {(
+            [
+              ['metro', 'Metro'],
+              ['train', 'Local train'],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              aria-pressed={transit[k]}
+              onClick={() => setTransit((t) => ({ ...t, [k]: !t[k] }))}
+              className={`app-press h-9 px-3 rounded-full border text-[13px] font-bold inline-flex items-center gap-1.5 backdrop-blur ${
+                transit[k] ? 'bg-[var(--app-ink)] text-[var(--app-bg)] border-[var(--app-ink)]' : 'bg-[var(--app-surface)]/90 border-[var(--app-line)]'
+              }`}
+            >
+              <TramFront className="w-4 h-4" aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </div>
+        {transitOn && !selected && !picking && (
+          <div className="absolute z-10 left-3 right-3 bottom-3 max-h-[42%] overflow-y-auto rounded-2xl bg-[var(--app-surface)]/95 backdrop-blur border border-[var(--app-line)] p-3">
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-1">
+              {TRANSIT_LINES.features
+                .filter((f) => transit[f.properties.kind])
+                .map((f) => (
+                  <li key={f.properties.name} className="flex items-center gap-2 text-[12px] font-semibold min-w-0">
+                    <span
+                      className="shrink-0 w-5 h-1.5 rounded-full"
+                      style={
+                        f.properties.kind === 'train'
+                          ? { background: `repeating-linear-gradient(90deg, ${f.properties.color} 0 6px, transparent 6px 9px)` }
+                          : { background: f.properties.color }
+                      }
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{f.properties.name}</span>
+                  </li>
+                ))}
+            </ul>
+            <p className="mt-2 text-[12px] leading-snug text-[var(--app-muted)]">
+              Autos run on the meter; Uber, Ola and Rapido work too. Local trains are packed 8–11 am and 6–9 pm: the metro is calmer.
+            </p>
           </div>
         )}
         {expanded && (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Bookmark, CalendarPlus, Camera, Check, Clock, ExternalLink, MapPin, Navigation, Users } from 'lucide-react';
+import { Bookmark, CalendarPlus, Camera, Check, Clock, ExternalLink, MapPin, Navigation, TramFront, Users } from 'lucide-react';
+import { formatDistance, nearestStations } from '../lib/nearestStation';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
@@ -11,7 +12,7 @@ import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { Chip, CoverHero, LiveDot, Sheet } from './ui';
 import { eventCover } from './covers';
-import { dayLabel, directionsUrl, isLive, startsIn, VENUE_TBA } from './time';
+import { dayLabel, directionsUrl, hasEnded, isLive, startsIn, VENUE_TBA } from './time';
 
 interface EventSheetProps {
   event: EventItem | null;
@@ -51,6 +52,7 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
 
   const saved = isSaved(event.id);
   const live = isLive(event);
+  const ended = !live && hasEnded(event);
   const going = people.filter((p) => p.attendingEvents?.includes(event.id));
   const imHere = mine?.eventId === event.id;
   const canHere = canCheckIn(event);
@@ -122,23 +124,41 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
               {!venueKnown && (
                 <div className="text-[15px] text-[var(--app-muted)]">Check the event page for the latest details.</div>
               )}
+              {/* Getting there without traffic: the closest metro and local train. */}
+              {venueKnown && event.latitude != null && event.longitude != null && (
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[14px] text-[var(--app-muted)]">
+                  {nearestStations(event.latitude, event.longitude).map(({ station, metres }) => (
+                    <span key={station.kind} className="inline-flex items-center gap-1">
+                      <TramFront className="w-3.5 h-3.5" aria-hidden="true" />
+                      {station.name} {station.kind === 'metro' ? 'metro' : 'station'} · {formatDistance(metres)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Primary actions */}
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => toggleSaved(event.id)}
-            aria-pressed={saved}
-            className={`app-press h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 ${
-              saved ? 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
-            }`}
-          >
-            <Bookmark className="w-[18px] h-[18px]" fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
-            {saved ? 'In your plan' : 'Save'}
-          </button>
+          {/* Ended and not saved: nothing to plan for. Saved ones stay in the plan. */}
+          {ended && !saved ? (
+            <span className="h-12 rounded-full bg-[var(--app-segment)] text-[15px] font-semibold text-[var(--app-muted)] inline-flex items-center justify-center">
+              Ended
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => toggleSaved(event.id)}
+              aria-pressed={saved}
+              className={`app-press h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 ${
+                saved ? 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
+              }`}
+            >
+              <Bookmark className="w-[18px] h-[18px]" fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
+              {saved ? (ended ? 'Saved · Ended' : 'In your plan') : 'Save'}
+            </button>
+          )}
           <a
             href={event.officialUrl}
             target="_blank"

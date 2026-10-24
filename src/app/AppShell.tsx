@@ -66,11 +66,12 @@ import { AboutScreen } from './AboutScreen';
 import { FindProfileSheet } from './FindProfileSheet';
 import { CommunitySheet, JoinCommunitySheet } from './CommunitySheet';
 import { CommunityMode } from './CommunityMode';
+import { FollowSheet, shouldShowFollow } from './FollowSheet';
 import type { ModeTarget } from './ModeMenu';
 
 const COMMUNITY_MODE_KEY = 'mo_community_mode';
 import { communityAsked, markCommunityAsked, useCommunities, useJoinFromRef } from '../lib/useCommunities';
-import { istDateKey, WEEK_DAYS, WEEK_START, type AppTab } from './time';
+import { eventDays, istDateKey, WEEK_DAYS, WEEK_START, type AppTab } from './time';
 import { useAdminMode, useAdminRole } from '../lib/useAdmin';
 import { AdminSwitch } from './admin/AdminSwitch';
 import AdminMode, { ADMIN_TABS, type AdminTab } from './admin/AdminMode';
@@ -129,10 +130,13 @@ interface AppShellProps {
   getConnectionStatus: (id: string) => ConnectionStatus;
 }
 
-function defaultDay(): string {
+/** Today, or the next day that has events (events start before the week too). */
+function defaultDay(events: EventItem[]): string {
   const today = istDateKey();
-  // Before the week, open on its first day rather than an empty "today".
-  return today < WEEK_START ? WEEK_DAYS[0] : today;
+  const days = new Set(events.flatMap(eventDays));
+  if (days.has(today)) return today;
+  const next = [...days].filter((d) => d > today).sort()[0];
+  return next ?? (today < WEEK_START ? WEEK_DAYS[0] : today);
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -167,7 +171,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const { savedIds, isSaved, toggleSaved } = useSavedEvents();
   // Saved events in the account, for "starts in 15 min" pushes.
   useSavedSync(authUser?.id ?? null, events);
-  const [scheduleDay, setScheduleDay] = useState(defaultDay);
+  const [scheduleDay, setScheduleDay] = useState(() => defaultDay(events));
   const [isPassOpen, setIsPassOpen] = useState(false);
   const [isSaveCardOpen, setIsSaveCardOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -339,6 +343,22 @@ export const AppShell: React.FC<AppShellProps> = ({
   }, []);
 
   const showPass = () => (myProfile ? setIsPassOpen(true) : onEditProfile());
+
+  // "Stay in the loop" (Mumbai Onchain's socials): a few seconds after the
+  // pass exists, on Today, when nothing else is open. Once, maybe twice, ever.
+  const [followOpen, setFollowOpen] = useState(false);
+  const followTried = React.useRef(false);
+  const somethingOpen = Boolean(
+    selectedEvent || selectedPerson || isPassOpen || isScannerOpen || isMapOpen || joinSheet || openCommunityId || showAdmin || showCommunity || adminSwitch
+  );
+  useEffect(() => {
+    if (followTried.current || !myProfile || tab !== 'today' || somethingOpen || !shouldShowFollow()) return;
+    const t = window.setTimeout(() => {
+      followTried.current = true;
+      setFollowOpen(true);
+    }, 4000);
+    return () => window.clearTimeout(t);
+  }, [myProfile, tab, somethingOpen]);
 
   return (
     <>
@@ -550,6 +570,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       <AppearanceScreen open={isAppearanceOpen} onClose={() => setIsAppearanceOpen(false)} myProfile={myProfile} />
       <FindProfileSheet isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} onSignIn={onSignIn} />
       <AboutScreen open={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <FollowSheet open={followOpen} onClose={() => setFollowOpen(false)} />
       {showAdmin && adminRole && <AdminMode key={adminTab} role={adminRole} initialTab={adminTab} led={ledCommunities} onSwitch={switchMode} />}
       {showCommunity && communityMode && (
         <CommunityMode key={communityMode} communityId={communityMode} people={realPeople} adminRole={adminRole} onOpenPerson={onSelectPerson} onSwitch={switchMode} />

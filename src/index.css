@@ -52,6 +52,7 @@ html[data-app-theme='dark'] {
   --app-primary-soft: color-mix(in srgb, var(--app-primary) 16%, transparent);
   --app-live: #FF5C7A;
   --app-live-soft: rgba(255, 92, 122, 0.15);
+  --app-today: #34C77B;
   /* Saved things wear the role colour too. */
   --app-saved: var(--app-primary);
   --app-saved-soft: var(--app-primary-soft);
@@ -78,6 +79,7 @@ html[data-app-theme='light'] {
   --app-primary-soft: color-mix(in srgb, var(--app-primary) 12%, #FFFFFF);
   --app-live: #D12A50;
   --app-live-soft: #FCE4EA;
+  --app-today: #15803D;
   --app-saved: var(--app-primary);
   --app-saved-soft: var(--app-primary-soft);
   --app-glow: radial-gradient(130% 45% at 50% -12%, color-mix(in srgb, var(--app-primary) 14%, transparent), transparent 70%);
@@ -662,6 +664,12 @@ html[data-app-badge='black'] .devcon-venue { opacity: 0.16; }
 .map-pin svg { display: block; }
 .map-pin.is-venue { width: 40px; height: 40px; background: #FFFFFF; border: 3px solid var(--pin); }
 .map-pin.is-venue img { width: 100%; height: 100%; border-radius: 50%; display: block; }
+/* IBW, Devcon 8, ETHGlobal: a label in the event's colour instead of a logo. */
+.map-pin.is-venue.is-headline {
+  width: auto; height: 30px; padding: 0 10px; border-radius: 999px;
+  background: var(--pin); border: 2px solid #FFFFFF; color: #FFFFFF;
+  font: 800 12px/1 var(--font-sans, system-ui), sans-serif; letter-spacing: 0.06em; white-space: nowrap;
+}
 .map-pin.is-selected { transform: scale(1.3); z-index: 2; }
 html[data-app-theme='light'] .map-pin { border-color: #FFFFFF; }
 .maplibregl-ctrl-attrib { font-size: 10px; }
@@ -672,6 +680,7 @@ html[data-app-theme='light'] .map-pin { border-color: #FFFFFF; }
   position: absolute;
   inset: 0;
   pointer-events: none;
+  transition: opacity 250ms ease;
   mix-blend-mode: multiply;
   background: linear-gradient(20deg, #6EF0C2 0%, #8FE8D8 18%, #FF8FC4 42%, #FF4FA3 60%, #FF7A1F 82%, #FFB347 100%);
 }
