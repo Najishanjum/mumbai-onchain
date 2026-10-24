@@ -3,6 +3,7 @@ import { ArrowUpRight, Loader2, Mail, Phone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { CoLeadCard } from '../CommunitySheet';
+import { uploadCommunityLogo } from '../../lib/communityPartner';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins, timeAgo, type AdminEventKind } from './shared';
 
 type Status = 'pending' | 'approved' | 'rejected';
@@ -116,6 +117,27 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   }
 
   /** Partners send their group link in the partners chat; an admin pastes it here. */
+  /** A new logo from an admin (e.g. the partner sent a better one in the chat). */
+  async function changeLogo(row: Row, file: File) {
+    setBusyId(row.id);
+    setError('');
+    const up = await uploadCommunityLogo(file);
+    if (!up.success || !up.url) {
+      setBusyId(null);
+      return setError(up.error ?? `Couldn’t upload ${row.community_name}’s logo. Try again.`);
+    }
+    const { error: e } = await supabase
+      .from('community_partner_applications')
+      .update({ community_logo_url: up.url, updated_at: new Date().toISOString() })
+      .eq('id', row.id);
+    setBusyId(null);
+    if (e) return setError(`Couldn’t save ${row.community_name}’s logo. Try again.`);
+    // The old file, when it's in our bucket.
+    const old = row.community_logo_url.split('/community-logos/')[1];
+    if (old) void supabase.storage.from('community-logos').remove([decodeURIComponent(old.split('?')[0])]);
+    setRows((r) => r?.map((x) => (x.id === row.id ? { ...x, community_logo_url: up.url! } : x)) ?? null);
+  }
+
   async function saveWhatsapp(row: Row, value: string) {
     const url = value.trim().split('?')[0].replace(/^(?!https:\/\/)/, value.trim() ? 'https://' : '').replace(/\/+$/, '');
     if (url && !WHATSAPP_GROUP.test(url)) return setError('Paste a WhatsApp group invite link, like chat.whatsapp.com/AbC123…');
@@ -169,7 +191,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
               <li key={p.id} className="rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
                 <div className="flex items-start gap-3">
                   {webUrl(p.community_logo_url) ? (
-                    <img src={p.community_logo_url} alt="" className="w-14 h-14 rounded-2xl object-cover bg-white shrink-0" />
+                    <img src={p.community_logo_url} alt="" className="w-14 h-14 p-1 rounded-2xl object-contain bg-white shrink-0" />
                   ) : (
                     <span className="w-14 h-14 rounded-2xl bg-[var(--app-pressed)] shrink-0" aria-hidden="true" />
                   )}
@@ -287,6 +309,20 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                     {p.whatsapp_url ? 'Change WhatsApp group' : '+ Add WhatsApp group'}
                   </button>
                 )}
+                {/* A label around a hidden file input: opens the photo picker on iPhone too. */}
+                <label className={`app-press mt-1 h-10 px-3 rounded-xl text-[13px] font-bold text-[var(--app-muted)] inline-flex items-center cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {busy && busyId === p.id ? 'Uploading…' : 'Change logo'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (file) void changeLogo(p, file);
+                    }}
+                  />
+                </label>
 
                 {confirmDelete === p.id ? (
                   <div className="mt-5 pt-4 border-t border-[var(--app-line)]">

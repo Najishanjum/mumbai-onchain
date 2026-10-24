@@ -248,7 +248,7 @@ export const CommunityPartnerPage: React.FC<CommunityPartnerPageProps> = ({
                         src={partner.community_logo_url}
                         alt={partner.community_name}
                         loading="lazy"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
                             'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80';

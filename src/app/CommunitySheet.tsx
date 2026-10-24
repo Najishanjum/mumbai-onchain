@@ -28,7 +28,8 @@ export function CommunityLogo({ c, size = 44 }: { c: Pick<Community, 'community_
   const [broken, setBroken] = useState(false);
   const style = { width: size, height: size };
   if (c.community_logo_url && !broken) {
-    return <img src={c.community_logo_url} alt="" style={style} onError={() => setBroken(true)} className="rounded-xl object-cover bg-white shrink-0" />;
+    // Whole logo, never cropped: wide wordmarks fit inside the white tile.
+    return <img src={c.community_logo_url} alt="" style={{ ...style, padding: Math.round(size * 0.08) }} onError={() => setBroken(true)} className="rounded-xl object-contain bg-white shrink-0" />;
   }
   return (
     <span style={style} className="rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)] font-extrabold flex items-center justify-center shrink-0" aria-hidden="true">

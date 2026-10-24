@@ -483,7 +483,15 @@ function drawLogoTile(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | nu
   ctx.save();
   roundRect(ctx, x, y, size, size, size * 0.22);
   ctx.clip();
-  if (logo) drawCover(ctx, logo, x, y, size, size);
+  if (logo) {
+    // The whole logo inside the tile, like the app shows it: wide ones aren't cropped.
+    const pad = size * 0.1;
+    const box = size - pad * 2;
+    const scale = Math.min(box / logo.width, box / logo.height);
+    const lw = logo.width * scale;
+    const lh = logo.height * scale;
+    ctx.drawImage(logo, x + (size - lw) / 2, y + (size - lh) / 2, lw, lh);
+  }
   else {
     ctx.fillStyle = '#C2410C';
     ctx.font = `800 ${size * 0.5}px ${SANS}`;
