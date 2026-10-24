@@ -15,6 +15,7 @@
   <img src="https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
   <img src="https://img.shields.io/badge/Supabase-Postgres_%C2%B7_Auth_%C2%B7_Edge-3FCF8E?logo=supabase&logoColor=white" alt="Supabase">
   <img src="https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white" alt="PWA">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License"></a>
   <a href="https://github.com/Najishanjum/mumbai-onchain/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
 </p>
 
@@ -151,5 +152,9 @@ Function secrets (`supabase secrets set …`): `VAPID_PUBLIC_KEY`, `VAPID_PRIVAT
 - **Najish** ([@najish_anjum](https://x.com/najish_anjum)): Mumbai Onchain lead
 - **Nimsara** ([@nimsaraonline](https://x.com/nimsaraonline)): built the app
 - **Moinuddin** ([@md_moinuddin1](https://x.com/md_moinuddin1)): partnerships
+
+## License
+
+[MIT](LICENSE). Use it, fork it, build your own for your city's week.
 
 Unofficial community app, not affiliated with the Ethereum Foundation, Devcon, IBW or ETHGlobal. Follow along on X at [@Mumbai_onchain](https://x.com/Mumbai_onchain).
