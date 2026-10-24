@@ -26,6 +26,17 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
   const [url, setUrl] = useState<string>(DESTINATIONS[0].id);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState<'test' | 'all' | null>(null);
+  // Everyone, or only the leads of partner communities (e.g. "send us your side events").
+  const [audience, setAudience] = useState<'everyone' | 'leads'>('everyone');
+  const [leadIds, setLeadIds] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (audience !== 'leads' || leadIds) return;
+    supabase
+      .from('community_members')
+      .select('user_id')
+      .eq('role', 'lead')
+      .then(({ data }) => setLeadIds([...new Set((data ?? []).map((r) => r.user_id as string))]));
+  }, [audience, leadIds]);
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
 
@@ -36,8 +47,15 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
     setBusy(toAll ? 'all' : 'test');
     setError('');
     setResult('');
+    const toLeads = toAll && audience === 'leads';
+    if (toLeads && !leadIds?.length) {
+      setBusy(null);
+      setConfirming(false);
+      return setError('No community leads yet.');
+    }
+    const userIds = !toAll ? [authUser.id] : toLeads ? leadIds! : undefined;
     const { data, error: e } = await supabase.functions.invoke('send-push', {
-      body: { title: title.trim(), body: body.trim(), url, tag: toAll ? `broadcast-${Date.now()}` : undefined, ...(toAll ? {} : { userIds: [authUser.id] }) },
+      body: { title: title.trim(), body: body.trim(), url, tag: toAll ? `broadcast-${Date.now()}` : undefined, ...(userIds ? { userIds } : {}) },
     });
     setBusy(null);
     setConfirming(false);
@@ -45,7 +63,7 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
     const sent = (data as { sent: number }).sent;
     if (toAll) {
       setResult(`Sent to ${sent} ${sent === 1 ? 'phone' : 'phones'}.`);
-      notifyAdmins('broadcast_sent', `“${title.trim()}”, to ${sent} ${sent === 1 ? 'phone' : 'phones'}`);
+      notifyAdmins('broadcast_sent', `“${title.trim()}”, to ${toLeads ? 'community leads, ' : ''}${sent} ${sent === 1 ? 'phone' : 'phones'}`);
       // Kept in the history with the communities' messages. Best effort.
       await supabase.from('broadcasts').insert({
         community_id: null,
@@ -53,7 +71,7 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
         sender_profile_id: myProfile?.id ?? null,
         title: title.trim(),
         body: body.trim(),
-        audience: 'everyone',
+        audience: toLeads ? 'leads' : 'everyone',
         status: 'sent',
         recipients: sent,
         sent_at: new Date().toISOString(),
@@ -69,6 +87,33 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
   return (
     <div>
       <div className="mx-4 space-y-3">
+        <div>
+          <span className="app-label px-1">To</span>
+          <div role="radiogroup" aria-label="To" className="mt-1 grid grid-cols-2 p-1 rounded-full bg-[var(--app-segment)]">
+            {(
+              [
+                ['everyone', 'Everyone'],
+                ['leads', 'Community leads'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={audience === id}
+                onClick={() => setAudience(id)}
+                className={`h-9 rounded-full text-[14px] font-bold ${audience === id ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : 'text-[var(--app-muted)]'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {audience === 'leads' && (
+            <p className="mt-1.5 px-1 text-[13px] text-[var(--app-muted)]">
+              {leadIds === null ? 'Counting leads…' : `${leadIds.length} lead${leadIds.length === 1 ? '' : 's'} of partner communities. It also shows in their notifications list.`}
+            </p>
+          )}
+        </div>
         <div>
           <label htmlFor="notify-title" className="app-label px-1">
             Title
@@ -132,7 +177,13 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
         {confirming ? (
           <div className="rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
             <p className="text-[15px]">
-              Send this to {reach === null ? 'everyone with notifications on' : `${reach} ${reach === 1 ? 'person' : 'people'}`}? It can’t be taken back.
+              Send this to{' '}
+              {audience === 'leads'
+                ? `all ${leadIds?.length ?? ''} community leads`
+                : reach === null
+                  ? 'everyone with notifications on'
+                  : `${reach} ${reach === 1 ? 'person' : 'people'}`}
+              ? It can’t be taken back.
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button type="button" className={btn.plain} onClick={() => setConfirming(false)}>
@@ -151,7 +202,7 @@ function SendPanel({ reach, onSent }: { reach: number | null; onSent: () => void
               Send test to me
             </button>
             <button type="button" className={btn.primary} disabled={!ready || busy !== null} onClick={() => setConfirming(true)}>
-              Send to everyone
+              {audience === 'leads' ? 'Send to leads' : 'Send to everyone'}
             </button>
           </div>
         )}
@@ -255,7 +306,7 @@ function History({ items, nameOf, logoOf }: { items: Broadcast[]; nameOf: (b: Br
           <p className="text-[12px] font-bold text-[var(--app-muted)]">
             {b.status === 'rejected'
               ? `Declined${b.reviewNote ? ` · “${b.reviewNote}”` : ''}`
-              : `${b.audience === 'everyone' ? 'Everyone' : 'Members'} · reached ${b.recipients} ${b.recipients === 1 ? 'phone' : 'phones'}`}
+              : `${b.audience === 'everyone' ? 'Everyone' : b.audience === 'leads' ? 'Community leads' : 'Members'} · reached ${b.recipients} ${b.recipients === 1 ? 'phone' : 'phones'}`}
           </p>
         </li>
       ))}

@@ -4,7 +4,7 @@ import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { useSnapStore } from '../lib/useSnapStore';
 import { usePeopleStore } from '../lib/usePeopleStore';
-import { canCheckIn, useCheckIns } from '../lib/useCheckIns';
+import { canCheckIn, canVerify, isNearVenue, useCheckIns } from '../lib/useCheckIns';
 import { downloadICSFile, getGoogleCalendarUrl } from '../lib/calendar';
 import { detectPlatform } from '../lib/pwa';
 import { isRealSnap } from '../lib/samples';
@@ -45,7 +45,7 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
   const { getSnapsByEvent, setActiveSnapForViewer, setIsAddSnapModalOpen } = useSnapStore();
   const { myProfile, authUser, connections } = usePeopleStore();
   const { mine, hereAt, checkIn, leave } = useCheckIns(authUser?.id ?? null);
-  const [hereBusy, setHereBusy] = useState(false);
+  const [hereBusy, setHereBusy] = useState<false | 'locating' | 'saving'>(false);
   const [hereError, setHereError] = useState('');
   if (!event) return null;
 
@@ -54,18 +54,28 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
   const going = people.filter((p) => p.attendingEvents?.includes(event.id));
   const imHere = mine?.eventId === event.id;
   const canHere = canCheckIn(event);
-  // People you've added first, then newest check-ins.
-  const here = hereAt(event.id)
+  // People you follow first, then newest check-ins.
+  const checkIns = hereAt(event.id);
+  const verifiedIds = new Set(checkIns.filter((c) => c.verified).map((c) => c.profileId));
+  const here = checkIns
     .map((c) => people.find((p) => p.id === c.profileId))
     .filter((p): p is PersonProfile => Boolean(p))
     .sort((a, b) => Number(connections[b.id] === 'CONNECTED') - Number(connections[a.id] === 'CONNECTED'));
+  const verifiable = canVerify(event);
 
   async function toggleHere() {
     if (!event || !myProfile) return;
-    setHereBusy(true);
     setHereError('');
-    if (imHere) await leave();
-    else setHereError((await checkIn(event, myProfile.id)) ?? '');
+    if (imHere) {
+      setHereBusy('saving');
+      await leave();
+    } else {
+      // One location reading for the ✓ Verified mark; checking in works without it.
+      setHereBusy(verifiable ? 'locating' : 'saving');
+      const verified = await isNearVenue(event);
+      setHereBusy('saving');
+      setHereError((await checkIn(event, myProfile.id, verified)) ?? '');
+    }
     setHereBusy(false);
   }
   const snaps = getSnapsByEvent(event.id).filter(isRealSnap);
@@ -171,15 +181,22 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
                   <button
                     type="button"
                     onClick={toggleHere}
-                    disabled={hereBusy}
+                    disabled={hereBusy !== false}
                     aria-pressed={imHere}
                     className={`app-press mt-2 w-full h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 ${
                       imHere ? 'bg-[var(--app-saved-soft)] text-[var(--app-saved)]' : 'bg-[var(--app-primary)] text-[var(--app-on-primary)]'
                     }`}
                   >
                     {imHere ? <Check className="w-[18px] h-[18px]" aria-hidden="true" /> : <MapPin className="w-[18px] h-[18px]" aria-hidden="true" />}
-                    {imHere ? 'You’re here · tap to leave' : 'I’m here'}
+                    {hereBusy === 'locating'
+                      ? 'Checking you’re there…'
+                      : imHere
+                        ? `You’re here${mine?.verified ? ' ✓ Verified' : ''} · tap to leave`
+                        : 'I’m here'}
                   </button>
+                  {!imHere && verifiable && (
+                    <p className="mt-1.5 text-[13px] text-[var(--app-muted)]">Your location is checked once to mark you ✓ Verified. It isn’t saved.</p>
+                  )}
                   {!imHere && mine && (
                     <p className="mt-1.5 text-[13px] text-[var(--app-muted)]">This moves your check-in from your other event.</p>
                   )}
@@ -203,6 +220,7 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
                         {p.name}
                         {p.id === myProfile?.id && <span className="font-normal text-[var(--app-muted)]"> (you)</span>}
                       </span>
+                      {verifiedIds.has(p.id) && <span className="block text-[12px] font-bold text-[#3CC48C]">✓ Verified at the venue</span>}
                       <span className="block text-[13px] text-[var(--app-muted)] truncate">
                         {connections[p.id] === 'CONNECTED' ? 'You follow them' : p.headline || p.category}
                       </span>

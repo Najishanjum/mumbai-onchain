@@ -224,8 +224,11 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const messages = useMemo(
     () =>
       myMessages.flatMap((m) => {
+        if (!m.sentAt) return [];
+        // The team writing to community leads.
+        if (!m.communityId) return [{ id: m.id, communityId: '', name: 'Mumbai Onchain team', logo: '/icons/icon-192.png', title: m.title, body: m.body, at: m.sentAt }];
         const c = communities.find((x) => x.id === m.communityId);
-        return c && m.sentAt ? [{ id: m.id, communityId: c.id, name: c.community_name, logo: c.community_logo_url, title: m.title, body: m.body, at: m.sentAt }] : [];
+        return c ? [{ id: m.id, communityId: c.id, name: c.community_name, logo: c.community_logo_url, title: m.title, body: m.body, at: m.sentAt }] : [];
       }),
     [myMessages, communities]
   );

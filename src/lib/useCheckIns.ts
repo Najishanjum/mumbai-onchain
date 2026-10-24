@@ -9,6 +9,8 @@ export interface CheckIn {
   eventId: string;
   checkedInAt: string;
   expiresAt: string;
+  /** Was within 500 m of the venue when checking in. */
+  verified: boolean;
 }
 
 const MAX_MS = 8 * 60 * 60 * 1000; // a check-in never outlasts a long day
@@ -30,7 +32,7 @@ async function refresh() {
   const read = ++latestRead;
   const { data, error } = await supabase
     .from('check_ins')
-    .select('user_id, profile_id, event_id, checked_in_at, expires_at')
+    .select('user_id, profile_id, event_id, checked_in_at, expires_at, verified')
     .gt('expires_at', new Date().toISOString())
     .order('checked_in_at', { ascending: false });
   if (error || read !== latestRead) return;
@@ -40,6 +42,7 @@ async function refresh() {
     eventId: r.event_id,
     checkedInAt: r.checked_in_at,
     expiresAt: r.expires_at,
+    verified: Boolean(r.verified),
   }));
   emit();
 }
@@ -63,6 +66,37 @@ function subscribe(listener: () => void) {
   };
 }
 
+const NEAR_M = 500;
+
+/** Metres between two points on Earth. */
+function metres(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const r = (d: number) => (d * Math.PI) / 180;
+  const a = Math.sin(r(lat2 - lat1) / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(r(lng2 - lng1) / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(a));
+}
+
+/** The event has a map pin, so a check-in there can be verified. */
+export const canVerify = (e: EventItem) => e.latitude != null && e.longitude != null;
+
+/**
+ * One location reading, compared with the venue's pin: within 500 m (allowing
+ * for the reading's own error, indoor GPS drifts) counts as there. Stays on
+ * the phone; only the yes/no is saved. No pin, no permission or no fix: false.
+ */
+export function isNearVenue(e: EventItem): Promise<boolean> {
+  if (!canVerify(e) || !('geolocation' in navigator)) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const d = metres(pos.coords.latitude, pos.coords.longitude, e.latitude!, e.longitude!);
+        resolve(d <= NEAR_M + Math.min(pos.coords.accuracy ?? 0, 300));
+      },
+      () => resolve(false),
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 }
+    );
+  });
+}
+
 /** Whether "I'm here" makes sense now: from an hour before the start until the end. */
 export function canCheckIn(e: EventItem, now = new Date()): boolean {
   const start = getEventStartDateTime(e);
@@ -80,7 +114,7 @@ export function useCheckIns(userId: string | null) {
 
   const mine = userId ? list.find((c) => c.userId === userId && new Date(c.expiresAt) > new Date()) ?? null : null;
 
-  async function checkIn(e: EventItem, profileId: string) {
+  async function checkIn(e: EventItem, profileId: string, verified = false) {
     if (!supabase || !userId) return 'Sign in to check in.';
     const end = getEventEndDateTime(e)?.getTime() ?? Date.now() + MAX_MS;
     const expiresAt = new Date(Math.min(end, Date.now() + MAX_MS)).toISOString();
@@ -91,6 +125,7 @@ export function useCheckIns(userId: string | null) {
       event_title: e.title.slice(0, 200),
       checked_in_at: new Date().toISOString(),
       expires_at: expiresAt,
+      verified,
     });
     if (error) return 'Couldn’t check you in. Try again.';
     await refresh();
