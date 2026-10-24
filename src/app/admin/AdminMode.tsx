@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { BarChart3, Bell, CalendarDays, Check, ChevronDown, Handshake, Images, MapPin, ShieldCheck, Users } from 'lucide-react';
-import { usePeopleStore } from '../../lib/usePeopleStore';
-import { PersonAvatar } from '../../components/PersonAvatar';
+import { BarChart3, Bell, CalendarDays, Handshake, Images, MapPin, Users } from 'lucide-react';
+import type { Community } from '../../lib/useCommunities';
+import { ModeMenu, type ModeTarget } from '../ModeMenu';
 import { AdminEvents } from './AdminEvents';
 import type { AdminRole } from '../../lib/useAdmin';
 import { useOverview } from './shared';
@@ -25,74 +25,19 @@ const TABS: { id: AdminTab; label: string; icon: typeof BarChart3 }[] = [
   { id: 'team', label: 'Team', icon: Users },
 ];
 
-/** The ADMIN / OWNER badge: opens a switcher between you (the app) and admin mode. */
-function ModeMenu({ role, onExit }: { role: AdminRole; onExit: () => void }) {
-  const { myProfile } = usePeopleStore();
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('pointerdown', away);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('pointerdown', away);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [open]);
-  const roleName = role === 'owner' ? 'Owner' : 'Admin';
-  const row = 'app-press w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left active:bg-[var(--app-pressed)]';
-
-  return (
-    <div ref={box} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`${roleName} mode. Switch mode`}
-        className="app-press h-9 pl-3.5 pr-2.5 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[12px] font-extrabold tracking-[0.14em] inline-flex items-center gap-1"
-      >
-        {roleName.toUpperCase()}
-        <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
-      </button>
-      {open && (
-        <div role="menu" className="absolute right-0 top-full mt-2 w-64 p-1.5 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
-          <p className="px-3 pt-1.5 pb-1 text-[12px] font-bold text-[var(--app-muted)]">Switch to</p>
-          <button
-            type="button"
-            role="menuitem"
-            className={row}
-            onClick={() => {
-              setOpen(false);
-              onExit();
-            }}
-          >
-            <PersonAvatar name={myProfile?.name ?? 'You'} avatarUrl={myProfile?.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" />
-            <span className="flex-1 min-w-0">
-              <span className="block text-[15px] font-semibold truncate">{myProfile?.name ?? 'You'}</span>
-              <span className="block text-[13px] text-[var(--app-muted)]">The app</span>
-            </span>
-          </button>
-          <button type="button" role="menuitemradio" aria-checked="true" className={row} onClick={() => setOpen(false)}>
-            <span className="w-9 h-9 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] flex items-center justify-center">
-              <ShieldCheck className="w-[18px] h-[18px]" aria-hidden="true" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block text-[15px] font-semibold">{roleName}</span>
-              <span className="block text-[13px] text-[var(--app-muted)]">Review and manage</span>
-            </span>
-            <Check className="w-5 h-5 text-[var(--app-primary)]" aria-hidden="true" />
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** Admin mode: its own screens and tab bar, over the app. */
-export default function AdminMode({ role, initialTab = 'overview', onExit }: { role: AdminRole; initialTab?: AdminTab; onExit: () => void }) {
+export default function AdminMode({
+  role,
+  initialTab = 'overview',
+  led,
+  onSwitch,
+}: {
+  role: AdminRole;
+  initialTab?: AdminTab;
+  /** Communities this admin also leads, for the switcher. */
+  led: Community[];
+  onSwitch: (t: ModeTarget) => void;
+}) {
   // Team is the owner's: only they can change it.
   const tabs = role === 'owner' ? TABS : TABS.filter((t) => t.id !== 'team');
   const [tab, setTab] = useState<AdminTab>(tabs.some((t) => t.id === initialTab) ? initialTab : 'overview');
@@ -120,7 +65,7 @@ export default function AdminMode({ role, initialTab = 'overview', onExit }: { r
       <header className="relative z-10 shrink-0 pt-[calc(env(safe-area-inset-top)+6px)] px-4 pb-2 h-[calc(env(safe-area-inset-top)+58px)] flex items-center gap-2 border-b border-[var(--app-line)]">
         <img src="/icons/icon-192.png" alt="" className="w-8 h-8 rounded-lg" />
         <span className="flex-1 text-[16px] font-bold truncate">Mumbai Onchain</span>
-        <ModeMenu role={role} onExit={onExit} />
+        <ModeMenu current={{ kind: 'admin' }} adminRole={role} led={led} onPick={onSwitch} />
       </header>
 
       <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain pt-3 pb-8">

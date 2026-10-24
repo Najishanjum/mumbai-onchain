@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info, ShieldCheck, Bell, Users, KeyRound } from 'lucide-react';
-import { MAX_COMMUNITIES, useCommunities } from '../lib/useCommunities';
+import { MAX_COMMUNITIES, useCommunities, type Community } from '../lib/useCommunities';
 import { CommunityLogo } from './CommunitySheet';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
@@ -48,6 +48,9 @@ interface MeScreenProps {
   onOpenCommunity: (id: string) => void;
   /** true: straight to the leader code. */
   onJoinCommunity: (claim: boolean) => void;
+  /** Communities you lead: each gets a "Switch to …" row, like admin. */
+  ledCommunities: Community[];
+  onSwitchToCommunity: (id: string) => void;
 }
 
 async function shareApp() {
@@ -80,6 +83,8 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   onSwitchToAdmin,
   onOpenCommunity,
   onJoinCommunity,
+  ledCommunities,
+  onSwitchToCommunity,
 }) => {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   // Your own "Added · Added you", re-read as either side changes.
@@ -167,9 +172,14 @@ export const MeScreen: React.FC<MeScreenProps> = ({
       )}
 
       <div className="space-y-6">
-        {onSwitchToAdmin && (
+        {(onSwitchToAdmin || ledCommunities.length > 0) && (
           <GroupedList>
-            <RowLink icon={<ShieldCheck className={`${icon} text-[#E0A43A]`} />} label="Switch to admin" detail="Review and manage" onClick={onSwitchToAdmin} />
+            {onSwitchToAdmin && (
+              <RowLink icon={<ShieldCheck className={`${icon} text-[#E0A43A]`} />} label="Switch to admin" detail="Review and manage" onClick={onSwitchToAdmin} />
+            )}
+            {ledCommunities.map((c) => (
+              <RowLink key={c.id} icon={<CommunityLogo c={c} size={32} />} label={`Switch to ${c.community_name}`} detail="Lead" onClick={() => onSwitchToCommunity(c.id)} />
+            ))}
           </GroupedList>
         )}
         {myProfile && (

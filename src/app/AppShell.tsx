@@ -65,6 +65,10 @@ import { AppearanceScreen } from './AppearanceScreen';
 import { AboutScreen } from './AboutScreen';
 import { FindProfileSheet } from './FindProfileSheet';
 import { CommunitySheet, JoinCommunitySheet } from './CommunitySheet';
+import { CommunityMode } from './CommunityMode';
+import type { ModeTarget } from './ModeMenu';
+
+const COMMUNITY_MODE_KEY = 'mo_community_mode';
 import { communityAsked, markCommunityAsked, useCommunities, useJoinFromRef } from '../lib/useCommunities';
 import { istDateKey, WEEK_DAYS, WEEK_START, type AppTab } from './time';
 import { useAdminMode, useAdminRole } from '../lib/useAdmin';
@@ -180,7 +184,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     const code = new URLSearchParams(window.location.search).get('claim');
     return code ? { claim: true, code } : null;
   });
-  const { mine: myCommunities } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
+  const { mine: myCommunities, communities: allCommunities } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
   const joinedFromRef = useJoinFromRef(authUser?.id ?? null, myProfile?.id ?? null);
   const [askDismissed, setAskDismissed] = useState(communityAsked);
   const showCommunityAsk = Boolean(myProfile && myCommunities && myCommunities.length === 0 && !askDismissed && !joinedFromRef);
@@ -256,6 +260,45 @@ export const AppShell: React.FC<AppShellProps> = ({
   const enterAdmin = () => {
     setAdminTab('overview');
     setAdminSwitch('in');
+  };
+
+  // Community mode (lead mode): a community's leads run it from here, like
+  // admin mode. Remembered across launches, like admin mode.
+  const [communityMode, setCommunityModeState] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(COMMUNITY_MODE_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const setCommunityMode = useCallback((id: string | null) => {
+    setCommunityModeState(id);
+    try {
+      if (id) localStorage.setItem(COMMUNITY_MODE_KEY, id);
+      else localStorage.removeItem(COMMUNITY_MODE_KEY);
+    } catch {
+      // fine for this session
+    }
+  }, []);
+  const ledCommunities = (myCommunities ?? [])
+    .filter((m) => m.role === 'lead')
+    .map((m) => allCommunities.find((c) => c.id === m.communityId))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c));
+  // Leads, and admins helping a community out.
+  const showCommunity = Boolean(communityMode && !showAdmin && !adminSwitch && (adminRole || ledCommunities.some((c) => c.id === communityMode)));
+  /** The switcher (badge menu in admin and community mode, and the Me rows). */
+  const switchMode = (t: ModeTarget) => {
+    if (t.kind === 'app') {
+      setCommunityMode(null);
+      if (showAdmin) setAdminSwitch('out');
+    } else if (t.kind === 'admin') {
+      setCommunityMode(null);
+      if (!adminOn) enterAdmin();
+    } else {
+      setOpenCommunityId(null);
+      setCommunityMode(t.id);
+      if (adminOn) setAdminOn(false);
+    }
   };
 
   // Drop one-time links (?open=map, ?admin=, ?claim=, ?community=, ?c=) once
@@ -376,6 +419,8 @@ export const AppShell: React.FC<AppShellProps> = ({
             onCreateProfile={onEditProfile}
             onSelectPerson={onSelectPerson}
             onAddSnap={onAddSnap}
+            onOpenCommunity={setOpenCommunityId}
+            onJoinCommunity={() => setJoinSheet({ claim: false, code: null })}
           />
           </div>
         )}
@@ -410,6 +455,8 @@ export const AppShell: React.FC<AppShellProps> = ({
             onSwitchToAdmin={adminRole ? enterAdmin : undefined}
             onOpenCommunity={setOpenCommunityId}
             onJoinCommunity={(claim) => setJoinSheet({ claim, code: null })}
+            ledCommunities={ledCommunities}
+            onSwitchToCommunity={(id) => switchMode({ kind: 'community', id })}
           />
           </div>
         )}
@@ -484,18 +531,29 @@ export const AppShell: React.FC<AppShellProps> = ({
         startWithClaim={joinSheet?.claim}
         initialCode={joinSheet?.code}
         onClose={() => setJoinSheet(null)}
-        onOpenCommunity={setOpenCommunityId}
+        onOpenCommunity={(id) => {
+          setJoinSheet(null);
+          setOpenCommunityId(id);
+        }}
         onCreateProfile={onEditProfile}
       />
-      {/* Above the join list, so a community opened from it stacks on top. */}
-      <CommunitySheet communityId={openCommunityId} onClose={() => setOpenCommunityId(null)} people={realPeople} onOpenPerson={onSelectPerson} />
+      <CommunitySheet
+        communityId={openCommunityId}
+        onClose={() => setOpenCommunityId(null)}
+        people={realPeople}
+        onOpenPerson={onSelectPerson}
+        onManage={(id) => switchMode({ kind: 'community', id })}
+      />
 
       <PassSheet person={myProfile} isOpen={isPassOpen} onClose={() => setIsPassOpen(false)} onSaveCard={() => setIsSaveCardOpen(true)} />
       <SaveCardSheet person={myProfile} isOpen={isSaveCardOpen} onClose={() => setIsSaveCardOpen(false)} />
       <AppearanceScreen open={isAppearanceOpen} onClose={() => setIsAppearanceOpen(false)} myProfile={myProfile} />
       <FindProfileSheet isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} onSignIn={onSignIn} />
       <AboutScreen open={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
-      {showAdmin && adminRole && <AdminMode key={adminTab} role={adminRole} initialTab={adminTab} onExit={() => setAdminSwitch('out')} />}
+      {showAdmin && adminRole && <AdminMode key={adminTab} role={adminRole} initialTab={adminTab} led={ledCommunities} onSwitch={switchMode} />}
+      {showCommunity && communityMode && (
+        <CommunityMode key={communityMode} communityId={communityMode} people={realPeople} adminRole={adminRole} onOpenPerson={onSelectPerson} onSwitch={switchMode} />
+      )}
       {adminSwitch && (
         <AdminSwitch
           direction={adminSwitch}

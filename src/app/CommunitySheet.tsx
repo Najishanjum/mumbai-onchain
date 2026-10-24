@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { Check, Copy, Crown, Image as ImageIcon, KeyRound, Loader2, QrCode, Search, Share2, UserPlus, Users } from 'lucide-react';
+import { Check, ChevronLeft, Copy, Crown, Image as ImageIcon, KeyRound, Loader2, QrCode, Search, Share2, UserPlus, Users } from 'lucide-react';
+import { useBackToClose } from '../lib/useBackToClose';
 import { CommunityCardSheet } from './CommunityCardSheet';
 import { CommunityMessages } from './CommunityMessages';
 import { setMuted } from '../lib/useBroadcasts';
@@ -50,7 +51,7 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 /** Link, QR and share for one community. */
-function InviteCard({ c }: { c: Community }) {
+export function InviteCard({ c }: { c: Community }) {
   const link = communityLink(c.slug);
   const [copied, setCopied] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
@@ -140,29 +141,9 @@ export function CoLeadCard({ c }: { c: Pick<Community, 'id' | 'community_name'> 
   );
 }
 
-interface CommunitySheetProps {
-  communityId: string | null;
-  onClose: () => void;
-  people: PersonProfile[];
-  onOpenPerson: (id: string) => void;
-}
-
-/** A community's space: who's in it, how to invite, and leader tools. */
-export const CommunitySheet: React.FC<CommunitySheetProps> = ({ communityId, onClose, people, onOpenPerson }) => {
-  const { authUser, myProfile } = usePeopleStore();
-  const adminRole = useAdminRole();
-  const { byId, mine, join, leave, refresh: refreshMine } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
-  const [refresh, setRefresh] = useState(0);
-  const members = useCommunityMembers(communityId, refresh);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [confirmLeave, setConfirmLeave] = useState(false);
-
-  const c = communityId ? byId(communityId) : null;
-  const me = mine?.find((m) => m.communityId === communityId) ?? null;
-  const isLead = me?.role === 'lead';
-  const canManage = isLead || adminRole !== null;
-
+/** A community's members joined with their profiles, and the numbers from them. */
+export function useCommunityRows(communityId: string | null, people: PersonProfile[], refreshKey = 0) {
+  const members = useCommunityMembers(communityId, refreshKey);
   const rows = useMemo(
     () =>
       (members ?? [])
@@ -171,8 +152,98 @@ export const CommunitySheet: React.FC<CommunitySheetProps> = ({ communityId, onC
     [members, people]
   );
   const memberRows = rows.filter((r) => r.m.role === 'member');
-  const thisWeek = memberRows.filter((r) => Date.now() - new Date(r.m.joinedAt).getTime() < WEEK_MS).length;
-  const credited = memberRows.filter((r) => r.m.credited);
+  return {
+    loading: members === null,
+    rows,
+    memberRows,
+    thisWeek: memberRows.filter((r) => Date.now() - new Date(r.m.joinedAt).getTime() < WEEK_MS).length,
+    credited: memberRows.filter((r) => r.m.credited),
+  };
+}
+type Rows = ReturnType<typeof useCommunityRows>;
+
+/** Counted, by link, picked: how a community is growing. */
+export function CommunityNumbers({ data }: { data: Rows }) {
+  const { credited } = data;
+  return (
+    <div className="rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
+      <p className="app-label">Your numbers</p>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        {[
+          ['Counted', credited.length],
+          ['By link', credited.filter((r) => r.m.joinedVia === 'link').length],
+          ['Picked', credited.filter((r) => r.m.joinedVia === 'picked').length],
+        ].map(([label, n]) => (
+          <div key={label} className="rounded-2xl bg-[var(--app-bg)] py-3">
+            <div className="text-[24px] font-extrabold tabular-nums">{n}</div>
+            <div className="text-[12px] text-[var(--app-muted)]">{label}</div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-[13px] text-[var(--app-muted)]">Counted: people whose first community is this one. Members in several communities count once, for the first.</p>
+    </div>
+  );
+}
+
+/** Everyone in a community, leads first. Leads and admins also see how each joined. */
+export function MemberList({ data, showVia, onOpenPerson }: { data: Rows; showVia: boolean; onOpenPerson: (id: string) => void }) {
+  if (data.loading) {
+    return (
+      <div className="py-6 flex justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" aria-label="Loading members" />
+      </div>
+    );
+  }
+  if (!data.rows.length) {
+    return (
+      <p className="px-1 mt-2 flex items-center gap-2 text-[15px] text-[var(--app-muted)]">
+        <Users className="w-4 h-4" aria-hidden="true" /> Nobody yet. Share the invite link to bring people in.
+      </p>
+    );
+  }
+  return (
+    <div className="rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
+      {data.rows.map(({ m, p }) => (
+        <button key={p.id} type="button" onClick={() => onOpenPerson(p.id)} className="app-press w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--app-pressed)]">
+          <PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" />
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] font-semibold truncate">{p.name}</span>
+            <span className="block text-[13px] text-[var(--app-muted)] truncate">{showVia ? VIA[m.joinedVia] : p.headline || p.category}</span>
+          </span>
+          {m.role === 'lead' && <span className="h-6 px-2.5 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] text-[12px] font-bold inline-flex items-center">Lead</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface CommunitySheetProps {
+  communityId: string | null;
+  onClose: () => void;
+  people: PersonProfile[];
+  onOpenPerson: (id: string) => void;
+  /** Leads (and admins): open community mode for this community. */
+  onManage: (id: string) => void;
+}
+
+/**
+ * A community's page, full screen like About: what it is, its messages,
+ * the invite link and its members. Running it happens in community mode.
+ */
+export const CommunitySheet: React.FC<CommunitySheetProps> = ({ communityId, onClose, people, onOpenPerson, onManage }) => {
+  const { authUser, myProfile } = usePeopleStore();
+  const adminRole = useAdminRole();
+  const { byId, mine, join, leave, refresh: refreshMine } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
+  const [refresh, setRefresh] = useState(0);
+  const data = useCommunityRows(communityId, people, refresh);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  useBackToClose(communityId !== null, onClose);
+
+  const c = communityId ? byId(communityId) : null;
+  const me = mine?.find((m) => m.communityId === communityId) ?? null;
+  const isLead = me?.role === 'lead';
 
   if (!communityId) return null;
 
@@ -193,123 +264,90 @@ export const CommunitySheet: React.FC<CommunitySheetProps> = ({ communityId, onC
   }
 
   return (
-    <Sheet open onClose={onClose} label={c?.community_name ?? 'Community'}>
-      {!c ? (
-        <div className="px-5 pt-10 pb-6 text-center text-[15px] text-[var(--app-muted)]">This community isn’t listed right now.</div>
-      ) : (
-        <div className="px-4 pt-6 space-y-4">
-          <header className="px-1 flex items-start gap-3.5">
-            <CommunityLogo c={c} size={64} />
-            <div className="min-w-0 flex-1">
-              <h2 className="app-title text-[24px] font-bold leading-tight">{c.community_name}</h2>
-              <p className="mt-1 text-[15px] text-[var(--app-muted)]">
-                {memberRows.length} member{memberRows.length === 1 ? '' : 's'}
-                {thisWeek > 0 && ` · ${thisWeek} new this week`}
-              </p>
-              {me && (
-                <span className="mt-2 inline-flex items-center gap-1 h-7 px-3 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] text-[13px] font-semibold">
-                  {isLead ? <Crown className="w-3.5 h-3.5" aria-hidden="true" /> : <Check className="w-3.5 h-3.5" aria-hidden="true" />}
-                  {isLead ? 'You lead this' : 'You’re a member'}
-                </span>
-              )}
-            </div>
-          </header>
-          {c.community_description && <p className="px-1 text-[15px] leading-relaxed line-clamp-4">{c.community_description}</p>}
+    <div role="dialog" aria-modal="true" aria-label={c?.community_name ?? 'Community'} className="app app-page-in fixed inset-0 z-[60] flex flex-col bg-[var(--app-bg)]">
+      <header className="shrink-0 pt-[calc(env(safe-area-inset-top)+8px)] px-3 pb-2 flex items-center gap-1 border-b border-[var(--app-line)]">
+        <button type="button" onClick={onClose} aria-label="Back" className="app-press w-11 h-11 rounded-full flex items-center justify-center">
+          <ChevronLeft className="w-6 h-6" aria-hidden="true" />
+        </button>
+        <h1 className="app-title text-[20px] truncate">{c?.community_name ?? 'Community'}</h1>
+      </header>
 
-          {!me && myProfile && (
-            <button type="button" className={`${primary} w-full`} onClick={onJoin} disabled={busy}>
-              <UserPlus className="w-4 h-4" aria-hidden="true" /> Join {c.community_name}
-            </button>
-          )}
-          {error && <p className="px-1 text-[14px] text-[var(--app-live)]">{error}</p>}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+32px)] space-y-4">
+        {!c ? (
+          <p className="pt-10 text-center text-[15px] text-[var(--app-muted)]">This community isn’t listed right now.</p>
+        ) : (
+          <>
+            <header className="px-1 flex items-start gap-3.5">
+              <CommunityLogo c={c} size={64} />
+              <div className="min-w-0 flex-1">
+                <h2 className="app-title text-[24px] font-bold leading-tight">{c.community_name}</h2>
+                <p className="mt-1 text-[15px] text-[var(--app-muted)]">
+                  {data.memberRows.length} member{data.memberRows.length === 1 ? '' : 's'}
+                  {data.thisWeek > 0 && ` · ${data.thisWeek} new this week`}
+                </p>
+                {me && (
+                  <span className="mt-2 inline-flex items-center gap-1 h-7 px-3 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] text-[13px] font-semibold">
+                    {isLead ? <Crown className="w-3.5 h-3.5" aria-hidden="true" /> : <Check className="w-3.5 h-3.5" aria-hidden="true" />}
+                    {isLead ? 'You lead this' : 'You’re a member'}
+                  </span>
+                )}
+              </div>
+            </header>
+            {c.community_description && <p className="px-1 text-[15px] leading-relaxed line-clamp-4">{c.community_description}</p>}
 
-          <CommunityMessages
-            communityId={c.id}
-            communityName={c.community_name}
-            canManage={canManage}
-            isMember={Boolean(me)}
-            muted={Boolean(me?.muted)}
-            onToggleMute={async () => {
-              if (await setMuted(c.id, !me?.muted)) await refreshMine();
-            }}
-          />
+            {(isLead || adminRole) && (
+              <button type="button" className={`${primary} w-full`} onClick={() => onManage(c.id)}>
+                <Crown className="w-4 h-4" aria-hidden="true" /> {isLead ? 'Open lead mode' : 'Manage as admin'}
+              </button>
+            )}
+            {!me && myProfile && (
+              <button type="button" className={`${primary} w-full`} onClick={onJoin} disabled={busy}>
+                <UserPlus className="w-4 h-4" aria-hidden="true" /> Join {c.community_name}
+              </button>
+            )}
+            {error && <p className="px-1 text-[14px] text-[var(--app-live)]">{error}</p>}
 
-          <InviteCard c={c} />
+            <CommunityMessages
+              communityId={c.id}
+              communityName={c.community_name}
+              canManage={false}
+              isMember={Boolean(me)}
+              muted={Boolean(me?.muted)}
+              onToggleMute={async () => {
+                if (await setMuted(c.id, !me?.muted)) await refreshMine();
+              }}
+            />
 
-          {canManage && (
-            <div className="rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
-              <p className="app-label">Your numbers</p>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                {[
-                  ['Counted', credited.length],
-                  ['By link', credited.filter((r) => r.m.joinedVia === 'link').length],
-                  ['Picked', credited.filter((r) => r.m.joinedVia === 'picked').length],
-                ].map(([label, n]) => (
-                  <div key={label} className="rounded-2xl bg-[var(--app-bg)] py-3">
-                    <div className="text-[24px] font-extrabold tabular-nums">{n}</div>
-                    <div className="text-[12px] text-[var(--app-muted)]">{label}</div>
+            <InviteCard c={c} />
+
+            <section>
+              <h3 className="px-1 mb-2 app-label">Members</h3>
+              <MemberList data={data} showVia={false} onOpenPerson={onOpenPerson} />
+            </section>
+
+            {me && me.role === 'member' && (
+              <div className="px-1 pb-2">
+                {confirmLeave ? (
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 text-[14px] text-[var(--app-muted)]">Leave {c.community_name}? You stop getting its messages.</span>
+                    <button type="button" className={plain} onClick={() => setConfirmLeave(false)}>
+                      Stay
+                    </button>
+                    <button type="button" className={`${plain} text-[var(--app-live)]`} onClick={onLeave} disabled={busy}>
+                      Leave
+                    </button>
                   </div>
-                ))}
-              </div>
-              <p className="mt-2 text-[13px] text-[var(--app-muted)]">Counted: people whose first community is this one. Members in several communities count once, for the first.</p>
-            </div>
-          )}
-
-          {canManage && <CoLeadCard c={c} />}
-
-          <section>
-            <h3 className="px-1 app-label">Members</h3>
-            {members === null ? (
-              <div className="py-6 flex justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" aria-label="Loading members" />
-              </div>
-            ) : rows.length === 0 ? (
-              <p className="px-1 mt-2 flex items-center gap-2 text-[15px] text-[var(--app-muted)]">
-                <Users className="w-4 h-4" aria-hidden="true" /> Nobody yet. Share the link above to bring people in.
-              </p>
-            ) : (
-              <div className="mt-2 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
-                {rows.map(({ m, p }) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => onOpenPerson(p.id)}
-                    className="app-press w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-[var(--app-pressed)]"
-                  >
-                    <PersonAvatar name={p.name} avatarUrl={p.avatar} size="sm" className="rounded-full! border-0! w-9! h-9!" />
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[15px] font-semibold truncate">{p.name}</span>
-                      <span className="block text-[13px] text-[var(--app-muted)] truncate">{canManage ? VIA[m.joinedVia] : p.headline || p.category}</span>
-                    </span>
-                    {m.role === 'lead' && <span className="h-6 px-2.5 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] text-[12px] font-bold inline-flex items-center">Lead</span>}
+                ) : (
+                  <button type="button" className="h-10 text-[14px] font-semibold text-[var(--app-muted)]" onClick={() => setConfirmLeave(true)}>
+                    Leave this community
                   </button>
-                ))}
+                )}
               </div>
             )}
-          </section>
-
-          {me && me.role === 'member' && (
-            <div className="px-1 pb-2">
-              {confirmLeave ? (
-                <div className="flex items-center gap-2">
-                  <span className="flex-1 text-[14px] text-[var(--app-muted)]">Leave {c.community_name}? You stop getting its messages.</span>
-                  <button type="button" className={plain} onClick={() => setConfirmLeave(false)}>
-                    Stay
-                  </button>
-                  <button type="button" className={`${plain} text-[var(--app-live)]`} onClick={onLeave} disabled={busy}>
-                    Leave
-                  </button>
-                </div>
-              ) : (
-                <button type="button" className="h-10 text-[14px] font-semibold text-[var(--app-muted)]" onClick={() => setConfirmLeave(true)}>
-                  Leave this community
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </Sheet>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 
