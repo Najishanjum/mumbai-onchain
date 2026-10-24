@@ -4,7 +4,7 @@ import type { PersonProfile, ConnectionStatus, PeopleFilterState } from '../type
 import { INITIAL_PEOPLE } from '../data/people';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { signOut } from './auth';
-import { requireApp } from './appGate';
+import { askForProfile, requireApp } from './appGate';
 import { storeAvatar } from './avatarStorage';
 import { SAMPLE_PERSON_IDS } from './samples';
 
@@ -472,6 +472,7 @@ function usePeopleStoreState() {
 
   const setConnectionStatus = useCallback((personId: string, status: ConnectionStatus) => {
     if (!requireApp('connect')) return;
+    if (status === 'CONNECTED' && !myProfile) return askForProfile();
     setConnections(prev => ({
       ...prev,
       [personId]: status,

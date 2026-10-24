@@ -238,8 +238,8 @@ Deno.serve(async (req) => {
     const { data: target } = await db.from('profiles').select('owner_id').eq('id', toProfileId).maybeSingle();
     targetUserIds = target?.owner_id ? [target.owner_id] : [];
     message = JSON.stringify({
-      title: `${me.name} added you`,
-      body: 'Tap to see their profile and add them back.',
+      title: `${me.name} started following you`,
+      body: 'Tap to see their profile and follow back.',
       url: `/?tab=people&person=${encodeURIComponent(me.id)}`,
       tag: `added:${me.id}`,
     });

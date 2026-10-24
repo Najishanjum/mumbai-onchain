@@ -46,7 +46,7 @@ import { SignInSheet } from './app/SignInSheet';
 import { isSupabaseConfigured } from './lib/supabase';
 import { isAppMode } from './lib/pwa';
 import { useAppTheme } from './lib/useAppTheme';
-import { NEED_APP_COPY, NEED_APP_EVENT, type AppOnlyAction } from './lib/appGate';
+import { NEED_APP_COPY, NEED_APP_EVENT, NEED_PROFILE_EVENT, type AppOnlyAction } from './lib/appGate';
 import { AlertCircle, Camera, ArrowRight } from 'lucide-react';
 
 export function App() {
@@ -207,6 +207,13 @@ export function App() {
     if (appMode && !myProfile && shouldAskForNotifications()) setNotifyNext(() => next);
     else next();
   };
+
+  // Following without a pass: make the pass first (askForProfile in appGate).
+  useEffect(() => {
+    const onNeedProfile = () => setIsEditModalOpen(true);
+    window.addEventListener(NEED_PROFILE_EVENT, onNeedProfile);
+    return () => window.removeEventListener(NEED_PROFILE_EVENT, onNeedProfile);
+  }, [setIsEditModalOpen]);
 
   const isSelectedPersonMe = Boolean(
     selectedPerson && (selectedPerson.isCurrentUser || (myProfile && myProfile.id === selectedPerson.id))

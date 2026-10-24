@@ -135,7 +135,9 @@ export function useReminders(
     return fresh;
   }, [all, visible, seen]);
 
-  return { reminders: visible, unread, markSeen };
+  // What dropped off after 48 hours, behind "See older".
+  const older = useMemo(() => all.filter((r) => !visible.includes(r)), [all, visible]);
+  return { reminders: visible, older, unread, markSeen };
 }
 
 export function BellButton({ unread, onClick }: { unread: boolean; onClick: () => void }) {
@@ -189,6 +191,7 @@ export function NotificationsSheet({
   isOpen,
   onClose,
   reminders,
+  older = [],
   fresh,
   onOpenEvent,
   onCreateProfile,
@@ -197,6 +200,8 @@ export function NotificationsSheet({
   isOpen: boolean;
   onClose: () => void;
   reminders: Reminder[];
+  /** Seen more than 48 hours ago: hidden until "See older". */
+  older?: Reminder[];
   /** What was unread when the sheet opened. */
   fresh: Set<string>;
   onOpenEvent: (id: string) => void;
@@ -204,6 +209,7 @@ export function NotificationsSheet({
   onOpenPerson: (id: string) => void;
 }) {
   const { getConnectionStatus, setConnectionStatus } = usePeopleStore();
+  const [showOlder, setShowOlder] = useState(false);
   const now = Date.now();
   const upcoming = reminders.filter((r) => r.tone === 'live' || r.tone === 'soon');
   const people = reminders.filter((r) => r.tone === 'added' || r.tone === 'reply');
@@ -228,7 +234,7 @@ export function NotificationsSheet({
           <PersonMark person={r.person!} tone={r.tone as 'added' | 'reply'} />
           <span className={`flex-1 min-w-0 text-[15px] leading-snug line-clamp-3 ${r.tone === 'added' ? 'pr-24' : ''}`}>
             <b className="font-bold">{r.title}</b>{' '}
-            {r.tone === 'added' ? 'added you.' : <>replied to your story: “{r.detail}”</>}{' '}
+            {r.tone === 'added' ? 'started following you.' : <>replied to your story: “{r.detail}”</>}{' '}
             <span className="text-[var(--app-muted)]">{ago(r.at, now)}</span>
           </span>
           {r.tone === 'reply' && r.thumb && <img src={r.thumb} alt="" className="shrink-0 w-10 h-[52px] rounded-md object-cover bg-[var(--app-line)]" />}
@@ -246,10 +252,10 @@ export function NotificationsSheet({
             {added ? (
               <>
                 <Check className="w-4 h-4" aria-hidden="true" />
-                Added
+                Following
               </>
             ) : (
-              'Add back'
+              'Follow back'
             )}
           </button>
         )}
@@ -268,7 +274,7 @@ export function NotificationsSheet({
               <Bell className="w-7 h-7 text-[var(--app-muted)]" aria-hidden="true" />
             </span>
             <p className="mt-4 text-[17px] font-bold">You’re all caught up</p>
-            <p className="mt-1 text-[15px] text-[var(--app-muted)]">When someone adds you or replies to your story, or a saved event is about to start, it shows up here.</p>
+            <p className="mt-1 text-[15px] text-[var(--app-muted)]">When someone follows you or replies to your story, or a saved event is about to start, it shows up here.</p>
           </div>
         ) : (
           <>
@@ -323,6 +329,17 @@ export function NotificationsSheet({
             ))}
           </>
         )}
+        {older.length > 0 &&
+          (showOlder ? (
+            <>
+              <SectionLabel>Older</SectionLabel>
+              <ul>{older.map(personRow)}</ul>
+            </>
+          ) : (
+            <button type="button" onClick={() => setShowOlder(true)} className="mt-3 mx-5 w-[calc(100%-40px)] h-11 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] text-[15px] font-semibold">
+              See older notifications ({older.length})
+            </button>
+          ))}
       </div>
     </Sheet>
   );

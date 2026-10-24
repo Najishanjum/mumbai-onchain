@@ -10,6 +10,9 @@ import { calculateMatchScore } from '../lib/matchingEngine';
 import { useConnectionCounts, type ConnectionCounts } from '../lib/useConnectionCounts';
 import { isRealSnap } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
+import { BadgeRing } from './BadgeRing';
+import { useBadge } from '../lib/useBadges';
+import { useCommunities } from '../lib/useCommunities';
 import { Chip, Sheet } from './ui';
 import { roleColor } from './Badge';
 import { dayLabel, sortByStart } from './time';
@@ -72,15 +75,21 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
   onEditProfile,
   onShowPass,
 }) => {
-  const { myProfile, connections, setConnectionStatus } = usePeopleStore();
+  const { myProfile, connections, setConnectionStatus, addedMe } = usePeopleStore();
   const { getSnapsByAuthor, setActiveSnapForViewer } = useSnapStore();
   // Re-read when you add or remove them, so their "Added you" moves.
   const counts = useConnectionCounts(person?.id, person ? connections[person.id] : null);
+  const { badge, leads } = useBadge(person?.id);
+  const { byId } = useCommunities(null, null);
   if (!person) return null;
 
+  const ledNames = leads.map((id) => byId(id)?.community_name).filter(Boolean);
+  const badgeLine = badge === 'team' ? 'Mumbai Onchain team' : ledNames.length ? `Leads ${ledNames.join(' · ')}` : null;
   const added = connections[person.id] === 'CONNECTED';
-  const links = socialLinks(person);
+  const followsMe = !isCurrentUser && addedMe.some((a) => a.profileId === person.id);
   const message = messageLink(person);
+  // The Message button already opens Telegram (or X), so it isn't repeated below.
+  const links = socialLinks(person).filter((l) => !message || l.href !== message.href);
   const going = events.filter((e) => person.attendingEvents?.includes(e.id)).sort(sortByStart);
   const snaps = getSnapsByAuthor(person.id).filter(isRealSnap);
   // Reasons only make sense against the user's real profile, not the demo fallback.
@@ -91,8 +100,13 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
       {/* clear-both: the sheet's close button floats right, and a flex column
           beside a float shrinks to make room, pushing the profile to the left. */}
       <div className="clear-both px-5 pt-1 flex flex-col items-center text-center">
-        <PersonAvatar name={person.name} avatarUrl={person.avatar} size="xl" className="rounded-full! border-0! w-24! h-24!" />
+        <BadgeRing personId={person.id} width={3}><PersonAvatar name={person.name} avatarUrl={person.avatar} size="xl" className="rounded-full! border-0! w-24! h-24!" /></BadgeRing>
         <h2 className="app-title mt-3 text-[26px] font-bold leading-tight">{person.name}</h2>
+        {badgeLine && (
+          <p className="mt-1 text-[13px] font-bold tracking-[0.02em]" style={{ color: badge === 'team' ? '#C98A2B' : 'var(--app-primary)' }}>
+            {badgeLine}
+          </p>
+        )}
         {person.headline && <p className="mt-1 text-[16px] leading-snug max-w-[32ch]">{person.headline}</p>}
         <p className="mt-2 flex items-center gap-2 text-[15px] text-[var(--app-muted)]">
           <span
@@ -104,6 +118,9 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
           {person.city}
         </p>
         {counts && <ConnectionCountsLine counts={counts} />}
+        {followsMe && (
+          <span className="mt-2 h-6 px-2.5 rounded-md bg-[var(--app-pressed)] text-[12px] font-semibold text-[var(--app-muted)] inline-flex items-center">Follows you</span>
+        )}
 
         <div className="mt-5 w-full grid grid-cols-1 gap-2">
           {isCurrentUser ? (
@@ -134,7 +151,7 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
                 }`}
               >
                 {added ? <Check className="w-[18px] h-[18px]" /> : <UserPlus className="w-[18px] h-[18px]" />}
-                {added ? 'In my people' : 'Add'}
+                {added ? 'Following' : followsMe ? 'Follow back' : 'Follow'}
               </button>
               {message && (
                 <a
@@ -152,18 +169,20 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
           )}
         </div>
 
+        {/* One row of logos; the name is in the label for screen readers and long-press. */}
         {links.length > 0 && (
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <div className="mt-3 flex justify-center gap-2">
             {links.map((l) => (
               <a
                 key={l.label}
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="app-press h-9 px-3.5 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] text-[14px] font-medium inline-flex items-center gap-1.5"
+                aria-label={l.label}
+                title={l.label}
+                className="app-press w-11 h-11 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] inline-flex items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px]"
               >
                 {l.icon}
-                {l.label}
               </a>
             ))}
           </div>
@@ -202,16 +221,21 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
           </Section>
         )}
 
-        {(person.skills?.length ?? 0) + (person.interests?.length ?? 0) > 0 && (
-          <Section title="Skills & interests">
+        {/* Two plain lists: a coloured chip read as "selected", not as a different kind. */}
+        {(person.skills?.length ?? 0) > 0 && (
+          <Section title="Skills">
             <div className="flex flex-wrap gap-2">
               {person.skills?.map((s) => (
-                <Chip key={`s-${s}`}>{s}</Chip>
+                <Chip key={s}>{s}</Chip>
               ))}
+            </div>
+          </Section>
+        )}
+        {(person.interests?.length ?? 0) > 0 && (
+          <Section title="Into">
+            <div className="flex flex-wrap gap-2">
               {person.interests?.map((s) => (
-                <Chip key={`i-${s}`} tone="saved">
-                  {s}
-                </Chip>
+                <Chip key={s}>{s}</Chip>
               ))}
             </div>
           </Section>
@@ -259,13 +283,13 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
   );
 };
 
-/** "12 Added · 8 Added you" under a name. */
+/** "12 Following · 8 Followers" under a name. */
 export function ConnectionCountsLine({ counts, className = 'mt-2' }: { counts: ConnectionCounts; className?: string }) {
   return (
     <p className={`${className} text-[14px] text-[var(--app-muted)]`}>
-      <b className="text-[var(--app-ink)]">{counts.added}</b> Added
+      <b className="text-[var(--app-ink)]">{counts.added}</b> Following
       <span aria-hidden="true"> · </span>
-      <b className="text-[var(--app-ink)]">{counts.addedYou}</b> Added you
+      <b className="text-[var(--app-ink)]">{counts.addedYou}</b> {counts.addedYou === 1 ? 'Follower' : 'Followers'}
     </p>
   );
 }
