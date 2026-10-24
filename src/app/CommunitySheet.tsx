@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { Check, Copy, Crown, KeyRound, Loader2, QrCode, Search, Share2, UserPlus, Users } from 'lucide-react';
+import { Check, Copy, Crown, Image as ImageIcon, KeyRound, Loader2, QrCode, Search, Share2, UserPlus, Users } from 'lucide-react';
+import { CommunityCardSheet } from './CommunityCardSheet';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -51,6 +52,7 @@ function InviteCard({ c }: { c: Community }) {
   const [copied, setCopied] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const [showQr, setShowQr] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
   useEffect(() => {
     if (!showQr || qr) return;
     QRCode.toDataURL(link, { margin: 1, width: 480, color: { dark: '#0A0A0C', light: '#FFFFFF' } }).then(setQr, () => setShowQr(false));
@@ -88,6 +90,10 @@ function InviteCard({ c }: { c: Community }) {
           {qr ? <img src={qr} alt={`QR code for ${c.community_name}'s invite link`} className="w-56 h-56 rounded-2xl" /> : <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" aria-label="Making the QR code" />}
         </div>
       )}
+      <button type="button" className={`${primary} mt-2 w-full`} onClick={() => setCardOpen(true)}>
+        <ImageIcon className="w-4 h-4" aria-hidden="true" /> Share card for X, Telegram or stories
+      </button>
+      <CommunityCardSheet community={cardOpen ? c : null} onClose={() => setCardOpen(false)} />
     </div>
   );
 }
