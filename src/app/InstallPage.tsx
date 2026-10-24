@@ -235,7 +235,7 @@ export function InstallPage() {
 
         {invite && (
           <div className="mt-5 flex items-center gap-3 rounded-2xl bg-[var(--app-surface)]/85 backdrop-blur-xl border border-[var(--app-line)] p-3.5">
-            {invite.logo && <img src={invite.logo} alt="" className="w-11 h-11 rounded-xl object-cover bg-white shrink-0" />}
+            {invite.logo && <img src={invite.logo} alt="" className="w-11 h-11 p-1 rounded-xl object-contain bg-white shrink-0" />}
             <p className="text-[15px] leading-snug">
               <b>{invite.name}</b> invited you. When you make your pass, pick <b>{invite.name}</b> as your community.
             </p>
