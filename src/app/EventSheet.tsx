@@ -58,7 +58,6 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
   const canHere = canCheckIn(event);
   // People you follow first, then newest check-ins.
   const checkIns = hereAt(event.id);
-  const verifiedIds = new Set(checkIns.filter((c) => c.verified).map((c) => c.profileId));
   const here = checkIns
     .map((c) => people.find((p) => p.id === c.profileId))
     .filter((p): p is PersonProfile => Boolean(p))
@@ -72,11 +71,19 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
       setHereBusy('saving');
       await leave();
     } else {
-      // One location reading for the ✓ Verified mark; checking in works without it.
-      setHereBusy(verifiable ? 'locating' : 'saving');
-      const verified = await isNearVenue(event);
+      // Events with a pin need you at the venue; one location reading, not saved.
+      // Venue TBA has nothing to check against, so it takes your word.
+      if (verifiable) {
+        setHereBusy('locating');
+        const where = await isNearVenue(event);
+        if (where !== 'near') {
+          setHereError(where === 'far' ? 'You’re not at the venue yet. Check in when you get there.' : 'Allow location to check in.');
+          setHereBusy(false);
+          return;
+        }
+      }
       setHereBusy('saving');
-      setHereError((await checkIn(event, myProfile.id, verified)) ?? '');
+      setHereError((await checkIn(event, myProfile.id, verifiable)) ?? '');
     }
     setHereBusy(false);
   }
@@ -211,15 +218,9 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
                     {hereBusy === 'locating'
                       ? 'Checking you’re there…'
                       : imHere
-                        ? `You’re here${mine?.verified ? ' ✓ Verified' : ''} · tap to leave`
+                        ? 'You’re here · tap to leave'
                         : 'I’m here'}
                   </button>
-                  {!imHere && verifiable && (
-                    <p className="mt-1.5 text-[13px] text-[var(--app-muted)]">Your location is checked once to mark you ✓ Verified. It isn’t saved.</p>
-                  )}
-                  {!imHere && mine && (
-                    <p className="mt-1.5 text-[13px] text-[var(--app-muted)]">This moves your check-in from your other event.</p>
-                  )}
                   {hereError && <p className="mt-1.5 text-[14px] text-[var(--app-live)]">{hereError}</p>}
                 </>
               ) : (
@@ -240,7 +241,6 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
                         {p.name}
                         {p.id === myProfile?.id && <span className="font-normal text-[var(--app-muted)]"> (you)</span>}
                       </span>
-                      {verifiedIds.has(p.id) && <span className="block text-[12px] font-bold text-[#3CC48C]">✓ Verified at the venue</span>}
                       <span className="block text-[13px] text-[var(--app-muted)] truncate">
                         {connections[p.id] === 'CONNECTED' ? 'You follow them' : p.headline || p.category}
                       </span>
@@ -249,7 +249,7 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-[15px] text-[var(--app-muted)]">Nobody has checked in yet. Be the first.</p>
+              <p className="mt-2 text-[15px] text-[var(--app-muted)]">Nobody has checked in yet.</p>
             )}
           </section>
         )}
