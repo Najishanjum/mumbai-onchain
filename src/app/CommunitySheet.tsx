@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { Check, Copy, Crown, Image as ImageIcon, KeyRound, Loader2, QrCode, Search, Share2, UserPlus, Users } from 'lucide-react';
 import { CommunityCardSheet } from './CommunityCardSheet';
+import { CommunityMessages } from './CommunityMessages';
+import { setMuted } from '../lib/useBroadcasts';
 import type { PersonProfile } from '../types/person';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -149,7 +151,7 @@ interface CommunitySheetProps {
 export const CommunitySheet: React.FC<CommunitySheetProps> = ({ communityId, onClose, people, onOpenPerson }) => {
   const { authUser, myProfile } = usePeopleStore();
   const adminRole = useAdminRole();
-  const { byId, mine, join, leave } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
+  const { byId, mine, join, leave, refresh: refreshMine } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
   const [refresh, setRefresh] = useState(0);
   const members = useCommunityMembers(communityId, refresh);
   const [busy, setBusy] = useState(false);
@@ -220,6 +222,17 @@ export const CommunitySheet: React.FC<CommunitySheetProps> = ({ communityId, onC
             </button>
           )}
           {error && <p className="px-1 text-[14px] text-[var(--app-live)]">{error}</p>}
+
+          <CommunityMessages
+            communityId={c.id}
+            communityName={c.community_name}
+            canManage={canManage}
+            isMember={Boolean(me)}
+            muted={Boolean(me?.muted)}
+            onToggleMute={async () => {
+              if (await setMuted(c.id, !me?.muted)) await refreshMine();
+            }}
+          />
 
           <InviteCard c={c} />
 

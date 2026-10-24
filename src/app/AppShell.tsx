@@ -326,6 +326,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             onSaveCard={() => (myProfile ? setIsSaveCardOpen(true) : onEditProfile())}
             onSelectPerson={onSelectPerson}
             communityCard={communityCard}
+            onOpenCommunity={setOpenCommunityId}
           />
           </div>
         )}
