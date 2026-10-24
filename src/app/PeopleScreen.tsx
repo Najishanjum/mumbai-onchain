@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Check, ChevronRight, QrCode, ScanLine, Search, UserPlus, Users, X } from 'lucide-react';
+import { Check, ChevronRight, Plus, QrCode, ScanLine, Search, UserPlus, Users, X } from 'lucide-react';
 import type { PersonCategory, PersonProfile } from '../types/person';
 import { usePeopleStore } from '../lib/usePeopleStore';
+import { useCommunities, type Community } from '../lib/useCommunities';
+import { CommunityLogo } from './CommunitySheet';
 import { calculateMatchScore } from '../lib/matchingEngine';
 import { isRealPerson } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
@@ -15,6 +17,8 @@ interface PeopleScreenProps {
   onCreateProfile: () => void;
   onSelectPerson: (id: string) => void;
   onAddSnap: () => void;
+  onOpenCommunity: (id: string) => void;
+  onJoinCommunity: () => void;
 }
 
 type Filter = 'all' | 'mine' | PersonCategory;
@@ -59,8 +63,14 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
   onCreateProfile,
   onSelectPerson,
   onAddSnap,
+  onOpenCommunity,
+  onJoinCommunity,
 }) => {
-  const { people, myProfile, connections, setConnectionStatus, addedMe } = usePeopleStore();
+  const { people, myProfile, connections, setConnectionStatus, addedMe, authUser } = usePeopleStore();
+  const { mine: myCommunities, communities } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
+  const yourCommunities = (myCommunities ?? [])
+    .map((m) => ({ m, c: communities.find((x) => x.id === m.communityId) }))
+    .filter((r): r is { m: (typeof r)['m']; c: Community } => Boolean(r.c));
   const followers = useMemo(() => new Set(addedMe.map((a) => a.profileId)), [addedMe]);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
@@ -121,6 +131,34 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
           <ScanLine className="w-5 h-5" />
         </button>
       </header>
+
+      {/* Your communities: their pages, one tap away. */}
+      {myProfile && (
+        <div role="list" aria-label="Your communities" className="app-scroll-x mb-4 px-4 flex gap-2 overflow-x-auto">
+          {yourCommunities.map(({ m, c }) => (
+            <button
+              key={c.id}
+              type="button"
+              role="listitem"
+              onClick={() => onOpenCommunity(c.id)}
+              className="app-press shrink-0 h-11 pl-1.5 pr-3.5 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] inline-flex items-center gap-2"
+            >
+              <CommunityLogo c={c} size={32} />
+              <span className="text-[14px] font-semibold max-w-[16ch] truncate">{c.community_name}</span>
+              {m.role === 'lead' && <span className="text-[11px] font-bold text-[var(--app-primary)]">LEAD</span>}
+            </button>
+          ))}
+          <button
+            type="button"
+            role="listitem"
+            onClick={onJoinCommunity}
+            className="app-press shrink-0 h-11 px-3.5 rounded-full border border-dashed border-[var(--app-line)] text-[14px] font-semibold text-[var(--app-muted)] inline-flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" aria-hidden="true" />
+            {yourCommunities.length ? 'Join another' : 'Join your community'}
+          </button>
+        </div>
+      )}
 
       <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} className="mb-4" />
 
