@@ -66,6 +66,7 @@ import { AboutScreen } from './AboutScreen';
 import { FindProfileSheet } from './FindProfileSheet';
 import { CommunitySheet, JoinCommunitySheet } from './CommunitySheet';
 import { CommunityMode } from './CommunityMode';
+import { FollowSheet, shouldShowFollow } from './FollowSheet';
 import type { ModeTarget } from './ModeMenu';
 
 const COMMUNITY_MODE_KEY = 'mo_community_mode';
@@ -343,6 +344,22 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const showPass = () => (myProfile ? setIsPassOpen(true) : onEditProfile());
 
+  // "Stay in the loop" (Mumbai Onchain's socials): a few seconds after the
+  // pass exists, on Today, when nothing else is open. Once, maybe twice, ever.
+  const [followOpen, setFollowOpen] = useState(false);
+  const followTried = React.useRef(false);
+  const somethingOpen = Boolean(
+    selectedEvent || selectedPerson || isPassOpen || isScannerOpen || isMapOpen || joinSheet || openCommunityId || showAdmin || showCommunity || adminSwitch
+  );
+  useEffect(() => {
+    if (followTried.current || !myProfile || tab !== 'today' || somethingOpen || !shouldShowFollow()) return;
+    const t = window.setTimeout(() => {
+      followTried.current = true;
+      setFollowOpen(true);
+    }, 4000);
+    return () => window.clearTimeout(t);
+  }, [myProfile, tab, somethingOpen]);
+
   return (
     <>
       <Scene />
@@ -553,6 +570,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       <AppearanceScreen open={isAppearanceOpen} onClose={() => setIsAppearanceOpen(false)} myProfile={myProfile} />
       <FindProfileSheet isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} onSignIn={onSignIn} />
       <AboutScreen open={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <FollowSheet open={followOpen} onClose={() => setFollowOpen(false)} />
       {showAdmin && adminRole && <AdminMode key={adminTab} role={adminRole} initialTab={adminTab} led={ledCommunities} onSwitch={switchMode} />}
       {showCommunity && communityMode && (
         <CommunityMode key={communityMode} communityId={communityMode} people={realPeople} adminRole={adminRole} onOpenPerson={onSelectPerson} onSwitch={switchMode} />
