@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Bell, CalendarClock, Check, IdCard, MessageCircle, UserPlus } from 'lucide-react';
+import { Bell, CalendarClock, Check, IdCard, Megaphone, MessageCircle, UserPlus } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { getEventStartDateTime } from '../lib/date';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -10,13 +10,13 @@ import { LiveDot, Sheet } from './ui';
 
 // id → when it was first seen. Older builds kept a plain list of ids.
 const SEEN_KEY = 'mo_seen_notes';
-// "Added you" and replies leave the list this long after you've seen them.
+// Follows, replies and community messages leave the list this long after you've seen them.
 const KEEP_SEEN_MS = 48 * 60 * 60 * 1000;
 const SOON_MS = 3 * 60 * 60 * 1000;
 
 export interface Reminder {
   id: string;
-  tone: 'live' | 'soon' | 'nudge' | 'added' | 'reply';
+  tone: 'live' | 'soon' | 'nudge' | 'added' | 'reply' | 'message';
   title: string;
   detail: string;
   eventId?: string;
@@ -27,6 +27,19 @@ export interface Reminder {
   person?: { name: string; avatar?: string; role?: string };
   /** The story they replied to. */
   thumb?: string;
+  /** A community's message: opens its page. */
+  communityId?: string;
+}
+
+/** A message from one of your communities. */
+export interface CommunityNote {
+  id: string;
+  communityId: string;
+  name: string;
+  logo?: string;
+  title: string;
+  body: string;
+  at: string;
 }
 
 export interface AddedBy {
@@ -64,7 +77,8 @@ export function useReminders(
   hasProfile: boolean,
   now: Date,
   addedBy: AddedBy[] = [],
-  repliedBy: RepliedBy[] = []
+  repliedBy: RepliedBy[] = [],
+  messages: CommunityNote[] = []
 ) {
   const all = useMemo<Reminder[]>(() => {
     // Time-sensitive first: saved events on now or about to start.
@@ -93,6 +107,15 @@ export function useReminders(
         person: { name: r.name, avatar: r.avatar, role: r.role },
         thumb: r.thumb,
       })),
+      ...messages.map((m) => ({
+        id: `msg:${m.id}`,
+        tone: 'message' as const,
+        title: m.name,
+        detail: m.body ? `${m.title}. ${m.body}` : m.title,
+        communityId: m.communityId,
+        at: m.at,
+        person: { name: m.name, avatar: m.logo },
+      })),
       ...addedBy.map((a) => ({
         id: `added:${a.personId}`,
         tone: 'added' as const,
@@ -108,12 +131,12 @@ export function useReminders(
       list.push({ id: 'nudge:badge', tone: 'nudge', title: 'Make your badge', detail: 'So people you meet can scan and add you.' });
     }
     return list;
-  }, [events, isSaved, hasProfile, now, addedBy, repliedBy]);
+  }, [events, isSaved, hasProfile, now, addedBy, repliedBy, messages]);
 
   const [seen, setSeen] = useState<Record<string, number>>(readSeen);
   // People who added you and replies stay until seen, then for 48 hours.
   const visible = useMemo(
-    () => all.filter((r) => !((r.tone === 'added' || r.tone === 'reply') && seen[r.id] && now.getTime() - seen[r.id] > KEEP_SEEN_MS)),
+    () => all.filter((r) => !((r.tone === 'added' || r.tone === 'reply' || r.tone === 'message') && seen[r.id] && now.getTime() - seen[r.id] > KEEP_SEEN_MS)),
     [all, seen, now]
   );
   const unread = visible.some((r) => !seen[r.id]);
@@ -171,8 +194,8 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 /** Their photo, with a small mark for what they did. */
-function PersonMark({ person, tone }: { person: NonNullable<Reminder['person']>; tone: 'added' | 'reply' }) {
-  const Icon = tone === 'added' ? UserPlus : MessageCircle;
+function PersonMark({ person, tone }: { person: NonNullable<Reminder['person']>; tone: 'added' | 'reply' | 'message' }) {
+  const Icon = tone === 'added' ? UserPlus : tone === 'message' ? Megaphone : MessageCircle;
   return (
     <span className="relative shrink-0">
       <PersonAvatar name={person.name} avatarUrl={person.avatar} size="md" className="rounded-full! border-0! w-11! h-11!" />
@@ -196,6 +219,7 @@ export function NotificationsSheet({
   onOpenEvent,
   onCreateProfile,
   onOpenPerson,
+  onOpenCommunity,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -207,19 +231,21 @@ export function NotificationsSheet({
   onOpenEvent: (id: string) => void;
   onCreateProfile: () => void;
   onOpenPerson: (id: string) => void;
+  onOpenCommunity?: (id: string) => void;
 }) {
   const { getConnectionStatus, setConnectionStatus } = usePeopleStore();
   const [showOlder, setShowOlder] = useState(false);
   const now = Date.now();
   const upcoming = reminders.filter((r) => r.tone === 'live' || r.tone === 'soon');
-  const people = reminders.filter((r) => r.tone === 'added' || r.tone === 'reply');
+  const people = reminders.filter((r) => r.tone === 'added' || r.tone === 'reply' || r.tone === 'message');
   const nudges = reminders.filter((r) => r.tone === 'nudge');
   const newPeople = people.filter((r) => fresh.has(r.id));
   const earlier = people.filter((r) => !fresh.has(r.id));
 
   const open = (r: Reminder) => {
     onClose();
-    if (r.personId) onOpenPerson(r.personId);
+    if (r.communityId) onOpenCommunity?.(r.communityId);
+    else if (r.personId) onOpenPerson(r.personId);
     else if (r.eventId) onOpenEvent(r.eventId);
     else onCreateProfile();
   };
@@ -231,10 +257,10 @@ export function NotificationsSheet({
     return (
       <li key={r.id} className="relative">
         <button type="button" onClick={() => open(r)} className={row}>
-          <PersonMark person={r.person!} tone={r.tone as 'added' | 'reply'} />
+          <PersonMark person={r.person!} tone={r.tone as 'added' | 'reply' | 'message'} />
           <span className={`flex-1 min-w-0 text-[15px] leading-snug line-clamp-3 ${r.tone === 'added' ? 'pr-24' : ''}`}>
             <b className="font-bold">{r.title}</b>{' '}
-            {r.tone === 'added' ? 'started following you.' : <>replied to your story: “{r.detail}”</>}{' '}
+            {r.tone === 'added' ? 'started following you.' : r.tone === 'message' ? r.detail : <>replied to your story: “{r.detail}”</>}{' '}
             <span className="text-[var(--app-muted)]">{ago(r.at, now)}</span>
           </span>
           {r.tone === 'reply' && r.thumb && <img src={r.thumb} alt="" className="shrink-0 w-10 h-[52px] rounded-md object-cover bg-[var(--app-line)]" />}
@@ -274,7 +300,7 @@ export function NotificationsSheet({
               <Bell className="w-7 h-7 text-[var(--app-muted)]" aria-hidden="true" />
             </span>
             <p className="mt-4 text-[17px] font-bold">You’re all caught up</p>
-            <p className="mt-1 text-[15px] text-[var(--app-muted)]">When someone follows you or replies to your story, or a saved event is about to start, it shows up here.</p>
+            <p className="mt-1 text-[15px] text-[var(--app-muted)]">When someone follows you, replies to your story or your community sends a message, or a saved event is about to start, it shows up here.</p>
           </div>
         ) : (
           <>

@@ -7,6 +7,8 @@ import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } 
 import { BlankBadge, LanyardBadge, Mandala } from './Badge';
 import { useStoryReplies } from '../lib/useStoryReplies';
 import { usePeopleStore } from '../lib/usePeopleStore';
+import { useCommunities } from '../lib/useCommunities';
+import { useMyMessages } from '../lib/useBroadcasts';
 import { useSnapStore } from '../lib/useSnapStore';
 import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
 import { StoriesRow } from './Stories';
@@ -48,6 +50,7 @@ interface TodayScreenProps {
   onSaveCard: () => void;
   /** "Part of a community?" or "You joined …", under the quick actions. */
   communityCard?: React.ReactNode;
+  onOpenCommunity?: (id: string) => void;
 }
 
 /**
@@ -153,6 +156,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   onFindProfile,
   onSaveCard,
   communityCard,
+  onOpenCommunity,
 }) => {
   const now = useNow();
   const today = istDateKey(now);
@@ -212,7 +216,20 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       }),
     [replies, people, recentSnaps]
   );
-  const { reminders, older: olderNotes, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy, repliedBy);
+  // Messages from your communities (not muted ones), for the bell.
+  const { authUser } = usePeopleStore();
+  const { mine: myCommunities, communities } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
+  const mutedIds = useMemo(() => (myCommunities ?? []).filter((m) => m.muted).map((m) => m.communityId), [myCommunities]);
+  const myMessages = useMyMessages(authUser?.id ?? null, mutedIds);
+  const messages = useMemo(
+    () =>
+      myMessages.flatMap((m) => {
+        const c = communities.find((x) => x.id === m.communityId);
+        return c && m.sentAt ? [{ id: m.id, communityId: c.id, name: c.community_name, logo: c.community_logo_url, title: m.title, body: m.body, at: m.sentAt }] : [];
+      }),
+    [myMessages, communities]
+  );
+  const { reminders, older: olderNotes, unread, markSeen } = useReminders(events, isSaved, Boolean(myProfile), now, addedBy, repliedBy, messages);
   // What was unread when the bell was tapped: the New section.
   const [freshNotes, setFreshNotes] = useState<Set<string>>(() => new Set());
 
@@ -324,6 +341,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         onOpenEvent={onOpenEvent}
         onCreateProfile={onCreateProfile}
         onOpenPerson={onSelectPerson}
+        onOpenCommunity={onOpenCommunity}
       />
 
       {/* Happening now */}

@@ -15,6 +15,8 @@ export interface Membership {
   joinedVia: JoinedVia;
   credited: boolean;
   joinedAt: string;
+  /** No pushes or bell entries from this community. */
+  muted: boolean;
 }
 
 export interface CommunityMember extends Membership {
@@ -107,12 +109,13 @@ const subscribe = (l: () => void) => {
   return () => listeners.delete(l);
 };
 
-const toMembership = (r: { community_id: string; role: CommunityRole; joined_via: JoinedVia; credited: boolean; joined_at: string }): Membership => ({
+const toMembership = (r: { community_id: string; role: CommunityRole; joined_via: JoinedVia; credited: boolean; joined_at: string; muted?: boolean }): Membership => ({
   communityId: r.community_id,
   role: r.role,
   joinedVia: r.joined_via,
   credited: r.credited,
   joinedAt: r.joined_at,
+  muted: Boolean(r.muted),
 });
 
 async function loadCommunities() {
@@ -128,7 +131,7 @@ async function loadMine(userId: string | null) {
   if (!supabase || !userId) return set({ mine: userId ? [] : null, userId });
   const { data, error } = await supabase
     .from('community_members')
-    .select('community_id, role, joined_via, credited, joined_at')
+    .select('community_id, role, joined_via, credited, joined_at, muted')
     .eq('user_id', userId)
     .order('joined_at');
   if (!error) set({ mine: (data ?? []).map(toMembership), userId });
@@ -209,6 +212,8 @@ export function useCommunities(userId: string | null, profileId: string | null) 
     join,
     leave,
     claim,
+    /** Re-read this account's memberships (after muting, say). */
+    refresh: () => loadMine(userId),
   };
 }
 
