@@ -8,6 +8,7 @@ import { PersonAvatar } from '../components/PersonAvatar';
 import { Sheet } from './ui';
 import { dayLabel, sortByStart } from './time';
 import { readCommunityRef, rememberCommunity, useCommunities } from '../lib/useCommunities';
+import { linksToProfile, linkValue, PLATFORMS, type LinkPlatform } from './profileLinks';
 
 interface ProfileEditorSheetProps {
   isOpen: boolean;
@@ -33,10 +34,8 @@ type Draft = {
   avatar: string;
   xHandle: string;
   telegramHandle: string;
-  githubUrl: string;
-  linkedinUrl: string;
-  farcasterHandle: string;
-  websiteUrl: string;
+  /** LinkedIn, GitHub, Instagram…: picked with "+ Add a link". */
+  links: Partial<Record<LinkPlatform, string>>;
   currentlyBuilding: string;
   lookingFor: string;
   bio: string;
@@ -54,10 +53,7 @@ function toDraft(p: PersonProfile | null): Draft {
     avatar: p?.avatar ?? '',
     xHandle: p?.xHandle ?? '',
     telegramHandle: p?.telegramHandle ?? '',
-    githubUrl: p?.githubUrl ?? '',
-    linkedinUrl: p?.linkedinUrl ?? '',
-    farcasterHandle: p?.farcasterHandle ?? '',
-    websiteUrl: p?.websiteUrl ?? '',
+    links: p ? Object.fromEntries(PLATFORMS.map((pl) => [pl.id, linkValue(p, pl.id)]).filter(([, v]) => v)) : {},
     currentlyBuilding: p?.currentlyBuilding ?? '',
     lookingFor: p?.lookingFor ?? '',
     bio: p?.bio ?? '',
@@ -172,6 +168,18 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
   const [communitySlug, setCommunitySlug] = useState(ref?.slug ?? '');
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
+  // Links shown as rows: the ones filled in, plus any just picked.
+  const [shownLinks, setShownLinks] = useState<LinkPlatform[]>(() => PLATFORMS.filter((pl) => initial.links[pl.id]).map((pl) => pl.id));
+  const [pickingLink, setPickingLink] = useState(false);
+  const setLink = (id: LinkPlatform, v: string) => setDraft((d) => ({ ...d, links: { ...d.links, [id]: v } }));
+  const removeLink = (id: LinkPlatform) => {
+    setShownLinks((s) => s.filter((x) => x !== id));
+    setDraft((d) => {
+      const links = { ...d.links };
+      delete links[id];
+      return { ...d, links };
+    });
+  };
   const toggleIn = (key: 'skills' | 'interests' | 'attendingEvents', v: string) =>
     setDraft((d) => ({ ...d, [key]: d[key].includes(v) ? d[key].filter((x) => x !== v) : [...d[key], v] }));
   const addTo = (key: 'skills' | 'interests', v: string) =>
@@ -212,17 +220,15 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
     if (hasErrors) return;
     if (isNew && communitySlug !== (ref?.slug ?? '')) rememberCommunity(communitySlug || null, 'picked');
     const t = (s: string) => s.trim();
+    const { links, ...rest } = draft;
     onSave({
-      ...draft,
+      ...rest,
+      ...linksToProfile(links),
       name: t(draft.name),
       city: t(draft.city) || 'Mumbai',
       headline: t(draft.headline),
       xHandle: xClean,
       telegramHandle: cleanHandle(draft.telegramHandle),
-      farcasterHandle: cleanHandle(draft.farcasterHandle),
-      githubUrl: t(draft.githubUrl),
-      linkedinUrl: t(draft.linkedinUrl),
-      websiteUrl: t(draft.websiteUrl),
       currentlyBuilding: t(draft.currentlyBuilding),
       lookingFor: t(draft.lookingFor),
       bio: t(draft.bio),
@@ -441,33 +447,71 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            {(
-              [
-                ['githubUrl', 'GitHub', 'github.com/you'],
-                ['linkedinUrl', 'LinkedIn', 'linkedin.com/in/you'],
-                ['farcasterHandle', 'Farcaster', 'username'],
-                ['websiteUrl', 'Website', 'yoursite.xyz'],
-              ] as const
-            ).map(([key, name, ph]) => (
-              <div key={key}>
-                <label htmlFor={`pe-${key}`} className={label}>
-                  {name}
+          {/* Everything else: pick a platform, then type the username. */}
+          {shownLinks.map((id) => {
+            const pl = PLATFORMS.find((x) => x.id === id)!;
+            return (
+              <div key={id}>
+                <label htmlFor={`pe-link-${id}`} className={`${label} flex items-center gap-1.5`}>
+                  {pl.icon('w-4 h-4')}
+                  {pl.name}
                 </label>
-                <input
-                  id={`pe-${key}`}
-                  value={draft[key]}
-                  onChange={(e) => set(key, e.target.value)}
-                  placeholder={ph}
-                  inputMode={key === 'farcasterHandle' ? 'text' : 'url'}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  className={input}
-                />
+                <div className="flex gap-2">
+                  <input
+                    id={`pe-link-${id}`}
+                    autoFocus={!initial.links[id]}
+                    value={draft.links[id] ?? ''}
+                    onChange={(e) => setLink(id, e.target.value)}
+                    placeholder={pl.placeholder}
+                    inputMode={id === 'website' || id === 'linkedin' ? 'url' : 'text'}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className={`${input} flex-1 min-w-0`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeLink(id)}
+                    aria-label={`Remove ${pl.name}`}
+                    className="app-press shrink-0 w-12 h-12 rounded-xl bg-[var(--app-surface)] border border-[var(--app-line)] flex items-center justify-center text-[var(--app-muted)]"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
+            );
+          })}
+          {shownLinks.length < PLATFORMS.length &&
+            (pickingLink ? (
+              <div>
+                <span className={label}>Add a link</span>
+                <div className="flex flex-wrap gap-2">
+                  {PLATFORMS.filter((pl) => !shownLinks.includes(pl.id)).map((pl) => (
+                    <button
+                      key={pl.id}
+                      type="button"
+                      onClick={() => {
+                        setShownLinks((s) => [...s, pl.id]);
+                        setPickingLink(false);
+                      }}
+                      className="app-press h-10 px-3.5 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] text-[15px] font-semibold inline-flex items-center gap-2"
+                    >
+                      {pl.icon('w-4 h-4')}
+                      {pl.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPickingLink(true)}
+                className="app-press h-11 px-4 rounded-full border border-dashed border-[var(--app-line)] text-[15px] font-semibold text-[var(--app-primary)] inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" aria-hidden="true" />
+                Add a link
+              </button>
             ))}
-          </div>
         </Group>
 
         <Group title="What you're into" hint="Used to suggest who you should meet.">

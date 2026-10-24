@@ -1,7 +1,8 @@
 import React from 'react';
 // Brand logos come from BrandIcons (lucide 1.x dropped them).
-import { Check, Globe, Pencil, QrCode, UserPlus } from 'lucide-react';
-import { GitHubLogo, LinkedInLogo, TelegramLogo, XLogo } from './BrandIcons';
+import { Check, Pencil, QrCode, UserPlus } from 'lucide-react';
+import { TelegramLogo, XLogo } from './BrandIcons';
+import { linkHref, linkValue, PLATFORMS } from './profileLinks';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
 import { usePeopleStore } from '../lib/usePeopleStore';
@@ -27,19 +28,20 @@ interface PersonSheetProps {
 }
 
 const handle = (h?: string) => h?.trim().replace(/^@/, '') || '';
-const withScheme = (u: string) => (/^https?:\/\//i.test(u) ? u : `https://${u}`);
 
 function socialLinks(p: PersonProfile) {
-  const links: { label: string; href: string; icon: React.ReactNode }[] = [];
+  const links: { label: string; href: string; copy?: string; icon: React.ReactNode }[] = [];
   const x = handle(p.xHandle);
   if (x) links.push({ label: `@${x}`, href: `https://x.com/${x}`, icon: <XLogo className="w-4 h-4" /> });
   const tg = handle(p.telegramHandle);
   if (tg) links.push({ label: 'Telegram', href: `https://t.me/${tg}`, icon: <TelegramLogo className="w-4 h-4" /> });
-  if (p.githubUrl) links.push({ label: 'GitHub', href: withScheme(p.githubUrl), icon: <GitHubLogo className="w-4 h-4" /> });
-  if (p.linkedinUrl) links.push({ label: 'LinkedIn', href: withScheme(p.linkedinUrl), icon: <LinkedInLogo className="w-4 h-4" /> });
-  const fc = handle(p.farcasterHandle);
-  if (fc) links.push({ label: 'Farcaster', href: `https://warpcast.com/${fc}`, icon: <span className="font-bold text-[13px]">⌐◨</span> });
-  if (p.websiteUrl) links.push({ label: 'Website', href: withScheme(p.websiteUrl), icon: <Globe className="w-4 h-4" /> });
+  // The rest, in the editor's order. A Discord username isn't a link: tapping copies it.
+  for (const pl of PLATFORMS) {
+    const v = linkValue(p, pl.id);
+    if (!v) continue;
+    const href = linkHref(pl.id, v);
+    links.push({ label: href ? pl.name : `${pl.name}: ${v}`, href: href ?? '', copy: href ? undefined : v, icon: pl.icon('w-4 h-4') });
+  }
   return links;
 }
 
@@ -170,20 +172,33 @@ export const PersonSheet: React.FC<PersonSheetProps> = ({
 
         {/* One row of logos; the name is in the label for screen readers and long-press. */}
         {links.length > 0 && (
-          <div className="mt-3 flex justify-center gap-2">
-            {links.map((l) => (
-              <a
-                key={l.label}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={l.label}
-                title={l.label}
-                className="app-press w-11 h-11 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] inline-flex items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px]"
-              >
-                {l.icon}
-              </a>
-            ))}
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            {links.map((l) =>
+              l.copy ? (
+                <button
+                  key={l.label}
+                  type="button"
+                  onClick={() => navigator.clipboard?.writeText(l.copy!).catch(() => undefined)}
+                  aria-label={`${l.label} (copy)`}
+                  title={l.label}
+                  className="app-press w-11 h-11 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] inline-flex items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px]"
+                >
+                  {l.icon}
+                </button>
+              ) : (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={l.label}
+                  title={l.label}
+                  className="app-press w-11 h-11 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] inline-flex items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px]"
+                >
+                  {l.icon}
+                </a>
+              )
+            )}
           </div>
         )}
       </div>

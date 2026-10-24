@@ -34,6 +34,8 @@ interface DbProfileRow {
   telegram_handle?: string | null;
   farcaster_handle?: string | null;
   website_url?: string | null;
+  // Added by supabase/migrations/20261102000000_profile_links.sql
+  links?: Record<string, string> | null;
 }
 
 function mapDbToPerson(row: DbProfileRow, myProfileId?: string): PersonProfile {
@@ -56,6 +58,7 @@ function mapDbToPerson(row: DbProfileRow, myProfileId?: string): PersonProfile {
     telegramHandle: row.telegram_handle || '',
     farcasterHandle: row.farcaster_handle || '',
     websiteUrl: row.website_url || '',
+    links: row.links && typeof row.links === 'object' ? row.links : {},
     isCurrentUser: Boolean(myProfileId && row.id === myProfileId),
     createdAt: row.created_at || new Date().toISOString(),
   };
@@ -82,6 +85,7 @@ function personToDbRow(p: PersonProfile, ownerId: string) {
     telegram_handle: p.telegramHandle || '',
     farcaster_handle: p.farcasterHandle || '',
     website_url: p.websiteUrl || '',
+    links: p.links || {},
     updated_at: new Date().toISOString(),
   };
 }
