@@ -52,6 +52,7 @@ html[data-app-theme='dark'] {
   --app-primary-soft: color-mix(in srgb, var(--app-primary) 16%, transparent);
   --app-live: #FF5C7A;
   --app-live-soft: rgba(255, 92, 122, 0.15);
+  --app-today: #34C77B;
   /* Saved things wear the role colour too. */
   --app-saved: var(--app-primary);
   --app-saved-soft: var(--app-primary-soft);
@@ -78,6 +79,7 @@ html[data-app-theme='light'] {
   --app-primary-soft: color-mix(in srgb, var(--app-primary) 12%, #FFFFFF);
   --app-live: #D12A50;
   --app-live-soft: #FCE4EA;
+  --app-today: #15803D;
   --app-saved: var(--app-primary);
   --app-saved-soft: var(--app-primary-soft);
   --app-glow: radial-gradient(130% 45% at 50% -12%, color-mix(in srgb, var(--app-primary) 14%, transparent), transparent 70%);
