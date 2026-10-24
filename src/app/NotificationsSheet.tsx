@@ -244,8 +244,10 @@ export function NotificationsSheet({
 
   const open = (r: Reminder) => {
     onClose();
-    if (r.communityId) onOpenCommunity?.(r.communityId);
-    else if (r.personId) onOpenPerson(r.personId);
+    // A message: its community's page (the team's notes to leads have none).
+    if (r.tone === 'message') {
+      if (r.communityId) onOpenCommunity?.(r.communityId);
+    } else if (r.personId) onOpenPerson(r.personId);
     else if (r.eventId) onOpenEvent(r.eventId);
     else onCreateProfile();
   };

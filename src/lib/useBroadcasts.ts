@@ -10,7 +10,7 @@ export interface Broadcast {
   senderProfileId: string | null;
   title: string;
   body: string;
-  audience: 'members' | 'everyone';
+  audience: 'members' | 'everyone' | 'leads';
   status: 'sent' | 'pending' | 'rejected';
   reviewNote: string;
   recipients: number;
@@ -73,7 +73,10 @@ export function useBroadcasts(communityId: string | null | 'all', limit = 30) {
   return { items, reload: useCallback(() => setNonce((n) => n + 1), []) };
 }
 
-/** Messages that reached this account in the last week, for the bell (not muted communities). */
+/**
+ * Messages that reached this account in the last week, for the bell: from
+ * its communities (not muted ones), and the team's notes to community leads.
+ */
 export function useMyMessages(userId: string | null, mutedIds: string[]) {
   const [items, setItems] = useState<Broadcast[]>([]);
   const muted = mutedIds.join(',');
@@ -85,7 +88,7 @@ export function useMyMessages(userId: string | null, mutedIds: string[]) {
       .from('broadcasts')
       .select(COLUMNS)
       .eq('status', 'sent')
-      .not('community_id', 'is', null)
+      .or('community_id.not.is.null,audience.eq.leads')
       .gte('sent_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       .order('sent_at', { ascending: false })
       .limit(20)
