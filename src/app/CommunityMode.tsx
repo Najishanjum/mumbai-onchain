@@ -3,7 +3,7 @@ import { Home, Megaphone, UserPlus, Users } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import type { AdminRole } from '../lib/useAdmin';
 import { usePeopleStore } from '../lib/usePeopleStore';
-import { useCommunities, type Community } from '../lib/useCommunities';
+import { LEVELS, useCommunities, useCommunityLevels, type Community } from '../lib/useCommunities';
 import { shortAgo, useBroadcasts, useLeadAnnouncements } from '../lib/useBroadcasts';
 import { CoLeadCard, CommunityLogo, CommunityNumbers, InviteCard, MemberList, useCommunityRows } from './CommunitySheet';
 import { CommunityMessages } from './CommunityMessages';
@@ -55,6 +55,48 @@ function Announcements({ isLead }: { isLead: boolean }) {
   );
 }
 
+/** The community's level, progress to the next one, and what each unlocks. */
+function LevelCard({ c }: { c: Community }) {
+  const { levelOf, refresh } = useCommunityLevels();
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+  const { level, counted } = levelOf(c.id);
+  const next = LEVELS.find((l) => l.level === level + 1);
+  return (
+    <div className="rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="app-label">Level</p>
+        <p className="text-[13px] text-[var(--app-muted)]">{counted} counted</p>
+      </div>
+      <p className="mt-1 text-[22px] font-bold">{LEVELS[level].name}</p>
+      {next ? (
+        <>
+          <div className="mt-3 h-2 rounded-full bg-[var(--app-pressed)] overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={next.at} aria-valuenow={Math.min(counted, next.at)} aria-label={`${counted} of ${next.at} to ${next.name}`}>
+            <div className="h-full rounded-full bg-[var(--app-primary)]" style={{ width: `${Math.min(100, (counted / next.at) * 100)}%` }} />
+          </div>
+          <p className="mt-2 text-[15px]">
+            <b>{counted} / {next.at}</b> to {next.name}: {next.unlock.charAt(0).toLowerCase() + next.unlock.slice(1)}.
+          </p>
+        </>
+      ) : (
+        <p className="mt-2 text-[15px]">The top level. Thank you for bringing {c.community_name} to the week.</p>
+      )}
+      <ul className="mt-3 pt-3 border-t border-[var(--app-line)] space-y-1.5">
+        {LEVELS.map((l) => (
+          <li key={l.level} className={`flex gap-2 text-[14px] leading-snug ${l.level <= level ? '' : 'text-[var(--app-muted)]'}`}>
+            <span className="shrink-0 w-4 text-center" aria-hidden="true">{l.level <= level ? '✓' : '·'}</span>
+            <span>
+              <b>{l.name}</b>{l.at ? ` (${l.at})` : ''}: {l.unlock}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-[13px] text-[var(--app-muted)]">Counted: people whose first community is yours, with a photo or a headline on their profile. A level you reach stays.</p>
+    </div>
+  );
+}
+
 function HomeTab({ c, data, goTo, isLead }: { c: Community; data: ReturnType<typeof useCommunityRows>; goTo: (t: Tab) => void; isLead: boolean }) {
   const { items } = useBroadcasts(c.id, 5);
   const last = items?.find((b) => b.status === 'sent');
@@ -73,6 +115,7 @@ function HomeTab({ c, data, goTo, isLead }: { c: Community; data: ReturnType<typ
         </div>
       </div>
       <div className="mx-4 space-y-3">
+        <LevelCard c={c} />
         <CommunityNumbers data={data} />
         <button type="button" onClick={() => goTo('messages')} className="app-press w-full text-left rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
           <p className="app-label">Last message</p>

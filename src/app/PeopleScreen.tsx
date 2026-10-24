@@ -160,7 +160,7 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
         </div>
       )}
 
-      <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} className="mb-4" />
+      <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} onOpenCommunity={onOpenCommunity} className="mb-4" />
 
         <>
           {/* No pass yet: the full card, since it's how people get started.

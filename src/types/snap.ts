@@ -27,6 +27,8 @@ export interface Snap {
   taggedPersonIds?: string[];
   storagePath?: string;
   visibility?: 'public' | 'private';
+  /** Posted as a community: shows with its name and logo. */
+  communityId?: string;
   reactions: SnapReactions;
   createdAt: string;
 }
@@ -40,4 +42,5 @@ export interface CreateSnapInput {
   caption?: string;
   location?: string;
   taggedPersonIds?: string[];
+  communityId?: string;
 }

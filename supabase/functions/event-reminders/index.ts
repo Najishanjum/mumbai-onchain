@@ -1,4 +1,5 @@
-// event-reminders: "<event> starts in 15 min" pushes for saved events.
+// event-reminders: "<event> starts in 15 min" pushes for saved events, and
+// "<community> reached Rising" pushes to a community's leads when it levels up.
 //
 // POST /functions/v1/event-reminders   (no body, no sign-in)
 // Run every 5 minutes by supabase/cron/event-reminders.sql. Each saved event
@@ -9,11 +10,37 @@
 // notify-connection). SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided.
 
 import webpush from 'npm:web-push@3.6.7';
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { pushTo } from '../_shared/push.ts';
 
 // Reminded once it starts within this window. The cron runs every 5 minutes,
 // so most land 15–20 minutes ahead; events saved later still get one.
 const AHEAD_MS = 20 * 60 * 1000;
+
+// What each level unlocks, for the push (levels: supabase/migrations/20261103000000_community_levels.sql).
+const LEVELS: Record<number, { name: string; unlock: string }> = {
+  1: { name: 'Rising', unlock: 'You can now post stories as your community.' },
+  2: { name: 'Featured', unlock: 'You’re in Featured communities on Today, and get 3 messages a day.' },
+  3: { name: 'Champion', unlock: 'You’re pinned on the Partners page, and can message everyone once without approval.' },
+};
+
+/** Tells each community's leads when it reaches a new level. Each level is announced once. */
+async function announceLevelUps(db: SupabaseClient): Promise<number> {
+  const { data: ups } = await db.rpc('claim_level_ups');
+  let sent = 0;
+  for (const up of (ups ?? []) as { community_id: string; community_name: string; level: number }[]) {
+    const level = LEVELS[up.level];
+    if (!level) continue;
+    const { data: leads } = await db.from('community_members').select('user_id').eq('community_id', up.community_id).eq('role', 'lead');
+    sent += await pushTo(db, (leads ?? []).map((l) => l.user_id as string), {
+      title: `${up.community_name} reached ${level.name} 🎉`,
+      body: level.unlock,
+      url: `/?community=${up.community_id}`,
+      tag: `level:${up.community_id}:${up.level}`,
+    });
+  }
+  return sent;
+}
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
@@ -21,6 +48,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const now = Date.now();
+  // Level-ups first, so a quiet minute for reminders still sends them.
+  await announceLevelUps(db).catch(() => 0);
 
   // Claim what's due by marking it, so a second run can't pick it up too.
   const { data: due, error } = await db

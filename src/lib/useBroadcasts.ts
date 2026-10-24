@@ -16,13 +16,16 @@ export interface Broadcast {
   recipients: number;
   createdAt: string;
   sentAt: string | null;
+  /** When an admin approved or declined it; null for messages that needed no approval. */
+  reviewedAt: string | null;
 }
 
-export const DAILY_LIMIT = 2;
+/** Messages to members a day: 2, or 3 from the Featured level (same as the community-message function). */
+export const dailyLimit = (level: number) => (level >= 2 ? 3 : 2);
 // Anything that looks like a link (same as LINK in the community-message function).
 export const LINK = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|xyz|io|me|ly|gg|org|net|app|site|co|in|link|to|fi|money|finance|so|ai|dev|tech|club|lol)\b|t\.me\/|wa\.me\/)/i;
 
-const COLUMNS = 'id, community_id, sender_profile_id, title, body, audience, status, review_note, recipients, created_at, sent_at';
+const COLUMNS = 'id, community_id, sender_profile_id, title, body, audience, status, review_note, recipients, created_at, sent_at, reviewed_at';
 
 type Row = {
   id: string;
@@ -36,6 +39,7 @@ type Row = {
   recipients: number;
   created_at: string;
   sent_at: string | null;
+  reviewed_at: string | null;
 };
 const toBroadcast = (r: Row): Broadcast => ({
   id: r.id,
@@ -49,6 +53,7 @@ const toBroadcast = (r: Row): Broadcast => ({
   recipients: r.recipients,
   createdAt: r.created_at,
   sentAt: r.sent_at,
+  reviewedAt: r.reviewed_at,
 });
 
 /**

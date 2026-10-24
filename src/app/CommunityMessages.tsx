@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BellOff, Bell, Loader2, Megaphone, Send } from 'lucide-react';
-import { DAILY_LIMIT, LINK, sendCommunityMessage, shortAgo, useBroadcasts, type Broadcast } from '../lib/useBroadcasts';
+import { dailyLimit, LINK, sendCommunityMessage, shortAgo, useBroadcasts, type Broadcast } from '../lib/useBroadcasts';
+import { useCommunityLevels } from '../lib/useCommunities';
 
 const field =
   'w-full px-4 rounded-2xl bg-[var(--app-bg)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]';
@@ -13,7 +14,23 @@ function StatusChip({ b }: { b: Broadcast }) {
 }
 
 /** Leads and admins: write to the community's members, or ask to reach everyone. */
-function Composer({ communityId, communityName, sentToday, onSent }: { communityId: string; communityName: string; sentToday: number; onSent: () => void }) {
+function Composer({
+  communityId,
+  communityName,
+  sentToday,
+  level,
+  championFree,
+  onSent,
+}: {
+  communityId: string;
+  communityName: string;
+  sentToday: number;
+  level: number;
+  /** A Champion that hasn't used its one message to everyone without approval. */
+  championFree: boolean;
+  onSent: () => void;
+}) {
+  const limit = dailyLimit(level);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [everyone, setEveryone] = useState(false);
@@ -21,7 +38,7 @@ function Composer({ communityId, communityName, sentToday, onSent }: { community
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
   const hasLink = LINK.test(`${title} ${body}`);
-  const left = Math.max(0, DAILY_LIMIT - sentToday);
+  const left = Math.max(0, limit - sentToday);
   const blocked = !everyone && left === 0;
 
   async function send(e: React.FormEvent) {
@@ -38,7 +55,9 @@ function Composer({ communityId, communityName, sentToday, onSent }: { community
     setDone(
       res.status === 'pending'
         ? 'Sent to the admins. You’ll get a notification when they approve or decline it.'
-        : `Sent to ${res.members} member${res.members === 1 ? '' : 's'}${res.members ? ` (${res.recipients} with notifications on)` : ''}.`
+        : everyone
+          ? `Sent to everyone: ${res.recipients} phone${res.recipients === 1 ? '' : 's'}.`
+          : `Sent to ${res.members} member${res.members === 1 ? '' : 's'}${res.members ? ` (${res.recipients} with notifications on)` : ''}.`
     );
     onSent();
   }
@@ -68,8 +87,10 @@ function Composer({ communityId, communityName, sentToday, onSent }: { community
       </div>
       <p className="text-[13px] text-[var(--app-muted)]">
         {everyone
-          ? 'Goes to everyone in the app once an admin approves it. One request at a time.'
-          : `Goes out now as “${communityName}: …”. ${left} of ${DAILY_LIMIT} left in the next 24 hours.`}
+          ? championFree
+            ? 'Your Champion message: goes to everyone in the app now, no approval needed. Once only.'
+            : 'Goes to everyone in the app once an admin approves it. One request at a time.'
+          : `Goes out now as “${communityName}: …”. ${left} of ${limit} left in the next 24 hours.`}
       </p>
       <label htmlFor="cm-title" className="sr-only">
         Title
@@ -92,7 +113,7 @@ function Composer({ communityId, communityName, sentToday, onSent }: { community
         className="app-press w-full h-12 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Send className="w-4 h-4" aria-hidden="true" />}
-        {blocked ? 'Back tomorrow' : everyone ? 'Ask the admins' : 'Send to members'}
+        {blocked ? 'Back tomorrow' : everyone ? (championFree ? 'Send to everyone' : 'Ask the admins') : 'Send to members'}
       </button>
     </form>
   );
@@ -115,13 +136,15 @@ export function CommunityMessages({
   onToggleMute: () => void;
 }) {
   const { items, reload } = useBroadcasts(communityId);
+  const { level } = useCommunityLevels().levelOf(communityId);
+  const championFree = level >= 3 && !(items ?? []).some((b) => b.audience === 'everyone' && b.status === 'sent' && !b.reviewedAt);
   const sentToday = (items ?? []).filter((b) => b.audience === 'members' && b.status === 'sent' && b.sentAt && Date.now() - new Date(b.sentAt).getTime() < DAY_MS).length;
   // Members only see what was sent; leads see their waiting and declined ones too.
   const shown = (items ?? []).filter((b) => canManage || b.status === 'sent');
 
   return (
     <div className="space-y-3">
-      {canManage && <Composer communityId={communityId} communityName={communityName} sentToday={sentToday} onSent={reload} />}
+      {canManage && <Composer communityId={communityId} communityName={communityName} sentToday={sentToday} level={level} championFree={championFree} onSent={reload} />}
       {(shown.length > 0 || isMember) && (
         <section>
           <div className="px-1 flex items-center justify-between">

@@ -12,6 +12,8 @@ import { useStoryReplies } from '../lib/useStoryReplies';
 import { recordSnapView, useSnapViewers } from '../lib/useSnapViews';
 import { coverAround, keyboardFit, useKeyboardViewport } from '../lib/useKeyboardViewport';
 import { requireApp } from '../lib/appGate';
+import { useCommunities } from '../lib/useCommunities';
+import { CommunityLogo } from './CommunitySheet';
 
 const SEEN_KEY = 'mo_seen_snaps';
 
@@ -26,7 +28,11 @@ function seenAgo(iso: string): string {
 const STORY_MS = 5000;
 
 interface Story {
+  /** The person, or `c:<id>` for a community's story. */
+  key: string;
   authorId: string;
+  /** Posted as a community: its name and logo, and tapping opens its page. */
+  communityId?: string;
   name: string;
   avatar?: string;
   role?: string;
@@ -45,33 +51,36 @@ function readSeen(): Set<string> {
 // Stories last this long; after that a snap lives on in Highlights on the profile.
 const STORY_LIFE_MS = 48 * 60 * 60 * 1000;
 
-/** The last 48 hours of snaps, grouped by person, oldest first inside each story, unseen stories first. */
+/**
+ * The last 48 hours of snaps, grouped by person (or by community, for stories
+ * posted as one), oldest first inside each story, unseen stories first.
+ */
 function useStories(seen: Set<string>) {
   const { recentSnaps } = useSnapStore();
   const { people, myProfile } = usePeopleStore();
+  const { communities } = useCommunities(null, null);
   return useMemo(() => {
     const byAuthor = new Map<string, Story>();
     const since = Date.now() - STORY_LIFE_MS;
     for (const s of recentSnaps.filter((s) => isRealSnap(s) && new Date(s.createdAt).getTime() >= since)) {
+      const community = s.communityId ? communities.find((c) => c.id === s.communityId) : undefined;
+      const key = community ? `c:${community.id}` : s.authorId;
       const person = people.find((p) => p.id === s.authorId) ?? (myProfile?.id === s.authorId ? myProfile : undefined);
-      const story = byAuthor.get(s.authorId) ?? {
-        authorId: s.authorId,
-        name: person?.name ?? s.authorName,
-        avatar: person?.avatar ?? s.authorAvatar,
-        role: person?.category ?? s.authorRole,
-        person,
-        snaps: [],
-      };
+      const story =
+        byAuthor.get(key) ??
+        (community
+          ? { key, authorId: s.authorId, communityId: community.id, name: community.community_name, avatar: community.community_logo_url, snaps: [] }
+          : { key, authorId: s.authorId, name: person?.name ?? s.authorName, avatar: person?.avatar ?? s.authorAvatar, role: person?.category ?? s.authorRole, person, snaps: [] });
       story.snaps.push(s);
-      byAuthor.set(s.authorId, story);
+      byAuthor.set(key, story);
     }
     const stories = [...byAuthor.values()].map((st) => ({
       ...st,
       snaps: [...st.snaps].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     }));
-    const mine = stories.find((st) => st.authorId === myProfile?.id) ?? null;
+    const mine = stories.find((st) => st.key === myProfile?.id) ?? null;
     const others = stories
-      .filter((st) => st.authorId !== myProfile?.id)
+      .filter((st) => st.key !== myProfile?.id)
       .sort((a, b) => {
         const au = a.snaps.some((s) => !seen.has(s.id)) ? 0 : 1;
         const bu = b.snaps.some((s) => !seen.has(s.id)) ? 0 : 1;
@@ -79,7 +88,7 @@ function useStories(seen: Set<string>) {
         return b.snaps[b.snaps.length - 1].createdAt.localeCompare(a.snaps[a.snaps.length - 1].createdAt);
       });
     return { mine, others, myProfile };
-  }, [recentSnaps, people, myProfile, seen]);
+  }, [recentSnaps, people, myProfile, seen, communities]);
 }
 
 function Ring({ color, seen, children }: { color: string; seen: boolean; children: ReactNode }) {
@@ -100,10 +109,12 @@ function Ring({ color, seen, children }: { color: string; seen: boolean; childre
 export function StoriesRow({
   onAddSnap,
   onOpenPerson,
+  onOpenCommunity,
   className = '',
 }: {
   onAddSnap: () => void;
   onOpenPerson: (id: string) => void;
+  onOpenCommunity?: (id: string) => void;
   className?: string;
 }) {
   const [seen, setSeen] = useState<Set<string>>(readSeen);
@@ -164,17 +175,23 @@ export function StoriesRow({
 
         {others.map((st) => (
           <button
-            key={st.authorId}
+            key={st.key}
             type="button"
             onClick={() => open(st)}
             aria-label={`${st.name}'s story, ${st.snaps.length} snap${st.snaps.length === 1 ? '' : 's'}`}
             className={bubble}
           >
-            <Ring color={roleColor(st.role)} seen={allSeen(st)}>
-              <PersonAvatar name={st.name} avatarUrl={st.avatar} size="lg" className="rounded-full! border-0! w-[58px]! h-[58px]!" />
+            <Ring color={st.communityId ? 'var(--app-primary)' : roleColor(st.role)} seen={allSeen(st)}>
+              {st.communityId ? (
+                <span className="block rounded-full overflow-hidden">
+                  <CommunityLogo c={{ community_name: st.name, community_logo_url: st.avatar ?? '' }} size={58} />
+                </span>
+              ) : (
+                <PersonAvatar name={st.name} avatarUrl={st.avatar} size="lg" className="rounded-full! border-0! w-[58px]! h-[58px]!" />
+              )}
             </Ring>
             <span className={`text-[12px] w-full truncate text-center ${allSeen(st) ? 'text-[var(--app-muted)]' : 'font-semibold'}`}>
-              {st.name.split(' ')[0]}
+              {st.communityId ? st.name : st.name.split(' ')[0]}
             </span>
           </button>
         ))}
@@ -190,13 +207,20 @@ export function StoriesRow({
         <StoryViewer
           queue={viewing.queue}
           start={viewing.start}
-          isMine={(st) => st.authorId === myProfile?.id}
+          isMine={(st) => st.key === myProfile?.id}
           onSeen={markSeen}
           onClose={() => setViewing(null)}
           onOpenPerson={(id) => {
             setViewing(null);
             onOpenPerson(id);
           }}
+          onOpenCommunity={
+            onOpenCommunity &&
+            ((id) => {
+              setViewing(null);
+              onOpenCommunity(id);
+            })
+          }
         />
       )}
     </>
@@ -210,6 +234,7 @@ function StoryViewer({
   onSeen,
   onClose,
   onOpenPerson,
+  onOpenCommunity,
 }: {
   queue: Story[];
   start: number;
@@ -217,6 +242,7 @@ function StoryViewer({
   onSeen: (snapId: string) => void;
   onClose: () => void;
   onOpenPerson: (id: string) => void;
+  onOpenCommunity?: (id: string) => void;
 }) {
   const { getConnectionStatus, setConnectionStatus } = usePeopleStore();
   const [storyAt, setStoryAt] = useState(start);
@@ -349,7 +375,7 @@ function StoryViewer({
   const place = snap.eventId === NO_EVENT_ID ? '' : snap.eventName || snap.location;
   const held = paused || Boolean(menu) || typing || repliesOpen;
   const connected = getConnectionStatus(story.authorId) === 'CONNECTED';
-  const color = roleColor(story.role);
+  const color = story.communityId ? 'var(--app-primary)' : roleColor(story.role);
   const stop = { onTouchStart: (e: TouchEvent) => e.stopPropagation(), onTouchEnd: (e: TouchEvent) => e.stopPropagation() };
 
   return (
@@ -397,20 +423,26 @@ function StoryViewer({
       <div className="absolute z-10 top-[calc(env(safe-area-inset-top)+20px)] inset-x-3 flex items-center gap-2.5">
         <button
           type="button"
-          onClick={() => onOpenPerson(story.authorId)}
+          onClick={() => (story.communityId ? onOpenCommunity?.(story.communityId) : onOpenPerson(story.authorId))}
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
           className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
         >
           <span className="rounded-full p-[2px]" style={{ background: color }}>
-            <PersonAvatar name={story.name} avatarUrl={story.avatar} size="md" className="rounded-full! border-0! w-9! h-9!" />
+            {story.communityId ? (
+              <span className="block rounded-full overflow-hidden">
+                <CommunityLogo c={{ community_name: story.name, community_logo_url: story.avatar ?? '' }} size={36} />
+              </span>
+            ) : (
+              <PersonAvatar name={story.name} avatarUrl={story.avatar} size="md" className="rounded-full! border-0! w-9! h-9!" />
+            )}
           </span>
           <span className="min-w-0">
             <span className="block text-[15px] font-bold truncate">{mine ? 'Your story' : story.name}</span>
             <span className="block text-[12px] text-white/75 truncate">{snap.date}</span>
           </span>
         </button>
-        {!mine && (
+        {!mine && !story.communityId && (
           <button
             type="button"
             onClick={() => setConnectionStatus(story.authorId, connected ? 'NOT_CONNECTED' : 'CONNECTED')}

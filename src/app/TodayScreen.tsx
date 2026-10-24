@@ -7,7 +7,8 @@ import { CoverHero, EventRow, GroupedList, LiveDot, SaveButton, SectionHeader } 
 import { BlankBadge, LanyardBadge, Mandala } from './Badge';
 import { useStoryReplies } from '../lib/useStoryReplies';
 import { usePeopleStore } from '../lib/usePeopleStore';
-import { useCommunities } from '../lib/useCommunities';
+import { useCommunities, useCommunityLevels } from '../lib/useCommunities';
+import { CommunityLogo } from './CommunitySheet';
 import { useLeadAnnouncements, useMyMessages } from '../lib/useBroadcasts';
 import { useSnapStore } from '../lib/useSnapStore';
 import { BellButton, NotificationsSheet, useReminders } from './NotificationsSheet';
@@ -222,6 +223,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const mutedIds = useMemo(() => (myCommunities ?? []).filter((m) => m.muted).map((m) => m.communityId), [myCommunities]);
   const myMessages = useMyMessages(authUser?.id ?? null, mutedIds);
   const isLead = (myCommunities ?? []).some((m) => m.role === 'lead');
+  const { levelOf } = useCommunityLevels();
+  const featured = communities.filter((c) => levelOf(c.id).level >= 2).sort((a, b) => levelOf(b.id).counted - levelOf(a.id).counted);
   const { unseen: unseenAnnouncements, gotIt } = useLeadAnnouncements(authUser?.id ?? null, isLead);
   const messages = useMemo(
     () =>
@@ -313,7 +316,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       {/* Stories from snaps, first thing below the badge */}
       <section ref={feedRef} aria-label="Stories" className="mb-6 pt-2">
         <SectionHeader title="Stories" />
-        <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} />
+        <StoriesRow onAddSnap={onAddSnap} onOpenPerson={onSelectPerson} onOpenCommunity={onOpenCommunity} />
       </section>
 
       {/* Quick actions */}
@@ -479,6 +482,21 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           </p>
         )}
       </section>
+
+      {/* Communities at the Featured level (50 counted members) and up. */}
+      {featured.length > 0 && onOpenCommunity && (
+        <section className="mb-7">
+          <SectionHeader title="Featured communities" />
+          <div className="app-scroll-x flex gap-3 overflow-x-auto px-5 pb-1">
+            {featured.map((c) => (
+              <button key={c.id} type="button" onClick={() => onOpenCommunity(c.id)} className="app-press shrink-0 w-[76px] flex flex-col items-center gap-1.5">
+                <CommunityLogo c={c} size={64} />
+                <span className="text-[13px] font-medium w-full truncate text-center">{c.community_name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* People */}
       <section>

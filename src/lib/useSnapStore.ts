@@ -30,6 +30,8 @@ export interface DbSnapRow {
     clap?: number;
   } | null;
   visibility?: string | null;
+  /** Posted as a community (Rising level and up). */
+  community_id?: string | null;
   created_at?: string;
 }
 
@@ -79,6 +81,7 @@ function mapDbRowToSnap(row: DbSnapRow, peopleMap: Map<string, PersonProfile>, m
     location: row.location || 'Mumbai, India',
     taggedPersonIds: Array.isArray(row.tagged_person_ids) ? row.tagged_person_ids : [],
     visibility: (row.visibility as 'public' | 'private') || 'public',
+    communityId: row.community_id || undefined,
     reactions: {
       heart: row.reactions?.heart ?? 0,
       fire: row.reactions?.fire ?? 0,
@@ -414,6 +417,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
       location: input.location || 'Mumbai, India',
       taggedPersonIds: input.taggedPersonIds || [],
       visibility: 'public',
+      communityId: input.communityId,
       reactions: { heart: 0, fire: 0, eyes: 0, clap: 0 },
       createdAt: new Date().toISOString(),
     };
@@ -438,6 +442,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
             reactions: newSnap.reactions,
             visibility: 'public',
             created_at: newSnap.createdAt,
+            ...(newSnap.communityId ? { community_id: newSnap.communityId } : {}),
           },
         ]);
 

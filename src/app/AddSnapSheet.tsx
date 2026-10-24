@@ -9,6 +9,8 @@ import { isRealPerson } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { Sheet } from './ui';
 import { dayLabel, hasEnded, isLive, sortByStart, VENUE_TBA } from './time';
+import { useCommunities, useCommunityLevels } from '../lib/useCommunities';
+import { CommunityLogo } from './CommunitySheet';
 
 interface AddSnapSheetProps {
   isOpen: boolean;
@@ -22,8 +24,16 @@ const MAX_CAPTION = 140;
 
 function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit<AddSnapSheetProps, 'isOpen'>) {
   const { addSnap } = useSnapStore();
-  const { people, myProfile } = usePeopleStore();
+  const { people, myProfile, authUser } = usePeopleStore();
   const { savedIds } = useSavedEvents();
+  // Leads of a Rising (or higher) community can post as it.
+  const { mine: memberships, byId } = useCommunities(authUser?.id ?? null, myProfile?.id ?? null);
+  const { levelOf } = useCommunityLevels();
+  const postAsOptions = (memberships ?? [])
+    .filter((m) => m.role === 'lead' && levelOf(m.communityId).level >= 1)
+    .map((m) => byId(m.communityId))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c));
+  const [postAs, setPostAs] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Best guess at where the photo was taken: the event they came from, then
@@ -75,6 +85,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
         caption: caption.trim(),
         location: ev && ev.location !== VENUE_TBA ? ev.location : 'Mumbai',
         taggedPersonIds: tagged,
+        communityId: postAs ?? undefined,
       });
       if (preview) URL.revokeObjectURL(preview);
       onClose();
@@ -173,6 +184,35 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
         <div className="text-right text-[12px] text-[var(--app-faint)]">
           {caption.length}/{MAX_CAPTION}
         </div>
+
+        {postAsOptions.length > 0 && (
+          <>
+            <div className="mt-4 app-label mb-2">Post as</div>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Post as">
+              {[{ id: null, name: 'You', logo: '' }, ...postAsOptions.map((c) => ({ id: c.id as string | null, name: c.community_name, logo: c.community_logo_url }))].map((o) => (
+                <button
+                  key={o.id ?? 'me'}
+                  type="button"
+                  role="radio"
+                  aria-checked={postAs === o.id}
+                  onClick={() => setPostAs(o.id)}
+                  className={`app-press h-10 pl-1.5 pr-3.5 rounded-full border text-[14px] font-semibold inline-flex items-center gap-2 ${
+                    postAs === o.id ? 'bg-[var(--app-ink)] text-[var(--app-bg)] border-[var(--app-ink)]' : 'bg-[var(--app-surface)] border-[var(--app-line)]'
+                  }`}
+                >
+                  {o.id ? (
+                    <span className="block rounded-full overflow-hidden">
+                      <CommunityLogo c={{ community_name: o.name, community_logo_url: o.logo }} size={28} />
+                    </span>
+                  ) : (
+                    <PersonAvatar name={myProfile.name} avatarUrl={myProfile.avatar} size="sm" className="rounded-full! border-0! w-7! h-7!" />
+                  )}
+                  {o.name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="mt-4 app-label mb-2">Where</div>
         <div className="rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">

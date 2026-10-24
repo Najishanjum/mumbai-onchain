@@ -4,7 +4,8 @@
 //   headers: Authorization: Bearer <the signed-in user's access token>
 //   body:    { "send": { "communityId", "title", "body", "audience": "members" | "everyone" } }
 //              a lead (or an admin): to members it goes out now (2 a day per
-//              community); to everyone it waits for an admin
+//              community, 3 from Featured); to everyone it waits for an admin,
+//              except a Champion's first one, which goes out now
 //        or  { "review": { "id", "decision": "approve" | "reject", "note"? } }
 //              an admin: sends a waiting message to everyone, or declines it
 // No links in messages: a lead's account could be taken over, and this is a
@@ -20,7 +21,8 @@ const cors = {
 // Errors are 200 with { error } so the app can show the message.
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, 'content-type': 'application/json' } });
 
-const DAILY_LIMIT = 2;
+// Messages to members a day, by level (Featured and up get a third).
+const dailyLimit = (level: number) => (level >= 2 ? 3 : 2);
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Anything that looks like a link (same as LINK in src/lib/useBroadcasts.ts).
 const LINK = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|xyz|io|me|ly|gg|org|net|app|site|co|in|link|to|fi|money|finance|so|ai|dev|tech|club|lol)\b|t\.me\/|wa\.me\/)/i;
@@ -58,6 +60,38 @@ Deno.serve(async (req) => {
     const { data: community } = await db.from('community_partner_applications').select('community_name, status').eq('id', communityId).maybeSingle();
     if (!community || community.status !== 'approved') return json({ error: 'That community isn’t listed right now.' });
     const { data: me } = await db.from('profiles').select('id, name').eq('owner_id', who.user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    const { data: levelData } = await db.rpc('community_level', { p_community_id: communityId });
+    const level = typeof levelData === 'number' ? levelData : 0;
+
+    // A Champion's first message to everyone needs no approval. Sent ones an
+    // admin approved have reviewed_by; ones sent this way don't.
+    if (audience === 'everyone' && level >= 3) {
+      const { count: used } = await db
+        .from('broadcasts')
+        .select('id', { count: 'exact', head: true })
+        .eq('community_id', communityId)
+        .eq('audience', 'everyone')
+        .eq('status', 'sent')
+        .is('reviewed_by', null);
+      if ((used ?? 0) === 0) {
+        const { data: row, error } = await db
+          .from('broadcasts')
+          .insert({ community_id: communityId, sender_id: who.user.id, sender_profile_id: me?.id ?? null, title, body, audience, status: 'sent', sent_at: new Date().toISOString() })
+          .select('id')
+          .single();
+        if (error) return json({ error: 'Couldn’t send. Try again.' });
+        const recipients = await pushTo(db, null, { title: `${community.community_name}: ${title}`, body, url: `/?community=${communityId}`, tag: `cmsg:${row.id}` });
+        await db.from('broadcasts').update({ recipients }).eq('id', row.id);
+        const { data: admins } = await db.from('app_admins').select('user_id');
+        await pushTo(db, (admins ?? []).map((a) => a.user_id as string), {
+          title: `${community.community_name} messaged everyone`,
+          body: `“${title}”, their Champion message. It’s in Notify → History.`,
+          url: '/?admin=notify',
+          tag: `champion:${row.id}`,
+        });
+        return json({ status: 'sent', recipients, members: recipients });
+      }
+    }
 
     if (audience === 'everyone') {
       const { count } = await db.from('broadcasts').select('id', { count: 'exact', head: true }).eq('community_id', communityId).eq('status', 'pending');
@@ -84,7 +118,8 @@ Deno.serve(async (req) => {
       .eq('audience', 'members')
       .eq('status', 'sent')
       .gte('sent_at', new Date(Date.now() - DAY_MS).toISOString());
-    if ((count ?? 0) >= DAILY_LIMIT) return json({ error: `That’s ${DAILY_LIMIT} messages in the last 24 hours, the most for now. Try again later.` });
+    const limit = dailyLimit(level);
+    if ((count ?? 0) >= limit) return json({ error: `That’s ${limit} messages in the last 24 hours, the most for now. Try again later.` });
 
     const { data: members } = await db.from('community_members').select('user_id').eq('community_id', communityId).eq('muted', false).neq('user_id', who.user.id);
     const { data: row, error } = await db
