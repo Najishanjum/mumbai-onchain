@@ -8,7 +8,8 @@ import { PersonAvatar } from '../components/PersonAvatar';
 import { Sheet } from './ui';
 import { dayLabel, sortByStart } from './time';
 import { readCommunityRef, rememberCommunity, useCommunities } from '../lib/useCommunities';
-import { linksToProfile, linkValue, PLATFORMS, type LinkPlatform } from './profileLinks';
+import { linksToProfile, linkValue, PLATFORMS, usernameOf, type LinkPlatform } from './profileLinks';
+import { TelegramLogo, XLogo } from './BrandIcons';
 
 interface ProfileEditorSheetProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ function toDraft(p: PersonProfile | null): Draft {
     avatar: p?.avatar ?? '',
     xHandle: p?.xHandle ?? '',
     telegramHandle: p?.telegramHandle ?? '',
-    links: p ? Object.fromEntries(PLATFORMS.map((pl) => [pl.id, linkValue(p, pl.id)]).filter(([, v]) => v)) : {},
+    links: p ? Object.fromEntries(PLATFORMS.map((pl) => [pl.id, usernameOf(pl.id, linkValue(p, pl.id))]).filter(([, v]) => v)) : {},
     currentlyBuilding: p?.currentlyBuilding ?? '',
     lookingFor: p?.lookingFor ?? '',
     bio: p?.bio ?? '',
@@ -410,8 +411,8 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
 
         <Group title="Where to find you" hint="Shown on your pass so people can follow up after you meet.">
           <div>
-            <label htmlFor="pe-x" className={label}>
-              X
+            <label htmlFor="pe-x" className={`${label} flex items-center gap-1.5`}>
+              <XLogo className="w-4 h-4" />X
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[var(--app-muted)]">@</span>
@@ -430,8 +431,8 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
             {errors.xHandle && <p className="mt-1.5 text-[14px] text-[var(--app-live)]">{errors.xHandle}</p>}
           </div>
           <div>
-            <label htmlFor="pe-tg" className={label}>
-              Telegram
+            <label htmlFor="pe-tg" className={`${label} flex items-center gap-1.5`}>
+              <TelegramLogo className="w-4 h-4" />Telegram
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[var(--app-muted)]">@</span>
@@ -457,18 +458,27 @@ function EditorForm({ currentProfile, events, onClose, onSave }: Omit<ProfileEdi
                   {pl.name}
                 </label>
                 <div className="flex gap-2">
-                  <input
-                    id={`pe-link-${id}`}
-                    autoFocus={!initial.links[id]}
-                    value={draft.links[id] ?? ''}
-                    onChange={(e) => setLink(id, e.target.value)}
-                    placeholder={pl.placeholder}
-                    inputMode={id === 'website' || id === 'linkedin' ? 'url' : 'text'}
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    className={`${input} flex-1 min-w-0`}
-                  />
+                  {/* The site is fixed in front, so only the username is typed. A pasted link is trimmed to it. */}
+                  <div className="flex-1 min-w-0 h-12 flex items-center rounded-xl bg-[var(--app-surface)] border border-[var(--app-line)] focus-within:border-[var(--app-primary)]">
+                    {pl.prefix && !/^https?:\/\//i.test(draft.links[id] ?? '') && (
+                      <span className="shrink-0 pl-4 text-[16px] text-[var(--app-muted)]" aria-hidden="true">
+                        {pl.prefix}
+                      </span>
+                    )}
+                    <input
+                      id={`pe-link-${id}`}
+                      autoFocus={!initial.links[id]}
+                      value={draft.links[id] ?? ''}
+                      onChange={(e) => setLink(id, usernameOf(id, e.target.value))}
+                      placeholder={pl.placeholder}
+                      aria-label={pl.prefix ? `${pl.name} username` : undefined}
+                      inputMode={id === 'website' ? 'url' : 'text'}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      className={`flex-1 min-w-0 h-full bg-transparent outline-none text-[16px] pr-4 placeholder:text-[var(--app-faint)] ${pl.prefix && !/^https?:\/\//i.test(draft.links[id] ?? '') ? 'pl-0.5' : 'pl-4'}`}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => removeLink(id)}
