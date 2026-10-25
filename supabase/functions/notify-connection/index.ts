@@ -20,6 +20,7 @@
 
 import webpush from 'npm:web-push@3.6.7';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { pushTo } from '../_shared/push.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -57,6 +58,38 @@ const ADMIN_EVENTS: Record<string, { what: string; tab: string }> = {
   partner_change_approved: { what: 'approved a change to a partner', tab: 'partners' },
   partner_change_rejected: { what: 'rejected a change to a partner', tab: 'partners' },
 };
+
+// Someone checked in: people who marked the event Going (and aren't there
+// yet) get one push, at most once an hour per event, so a busy venue doesn't
+// ring their phone with every arrival.
+const GOING_PING_MS = 60 * 60 * 1000;
+async function pingGoing(db: SupabaseClient, eventId: string, title: string, name: string, skip: Set<string>, hereNow: number): Promise<number> {
+  const { data: going } = await db.from('profiles').select('owner_id').contains('attending_events', [eventId]).not('owner_id', 'is', null);
+  let ids = [...new Set((going ?? []).map((g) => g.owner_id as string))].filter((id) => !skip.has(id));
+  if (!ids.length) return 0;
+  const { data: recent } = await db
+    .from('here_pings')
+    .select('user_id')
+    .eq('event_id', eventId)
+    .in('user_id', ids)
+    .gt('sent_at', new Date(Date.now() - GOING_PING_MS).toISOString());
+  const told = new Set((recent ?? []).map((r) => r.user_id as string));
+  ids = ids.filter((id) => !told.has(id));
+  if (!ids.length) return 0;
+  // Marked before sending, so two arrivals at once can't both ring.
+  await db.from('here_pings').upsert(ids.map((user_id) => ({ user_id, event_id: eventId, sent_at: new Date().toISOString() })));
+  return pushTo(
+    db,
+    ids,
+    {
+      title: `${name} just checked in at ${title}`,
+      body: hereNow > 1 ? `${hereNow} people are here now. Tap to see who.` : 'Tap to see who’s here.',
+      url: `/?event=${encodeURIComponent(eventId)}`,
+      tag: `here-going:${eventId}`,
+    },
+    2 * 60 * 60
+  );
+}
 
 const adminIds = async (db: SupabaseClient) => ((await db.from('app_admins').select('user_id')).data ?? []).map((a) => a.user_id as string);
 
@@ -215,7 +248,8 @@ Deno.serve(async (req) => {
   } else if (checkIn) {
     if (!me) return json(400, { error: 'No profile' });
     // Their check-in, made just now: tell people they've added, or who added
-    // them, that are checked in at the same event. Never the whole room.
+    // them, that are checked in at the same event (never the whole room), and
+    // people going to it who haven't arrived (pingGoing).
     const { data: mine } = await db.from('check_ins').select('event_id, event_title, checked_in_at').eq('user_id', who.user.id).maybeSingle();
     if (!mine || !isFresh(mine.checked_in_at)) return json(200, { sent: 0, reason: 'no recent check-in' });
     const { data: room } = await db
@@ -225,13 +259,19 @@ Deno.serve(async (req) => {
       .gt('expires_at', new Date().toISOString())
       .neq('user_id', who.user.id);
     const others = (room ?? []).map((r) => r.profile_id as string);
-    if (!others.length) return json(200, { sent: 0, reason: 'nobody else here' });
-    const [{ data: added }, { data: addedMe }] = await Promise.all([
-      db.from('connections').select('to_profile_id').eq('from_profile_id', me.id).in('to_profile_id', others),
-      db.from('connections').select('from_profile_id').eq('to_profile_id', me.id).in('from_profile_id', others),
-    ]);
-    const known = new Set([...(added ?? []).map((c) => c.to_profile_id), ...(addedMe ?? []).map((c) => c.from_profile_id)]);
-    targetUserIds = (room ?? []).filter((r) => known.has(r.profile_id)).map((r) => r.user_id as string);
+    if (others.length) {
+      const [{ data: added }, { data: addedMe }] = await Promise.all([
+        db.from('connections').select('to_profile_id').eq('from_profile_id', me.id).in('to_profile_id', others),
+        db.from('connections').select('from_profile_id').eq('to_profile_id', me.id).in('from_profile_id', others),
+      ]);
+      const known = new Set([...(added ?? []).map((c) => c.to_profile_id), ...(addedMe ?? []).map((c) => c.from_profile_id)]);
+      targetUserIds = (room ?? []).filter((r) => known.has(r.profile_id)).map((r) => r.user_id as string);
+    }
+    // People going who aren't here yet hear about it too (throttled). Those in
+    // the room, and connections getting the personal push below, are skipped.
+    const skip = new Set<string>([who.user.id, ...(room ?? []).map((r) => r.user_id as string), ...targetUserIds]);
+    await pingGoing(db, mine.event_id, mine.event_title || 'your event', me.name, skip, (room ?? []).length + 1).catch(() => 0);
+    if (!targetUserIds.length) return json(200, { sent: 0, reason: 'no connections here' });
     message = JSON.stringify({
       title: `${me.name} is here too 👋`,
       body: `Checked in at ${mine.event_title || 'your event'}. Go say hi.`,
