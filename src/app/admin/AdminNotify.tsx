@@ -392,11 +392,11 @@ function History({ items, nameOf, logoOf }: { items: Broadcast[]; nameOf: (b: Br
   );
 }
 
-/** Admin → Notify: send to everyone, answer communities' requests, and see everything sent. */
+/** Admin → Notify: send to everyone and answer communities' requests; everything sent is behind the clock icon. */
 export function AdminNotify({ reach }: { reach: number | null }) {
   const { items, reload } = useBroadcasts('all', 150);
   const { communities } = useCommunities(null, null);
-  const [tab, setTab] = useState<'send' | 'requests' | 'history'>('send');
+  const [tab, setTab] = useState<'send' | 'requests'>('send');
   const pending = (items ?? []).filter((b) => b.status === 'pending');
   const done = (items ?? []).filter((b) => b.status !== 'pending');
   const nameOf = (b: Broadcast) => (b.communityId ? communities.find((c) => c.id === b.communityId)?.community_name ?? 'A community' : 'Mumbai Onchain team');
@@ -411,7 +411,20 @@ export function AdminNotify({ reach }: { reach: number | null }) {
 
   return (
     <div>
-      <AdminHeading page="notify" title="Notify" detail="Notifications on people’s phones, even with the app closed." />
+      <AdminHeading
+        page="notify"
+        title="Notify"
+        detail="Notifications on people’s phones, even with the app closed."
+        history={
+          items === null ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" aria-label="Loading" />
+            </div>
+          ) : (
+            <History items={done} nameOf={nameOf} logoOf={logoOf} />
+          )
+        }
+      />
       <Segments
         label="Notify"
         value={tab}
@@ -419,17 +432,15 @@ export function AdminNotify({ reach }: { reach: number | null }) {
         options={[
           { id: 'send', label: 'Send' },
           { id: 'requests', label: pending.length ? `Requests · ${pending.length}` : 'Requests' },
-          { id: 'history', label: 'History' },
         ]}
       />
       {tab === 'send' && <SendPanel reach={reach} onSent={reload} />}
-      {tab !== 'send' && items === null && (
+      {tab === 'requests' && items === null && (
         <div className="flex justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" aria-label="Loading" />
         </div>
       )}
       {tab === 'requests' && items !== null && <Requests items={pending} nameOf={nameOf} logoOf={logoOf} onDone={reload} />}
-      {tab === 'history' && items !== null && <History items={done} nameOf={nameOf} logoOf={logoOf} />}
     </div>
   );
 }

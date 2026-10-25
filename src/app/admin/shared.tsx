@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { History, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Sheet } from '../ui';
@@ -104,10 +104,11 @@ interface ActivityRow {
 }
 
 /** One page's history (or everything, on Overview), newest first. */
-function HistorySheet({ page, title, onClose }: { page?: AdminPage; title: string; onClose: () => void }) {
+function HistorySheet({ page, title, onClose, children }: { page?: AdminPage; title: string; onClose: () => void; children?: ReactNode }) {
   const [rows, setRows] = useState<ActivityRow[] | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
+    if (children) return;
     let live = true;
     let q = supabase.from('admin_activity').select('id, actor_name, kind, detail, created_at').order('created_at', { ascending: false }).limit(100);
     if (page) q = q.eq('page', page);
@@ -119,7 +120,19 @@ function HistorySheet({ page, title, onClose }: { page?: AdminPage; title: strin
     return () => {
       live = false;
     };
-  }, [page]);
+  }, [page, children]);
+
+  // A page with its own, fuller history (Notify: everything sent).
+  if (children) {
+    return (
+      <Sheet open onClose={onClose} label={`${title} history`}>
+        <div className="pt-3 pb-2">
+          <h2 className="px-5 mb-4 app-title text-[26px]">{title} history</h2>
+          {children}
+        </div>
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet open onClose={onClose} label={`${title} history`}>
@@ -186,7 +199,7 @@ export function timeAgo(iso: string): string {
 }
 
 /** A page's title, with its history behind the clock icon (Overview: everything). */
-export function AdminHeading({ title, detail, page }: { title: string; detail?: string; page?: AdminPage }) {
+export function AdminHeading({ title, detail, page, history }: { title: string; detail?: string; page?: AdminPage; history?: ReactNode }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <header className="px-5 pt-2 pb-4">
@@ -202,7 +215,11 @@ export function AdminHeading({ title, detail, page }: { title: string; detail?: 
         </button>
       </div>
       {detail && <p className="mt-1 text-[15px] text-[var(--app-muted)]">{detail}</p>}
-      {historyOpen && <HistorySheet page={page} title={title} onClose={() => setHistoryOpen(false)} />}
+      {historyOpen && (
+        <HistorySheet page={page} title={title} onClose={() => setHistoryOpen(false)}>
+          {history}
+        </HistorySheet>
+      )}
     </header>
   );
 }
