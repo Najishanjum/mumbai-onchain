@@ -4,8 +4,8 @@
 //   headers: Authorization: Bearer <the signed-in user's access token>
 //   body:    { "send": { "communityId", "title", "body", "audience": "members" | "everyone" } }
 //              a lead (or an admin): to members it goes out now (2 a day per
-//              community, 3 from Featured); to everyone it waits for an admin,
-//              except a Champion's first one, which goes out now
+//              community, 3 from Featured); to everyone (from Rising) it waits
+//              for an admin, except a Champion's first one, which goes out now
 //        or  { "review": { "id", "decision": "approve" | "reject", "note"? } }
 //              an admin: sends a waiting message to everyone, or declines it
 // No links in messages: a lead's account could be taken over, and this is a
@@ -94,6 +94,8 @@ Deno.serve(async (req) => {
     }
 
     if (audience === 'everyone') {
+      // Unlocks at Rising (15 counted members); admins can still ask on a community's behalf.
+      if (level < 1 && isAdmin !== true) return json({ error: 'Messages to everyone unlock at the Rising level: 15 counted members.' });
       const { count } = await db.from('broadcasts').select('id', { count: 'exact', head: true }).eq('community_id', communityId).eq('status', 'pending');
       if ((count ?? 0) > 0) return json({ error: 'You already have a message waiting for the admins. You’ll hear back soon.' });
       const { data: row, error } = await db
