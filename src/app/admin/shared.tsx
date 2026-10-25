@@ -1,5 +1,22 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { History, Loader2 } from 'lucide-react';
+import {
+  CalendarPlus,
+  Check,
+  EyeOff,
+  History,
+  Image as ImageIcon,
+  Loader2,
+  Megaphone,
+  MessageCircle,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  TrendingUp,
+  UserMinus,
+  UserPlus,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Sheet } from '../ui';
 
@@ -66,6 +83,37 @@ const ACTIONS: Record<AdminEventKind | AdminLogKind | 'request_approved', string
   event_added: 'added an event',
   event_updated: 'changed an event',
   event_hidden: 'hid an event',
+};
+
+// An icon and colour per action, so the history reads at a glance:
+// green yes, red no or gone, blue changes, purple sends.
+const GOOD = '#3CC48C';
+const BAD = '#F0525F';
+const EDIT = '#4F8CFF';
+const SEND = '#9B6BFF';
+const ICONS: Record<string, { icon: LucideIcon; color: string }> = {
+  place_approved: { icon: Check, color: GOOD },
+  partner_approved: { icon: Check, color: GOOD },
+  request_approved: { icon: Check, color: GOOD },
+  place_restored: { icon: RotateCcw, color: GOOD },
+  partner_reopened: { icon: RotateCcw, color: EDIT },
+  place_rejected: { icon: X, color: BAD },
+  partner_rejected: { icon: X, color: BAD },
+  request_declined: { icon: X, color: BAD },
+  place_hidden: { icon: EyeOff, color: BAD },
+  event_hidden: { icon: EyeOff, color: BAD },
+  place_deleted: { icon: Trash2, color: BAD },
+  partner_deleted: { icon: Trash2, color: BAD },
+  story_removed: { icon: Trash2, color: BAD },
+  event_added: { icon: CalendarPlus, color: GOOD },
+  event_updated: { icon: Pencil, color: EDIT },
+  partner_logo: { icon: ImageIcon, color: EDIT },
+  partner_whatsapp: { icon: MessageCircle, color: EDIT },
+  partner_level: { icon: TrendingUp, color: EDIT },
+  partner_leader_removed: { icon: UserMinus, color: BAD },
+  admin_added: { icon: UserPlus, color: GOOD },
+  admin_removed: { icon: UserMinus, color: BAD },
+  broadcast_sent: { icon: Megaphone, color: SEND },
 };
 
 const pageOf = (kind: string): AdminPage =>
@@ -149,15 +197,29 @@ function HistorySheet({ page, title, onClose, children }: { page?: AdminPage; ti
         ) : (
           <ul className="mt-3 mx-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
             {rows.map((r) => (
-              <li key={r.id} className="px-4 py-3">
-                <p className="text-[15px] leading-snug">
-                  <b>{r.actor_name || 'An admin'}</b> {ACTIONS[r.kind as keyof typeof ACTIONS] ?? r.kind.replace(/_/g, ' ')}
-                </p>
-                {r.detail && <p className="mt-0.5 text-[14px] leading-snug text-[var(--app-muted)] line-clamp-2">{r.detail}</p>}
-                <p className="mt-1 text-[12px] font-semibold text-[var(--app-faint)]">
-                  {timeAgo(r.created_at)} ·{' '}
-                  {new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
-                </p>
+              <li key={r.id} className="px-4 py-3 flex gap-3">
+                {(() => {
+                  const { icon: Icon, color } = ICONS[r.kind] ?? { icon: Pencil, color: EDIT };
+                  return (
+                    <span
+                      className="shrink-0 mt-0.5 w-9 h-9 rounded-full flex items-center justify-center"
+                      style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}
+                      aria-hidden="true"
+                    >
+                      <Icon className="w-[18px] h-[18px]" strokeWidth={2.2} />
+                    </span>
+                  );
+                })()}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] leading-snug">
+                    <b>{r.actor_name || 'An admin'}</b> {ACTIONS[r.kind as keyof typeof ACTIONS] ?? r.kind.replace(/_/g, ' ')}
+                  </p>
+                  {r.detail && <p className="mt-0.5 text-[14px] leading-snug text-[var(--app-muted)] line-clamp-2">{r.detail}</p>}
+                  <p className="mt-1 text-[12px] font-semibold text-[var(--app-faint)]">
+                    {timeAgo(r.created_at)} ·{' '}
+                    {new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
