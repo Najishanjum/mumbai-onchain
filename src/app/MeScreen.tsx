@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info, ShieldCheck, Bell, Users, KeyRound } from 'lucide-react';
+import { Palette, QrCode, ScanLine, Pencil, Share2, Bookmark, UserPlus, Mail, LogIn, Info, ShieldCheck, Bell, Users, KeyRound, ChevronRight } from 'lucide-react';
 import { MAX_COMMUNITIES, useCommunities, type Community } from '../lib/useCommunities';
 import { CommunityLogo } from './CommunitySheet';
 import type { PersonProfile } from '../types/person';
@@ -35,6 +35,8 @@ interface MeScreenProps {
   savedCount: number;
   onEditProfile: () => void;
   onShowPass: () => void;
+  /** Your whole profile, as others see it (with Edit and your pass). */
+  onOpenProfile: () => void;
   onScan: () => void;
   onOpenPlan: () => void;
   accountEmail: string | null;
@@ -72,6 +74,7 @@ export const MeScreen: React.FC<MeScreenProps> = ({
   savedCount,
   onEditProfile,
   onShowPass,
+  onOpenProfile,
   onScan,
   onOpenPlan,
   accountEmail,
@@ -95,7 +98,8 @@ export const MeScreen: React.FC<MeScreenProps> = ({
     .filter((r): r is { m: (typeof r)['m']; c: NonNullable<(typeof r)['c']> } => Boolean(r.c))
     // The ones you lead first.
     .sort((a, b) => Number(b.m.role === 'lead') - Number(a.m.role === 'lead'));
-  const memberCount = joinedCommunities.filter((r) => r.m.role === 'member').length;
+  // Up to 3 in all, the ones you lead included.
+  const memberCount = (myCommunities ?? []).length;
   const push = usePushStatus(authUser?.id);
   const myAdds = Object.values(connections).filter((s) => s === 'CONNECTED').length;
   const myCounts = useConnectionCounts(myProfile?.id, `${myAdds}:${addedMe.length}`);
@@ -110,7 +114,8 @@ export const MeScreen: React.FC<MeScreenProps> = ({
 
       {myProfile ? (
         <section className="mx-4 mb-6 rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-5">
-          <div className="flex items-center gap-4">
+          {/* Tapping the card opens your whole profile, as others see it. */}
+          <button type="button" onClick={onOpenProfile} aria-label="Open your profile" className="app-press w-full flex items-center gap-4 text-left">
             <PersonAvatar
               name={myProfile.name}
               avatarUrl={myProfile.avatar}
@@ -133,8 +138,13 @@ export const MeScreen: React.FC<MeScreenProps> = ({
               )}
               {myCounts && <ConnectionCountsLine counts={myCounts} className="mt-1" />}
             </div>
-          </div>
-          {myProfile.bio && <p className="mt-4 text-[15px] leading-relaxed line-clamp-3">{myProfile.bio}</p>}
+            <ChevronRight className="w-5 h-5 shrink-0 text-[var(--app-faint)]" aria-hidden="true" />
+          </button>
+          {myProfile.bio && (
+            <button type="button" onClick={onOpenProfile} className="mt-4 block w-full text-left text-[15px] leading-relaxed line-clamp-3">
+              {myProfile.bio}
+            </button>
+          )}
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -197,12 +207,14 @@ export const MeScreen: React.FC<MeScreenProps> = ({
                   onClick={() => onOpenCommunity(c.id)}
                 />
               ))}
-              <RowLink
-                icon={<Users className={icon} />}
-                label={joinedCommunities.length ? 'Join another' : 'Join your community'}
-                detail={`${memberCount}/${MAX_COMMUNITIES}`}
-                onClick={() => onJoinCommunity(false)}
-              />
+              {memberCount < MAX_COMMUNITIES && (
+                <RowLink
+                  icon={<Users className={icon} />}
+                  label={joinedCommunities.length ? 'Join another' : 'Join your community'}
+                  detail={`${MAX_COMMUNITIES - memberCount} more`}
+                  onClick={() => onJoinCommunity(false)}
+                />
+              )}
               <RowLink icon={<KeyRound className={icon} />} label="I lead a community" onClick={() => onJoinCommunity(true)} />
             </GroupedList>
           </section>

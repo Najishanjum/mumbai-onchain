@@ -464,6 +464,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             savedCount={savedIds.length}
             onEditProfile={onEditProfile}
             onShowPass={showPass}
+            onOpenProfile={() => myProfile && onSelectPerson(myProfile.id)}
             onScan={() => setIsScannerOpen(true)}
             onOpenPlan={() => goTo('schedule')}
             accountEmail={accountEmail}
