@@ -3,7 +3,7 @@ import { ArrowRight, ExternalLink, Loader2, MapPin, Pencil } from 'lucide-react'
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { PLACE_CATEGORIES } from '../../data/places';
-import { diff, parseLocation, proposeEdit, reviewEdit, useWaitingEdits, type ContentEdit } from '../../lib/contentEdits';
+import { diff, isShortMapLink, parseLocation, proposeEdit, resolveMapLink, reviewEdit, useWaitingEdits, type ContentEdit } from '../../lib/contentEdits';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins, timeAgo } from './shared';
 
 type Status = 'pending' | 'live' | 'hidden';
@@ -70,9 +70,30 @@ function PlaceEditForm({ p, onCancel, onSent }: { p: Row; onCancel: () => void; 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const loc = parseLocation(where);
+  // A short link from the Google Maps app: the server opens it and the field
+  // becomes its coordinates.
+  const [resolving, setResolving] = useState(false);
+  useEffect(() => {
+    if (!isShortMapLink(where)) return;
+    let live = true;
+    setResolving(true);
+    void resolveMapLink(where).then((r) => {
+      if (!live) return;
+      setResolving(false);
+      if ('error' in r) setError(r.error);
+      else {
+        setError('');
+        setWhere(`${r.lat}, ${r.lng}`);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [where]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
+    if (resolving) return;
     if ('error' in loc) return setError(loc.error);
     if (name.trim().length < 2) return setError('Add a name.');
     const changes = diff(p as unknown as Record<string, unknown>, { name, category, area, tip, price, lat: loc.lat, lng: loc.lng });
@@ -128,7 +149,9 @@ function PlaceEditForm({ p, onCancel, onSent }: { p: Row; onCancel: () => void; 
           className={field}
         />
         <p className="mt-1 text-[13px] text-[var(--app-muted)]">
-          {'error' in loc ? (
+          {resolving ? (
+            'Reading the short link…'
+          ) : 'error' in loc ? (
             loc.error
           ) : (
             <>
@@ -139,7 +162,7 @@ function PlaceEditForm({ p, onCancel, onSent }: { p: Row; onCancel: () => void; 
             </>
           )}
         </p>
-        <p className="mt-0.5 text-[12px] text-[var(--app-faint)]">In Google Maps, open the place and copy the link from the address bar, or long-press the spot to copy its coordinates.</p>
+        <p className="mt-0.5 text-[12px] text-[var(--app-faint)]">In Google Maps, open the place → Share → Copy link, and paste it here. Coordinates work too.</p>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>

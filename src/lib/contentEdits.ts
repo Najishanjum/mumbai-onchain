@@ -86,14 +86,30 @@ export function useWaitingEdits(target: EditTarget, targetId?: string) {
   return { items, reload: useCallback(() => setNonce((n) => n + 1), []) };
 }
 
+/** What the Google Maps app on iPhone shares: opened by the server (resolveMapLink). */
+export const isShortMapLink = (text: string) => /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(text.trim());
+
+/** The pin behind a short Google Maps link, found by the event-import function (admins only). */
+export async function resolveMapLink(link: string): Promise<{ lat: number; lng: number } | { error: string }> {
+  if (!supabase) return { error: 'Not connected.' };
+  const { data, error } = await supabase.functions.invoke('event-import', { body: { mapLink: link.trim() } });
+  if (error || !data) return { error: 'Couldn’t open that link. Paste the coordinates instead.' };
+  return data as { lat: number; lng: number } | { error: string };
+}
+
 /**
  * A location from what people paste: a Google Maps link (the place's own pin
  * if it has one, else the map's centre) or plain "lat, lng". Short
- * maps.app.goo.gl links can't be read from here.
+ * maps.app.goo.gl links go through resolveMapLink first.
  */
 export function parseLocation(text: string): { lat: number; lng: number } | { error: string } {
-  const t = decodeURIComponent(text.trim());
-  if (/goo\.gl|maps\.app/i.test(t)) return { error: 'Short links can’t be read. Open it, then copy the full address from the browser, or paste the coordinates.' };
+  let t = text.trim();
+  try {
+    t = decodeURIComponent(t);
+  } catch {
+    // stray % signs: read it as it is
+  }
+  if (isShortMapLink(t)) return { error: 'Reading the short link…' };
   const tries = [/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/, /@(-?\d+\.\d+),(-?\d+\.\d+)/, /[?&](?:q|query|ll|destination)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/, /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/];
   for (const re of tries) {
     const m = t.match(re);

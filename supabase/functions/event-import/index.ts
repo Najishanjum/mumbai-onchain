@@ -5,6 +5,8 @@
 //   headers: Authorization: Bearer <an admin's access token>
 //   body:    { "url": "https://luma.com/abc123" }  an event
 //        or  { "url": "https://luma.com/ibw" }     a Luma calendar
+//        or  { "mapLink": "https://maps.app.goo.gl/…" }  a short Google Maps
+//              link (what the iPhone app shares): answers { lat, lng }
 // Answers { event, partial }, { calendar: { name, events } } or { error }
 // (status 200, so the app shows the message); parse.ts does the reading.
 
@@ -20,6 +22,49 @@ const json = (status: number, body: unknown) =>
 
 const MAX_BYTES = 3_000_000;
 
+// A pin in a Google Maps address or page: the place's own (!3d…!4d…) first,
+// then the map's centre (@lat,lng), then ?q= / center= coordinates.
+const PIN = [/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/, /@(-?\d+\.\d+),(-?\d+\.\d+)/, /[?&](?:q|query|ll|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i];
+function findPin(text: string): { lat: number; lng: number } | null {
+  let t = text;
+  try {
+    t = decodeURIComponent(text);
+  } catch {
+    // a page with stray % signs: read it as it is
+  }
+  for (const re of PIN) {
+    const m = t.match(re);
+    if (m) return { lat: Number(m[1]), lng: Number(m[2]) };
+  }
+  return null;
+}
+
+/** Opens a short Google Maps link (only those) and finds the pin it points to. */
+async function resolveMapLink(link: string): Promise<{ lat: number; lng: number } | { error: string }> {
+  let u: URL;
+  try {
+    u = new URL(link.trim());
+  } catch {
+    return { error: 'That isn’t a link.' };
+  }
+  const short = u.hostname === 'maps.app.goo.gl' || (u.hostname === 'goo.gl' && u.pathname.startsWith('/maps'));
+  if (!short) return { error: 'Only short Google Maps links (maps.app.goo.gl) are opened here.' };
+  try {
+    const res = await fetch(u, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(10_000),
+      headers: { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', 'accept-language': 'en' },
+    });
+    // The address it lands on usually has the pin; if not, the page does.
+    const fromUrl = findPin(res.url);
+    if (fromUrl) return fromUrl;
+    const page = (await res.text()).slice(0, MAX_BYTES);
+    return findPin(page) ?? { error: 'Couldn’t find the pin in that link. Paste the coordinates instead.' };
+  } catch {
+    return { error: 'Couldn’t open that link. Check it, or paste the coordinates.' };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
@@ -31,9 +76,17 @@ Deno.serve(async (req) => {
   const { data: isAdmin } = await asCaller.rpc('is_admin');
   if (isAdmin !== true) return json(403, { error: 'Admins only' });
 
+  let body: { url?: string; mapLink?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return json(400, { error: 'Body must be JSON' });
+  }
+  if (body.mapLink) return json(200, await resolveMapLink(String(body.mapLink)));
+
   let url: URL;
   try {
-    url = new URL(String((await req.json()).url ?? '').trim());
+    url = new URL(String(body.url ?? '').trim());
     if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('not a web link');
   } catch {
     return json(200, { error: 'Paste a full link, like https://luma.com/abc123' });
