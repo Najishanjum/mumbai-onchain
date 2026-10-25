@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useAppTheme } from '../lib/useAppTheme';
-import { accentVars, useCommunityAccent } from '../lib/communityAccent';
+import { communityVars } from '../lib/communityAccent';
+import { useWaitingEdits } from '../lib/contentEdits';
+import { PartnerEditForm } from './PartnerEdit';
 import { Home, Megaphone, UserPlus, Users } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import type { AdminRole } from '../lib/useAdmin';
@@ -99,6 +101,54 @@ function LevelCard({ c }: { c: Community }) {
   );
 }
 
+/** The community's public details, changed through the admins' review. */
+function DetailsCard({ c }: { c: Community }) {
+  const [editing, setEditing] = useState(false);
+  const { items: waiting, reload } = useWaitingEdits('partner', c.id);
+  const links = [c.website_url, c.x_url, c.telegram_url, c.instagram_url, c.linkedin_url, c.discord_url, c.whatsapp_url].filter(Boolean).length;
+  return (
+    <div className="rounded-3xl bg-[var(--app-surface)] border border-[var(--app-line)] p-4">
+      <p className="app-label">Details</p>
+      {editing ? (
+        <div className="mt-3">
+          <PartnerEditForm
+            partner={{
+              id: c.id,
+              community_name: c.community_name,
+              community_description: c.community_description ?? '',
+              website_url: c.website_url ?? '',
+              x_url: c.x_url ?? '',
+              instagram_url: c.instagram_url ?? '',
+              linkedin_url: c.linkedin_url ?? '',
+              telegram_url: c.telegram_url ?? '',
+              discord_url: c.discord_url ?? '',
+              whatsapp_url: c.whatsapp_url ?? '',
+            }}
+            onCancel={() => setEditing(false)}
+            onSent={() => {
+              setEditing(false);
+              reload();
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <p className="mt-2 text-[15px] leading-snug line-clamp-3">{c.community_description || 'No description yet.'}</p>
+          <p className="mt-1 text-[13px] text-[var(--app-muted)]">
+            {links} link{links === 1 ? '' : 's'} · shown in the app and on the website
+          </p>
+          {waiting && waiting.length > 0 && (
+            <p className="mt-2 text-[13px] font-bold text-[var(--app-primary)]">Your change is waiting for the admins. The current details stay until they approve it.</p>
+          )}
+          <button type="button" onClick={() => setEditing(true)} className="app-press mt-3 text-[15px] font-semibold text-[var(--app-primary)]">
+            Edit details ›
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function HomeTab({ c, data, goTo, isLead }: { c: Community; data: ReturnType<typeof useCommunityRows>; goTo: (t: Tab) => void; isLead: boolean }) {
   const { items } = useBroadcasts(c.id, 5);
   const last = items?.find((b) => b.status === 'sent');
@@ -139,6 +189,7 @@ function HomeTab({ c, data, goTo, isLead }: { c: Community; data: ReturnType<typ
           <p className="mt-2 text-[15px]">Share your invite link, QR or a card for X and Telegram. Everyone who joins through it counts for {c.community_name}.</p>
           <p className="mt-3 text-[15px] font-semibold text-[var(--app-primary)]">Invite people ›</p>
         </button>
+        <DetailsCard c={c} />
       </div>
     </div>
   );
@@ -168,10 +219,9 @@ export function CommunityMode({
   const data = useCommunityRows(communityId, people);
   const scroller = useRef<HTMLDivElement>(null);
   const c = byId(communityId);
-  // Its own colours, from its logo: community mode looks like the community's own app.
+  // Its own look (teal to indigo): community mode feels like a separate app.
   const { resolved } = useAppTheme(false);
-  const accent = useCommunityAccent(communityId, c?.community_name ?? '', c?.community_logo_url);
-  const vars = accentVars(accent, resolved === 'light') as CSSProperties;
+  const vars = communityVars(resolved === 'light') as CSSProperties;
   // Opening: the logo on the community's colour, then the app settles in. Leaving: it shrinks back into the badge.
   const [splash, setSplash] = useState(true);
   const [leaving, setLeaving] = useState(false);

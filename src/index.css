@@ -790,10 +790,10 @@ html[data-app-theme='light'][data-app-admin] { --app-primary: #A3660A; }
   .admin-switch-progress { animation-duration: 500ms; }
 }
 
-/* ── Community mode: the community's own app ─────────────────────────────
-   Colours come from its logo (--c-accent, set on the element). Opening is an
-   app launch: the community's colour grows out of the badge top right with
-   its logo, then the app settles in underneath. Leaving shrinks it back. */
+/* ── Community mode: a separate app ──────────────────────────────────────
+   Its own teal-to-indigo look (--c-accent, set on the element). Opening is an
+   app launch: the gradient grows out of the badge top right with the
+   community's logo, then the app settles in underneath. Leaving shrinks it back. */
 .community-app .app-title {
   background: linear-gradient(100deg, var(--c-accent), var(--c-accent-2));
   -webkit-background-clip: text;
@@ -822,8 +822,8 @@ html[data-app-theme='light'][data-app-admin] { --app-primary: #A3660A; }
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--app-on-primary);
-  background: radial-gradient(120% 80% at 50% 30%, var(--c-accent), var(--c-accent-2));
+  color: #FFFFFF;
+  background: linear-gradient(150deg, #0D9488, #4F46E5);
   animation: community-splash 1150ms cubic-bezier(0.65, 0, 0.35, 1) both;
 }
 .community-splash-mark {
@@ -850,3 +850,10 @@ html[data-app-theme='light'][data-app-admin] { --app-primary: #A3660A; }
   .community-app, .community-app.is-leaving { animation: none; }
   .community-splash { display: none; }
 }
+/* A small centred pop-up (the locked Everyone): pops in from slightly smaller. */
+@keyframes app-pop {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.app-pop { animation: app-pop 240ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+@media (prefers-reduced-motion: reduce) { .app-pop { animation: none; } }

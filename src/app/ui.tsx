@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Bookmark, ChevronRight, Clock, MapPin, X } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { hasEnded, isLive, VENUE_TBA } from './time';
-import { eventCover } from './covers';
+import { coverAt, eventCover } from './covers';
 import { useBackToClose } from '../lib/useBackToClose';
 import { useKeyboardViewport } from '../lib/useKeyboardViewport';
 
@@ -126,8 +126,10 @@ export function CoverThumb({
  * and wide website banners both show uncropped, over a blurred copy of
  * themselves that fills the frame.
  */
-export function CoverHero({ src, title, height = 260 }: { src: string | null; title: string; height?: number }) {
+export function CoverHero({ src: original, title, height = 260 }: { src: string | null; title: string; height?: number }) {
   const [failed, setFailed] = useState(false);
+  // Phone-width art, not the full upload.
+  const src = coverAt(original, 480);
   if (!src || failed) {
     return (
       <div style={{ height }} className="overflow-hidden">
@@ -183,7 +185,7 @@ export function EventRow({
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen())}
       className={`app-press flex gap-3.5 pl-4 pr-2 py-3.5 bg-[var(--app-surface)] active:bg-[var(--app-pressed)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-primary)] focus-visible:ring-inset ${ended ? 'opacity-60' : ''}`}
     >
-      <CoverThumb src={eventCover(event)} title={event.title} badge={badge} />
+      <CoverThumb src={coverAt(eventCover(event), 64, true)} title={event.title} badge={badge} />
       <div className="flex-1 min-w-0 pt-0.5">
         <div className="text-[13px] text-[var(--app-muted)] truncate">{event.organizer}</div>
         <div className="mt-0.5 text-[16px] font-semibold leading-snug line-clamp-2">{event.title}</div>

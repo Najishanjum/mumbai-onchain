@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Check, ChevronRight, Plus, QrCode, ScanLine, Search, UserPlus, Users, X } from 'lucide-react';
 import type { PersonCategory, PersonProfile } from '../types/person';
 import { usePeopleStore } from '../lib/usePeopleStore';
-import { useCommunities, type Community } from '../lib/useCommunities';
+import { MAX_COMMUNITIES, useCommunities, type Community } from '../lib/useCommunities';
 import { CommunityLogo } from './CommunitySheet';
 import { calculateMatchScore } from '../lib/matchingEngine';
 import { isRealPerson } from '../lib/samples';
@@ -148,15 +148,17 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
               {m.role === 'lead' && <span className="text-[11px] font-bold text-[var(--app-primary)]">LEAD</span>}
             </button>
           ))}
-          <button
-            type="button"
-            role="listitem"
-            onClick={onJoinCommunity}
-            className="app-press shrink-0 h-11 px-3.5 rounded-full border border-dashed border-[var(--app-line)] text-[14px] font-semibold text-[var(--app-muted)] inline-flex items-center gap-1.5"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-            {yourCommunities.length ? 'Join another' : 'Join your community'}
-          </button>
+          {(myCommunities ?? []).length < MAX_COMMUNITIES && (
+            <button
+              type="button"
+              role="listitem"
+              onClick={onJoinCommunity}
+              className="app-press shrink-0 h-11 px-3.5 rounded-full border border-dashed border-[var(--app-line)] text-[14px] font-semibold text-[var(--app-muted)] inline-flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              {yourCommunities.length ? 'Join another' : 'Join your community'}
+            </button>
+          )}
         </div>
       )}
 

@@ -10,6 +10,7 @@
 //        or  { "approvedPlaceId": "<id>" }          an admin approved it: tells whoever added it
 //        or  { "partnerApplicationId": "<id>" }     a community applied (no sign-in needed): tells the admins
 //        or  { "adminEvent": { "kind", "detail" } } an admin did something: tells the other admins
+//        or  { "editId": "<content edit id>" }      a lead suggested a change to their community: tells the admins
 // Called by the app right after it saves the change. It only sends when the
 // caller really made it in the last few minutes, so it can't be used to spam.
 //
@@ -49,6 +50,12 @@ const ADMIN_EVENTS: Record<string, { what: string; tab: string }> = {
   event_added: { what: 'added an event', tab: 'events' },
   event_updated: { what: 'changed an event', tab: 'events' },
   event_hidden: { what: 'hid an event', tab: 'events' },
+  place_changed: { what: 'suggested a change to a place, review it', tab: 'places' },
+  place_change_approved: { what: 'approved a change to a place', tab: 'places' },
+  place_change_rejected: { what: 'rejected a change to a place', tab: 'places' },
+  partner_changed: { what: 'suggested a change to a partner, review it', tab: 'partners' },
+  partner_change_approved: { what: 'approved a change to a partner', tab: 'partners' },
+  partner_change_rejected: { what: 'rejected a change to a partner', tab: 'partners' },
 };
 
 const adminIds = async (db: SupabaseClient) => ((await db.from('app_admins').select('user_id')).data ?? []).map((a) => a.user_id as string);
@@ -92,6 +99,7 @@ Deno.serve(async (req) => {
   let partnerApplicationId = '';
   let adminEvent: { kind: string; detail: string } | null = null;
   let checkIn = false;
+  let editId = '';
   try {
     const body = await req.json();
     toProfileId = String(body.toProfileId ?? '');
@@ -101,11 +109,12 @@ Deno.serve(async (req) => {
     partnerApplicationId = String(body.partnerApplicationId ?? '');
     if (body.adminEvent) adminEvent = { kind: String(body.adminEvent.kind ?? ''), detail: String(body.adminEvent.detail ?? '') };
     checkIn = body.checkIn === true;
+    editId = String(body.editId ?? '');
   } catch {
     return json(400, { error: 'Body must be JSON' });
   }
-  if (!toProfileId && !replyId && !placeId && !approvedPlaceId && !partnerApplicationId && !adminEvent && !checkIn) {
-    return json(400, { error: 'toProfileId, replyId, placeId, approvedPlaceId, partnerApplicationId, adminEvent or checkIn is required' });
+  if (!toProfileId && !replyId && !placeId && !approvedPlaceId && !partnerApplicationId && !adminEvent && !checkIn && !editId) {
+    return json(400, { error: 'toProfileId, replyId, placeId, approvedPlaceId, partnerApplicationId, adminEvent, checkIn or editId is required' });
   }
 
   const url = Deno.env.get('SUPABASE_URL')!;
@@ -160,6 +169,22 @@ Deno.serve(async (req) => {
       body: detail.length > 160 ? `${detail.slice(0, 159)}…` : detail,
       url: `/?admin=${event.tab}`,
       tag: `admin:${adminEvent.kind}:${Date.now()}`,
+    });
+  } else if (editId) {
+    // A community lead just suggested a change to their community: the admins review it.
+    const { data: edit } = await db
+      .from('content_edits')
+      .select('target, target_id, status, created_at, proposed_by')
+      .eq('id', editId)
+      .maybeSingle();
+    if (!edit || edit.proposed_by !== who.user.id || edit.status !== 'pending' || !isFresh(edit.created_at)) return json(200, { sent: 0, reason: 'not a new change' });
+    const { data: c } = await db.from('community_partner_applications').select('community_name').eq('id', edit.target_id).maybeSingle();
+    targetUserIds = await adminIds(db);
+    message = JSON.stringify({
+      title: `${me?.name ?? 'A lead'} suggested a change to ${c?.community_name ?? 'their community'}`,
+      body: 'Review it in Partners → Waiting.',
+      url: '/?admin=partners',
+      tag: `edit:${editId}`,
     });
   } else if (approvedPlaceId) {
     // An admin approved it just now: tell the person who added it.

@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { CoLeadCard } from '../CommunitySheet';
 import { LEVELS, useCommunityLevels } from '../../lib/useCommunities';
+import { useWaitingEdits } from '../../lib/contentEdits';
+import { PartnerChangeCard, PartnerEditForm } from '../PartnerEdit';
 import { uploadCommunityLogo } from '../../lib/communityPartner';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, logAdmin, notifyAdmins, timeAgo, type AdminEventKind } from './shared';
 
@@ -46,7 +48,26 @@ const LINKS: { key: keyof Row; label: string }[] = [
   { key: 'whatsapp_url', label: 'WhatsApp' },
 ];
 
+const STATUS_COLOR: Record<Status, string> = { pending: '#E0A43A', approved: '#3CC48C', rejected: '#F0525F' };
+
 const WHATSAPP_GROUP = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/;
+
+const COLUMNS =
+  'id, community_name, community_logo_url, community_description, lead_name, email, phone, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, whatsapp_url, level_override, status, created_at';
+
+/** What the edit form and change cards read: the public details, nulls as empty. */
+const toDetails = (p: Row) => ({
+  id: p.id,
+  community_name: p.community_name,
+  community_description: p.community_description ?? '',
+  website_url: p.website_url ?? '',
+  x_url: p.x_url ?? '',
+  instagram_url: p.instagram_url ?? '',
+  linkedin_url: p.linkedin_url ?? '',
+  telegram_url: p.telegram_url ?? '',
+  discord_url: p.discord_url ?? '',
+  whatsapp_url: p.whatsapp_url ?? '',
+});
 
 // Applicants type these, so only real web links become links.
 const webUrl = (u: string | null) => (u && /^https?:\/\//i.test(u.trim()) ? u.trim() : null);
@@ -64,9 +85,6 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       .select('community_id, user_id, profile_id, role, credited')
       .then(({ data }) => setMembers(data ?? []));
   }, []);
-  useEffect(() => {
-    if (tab === 'approved') loadMembers();
-  }, [tab, loadMembers]);
 
   async function removeLeader(row: Row, userId: string, name: string) {
     setBusyId(row.id);
@@ -81,21 +99,37 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [waEdit, setWaEdit] = useState<{ id: string; value: string } | null>(null);
+  // Changes to details wait for review; the card shows one is waiting.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [sentFor, setSentFor] = useState<string | null>(null);
+  const { items: edits, reload: reloadEdits } = useWaitingEdits('partner');
+  const [editPartners, setEditPartners] = useState<Row[]>([]);
+  const editIds = (edits ?? []).map((e) => e.targetId).join(',');
+  useEffect(() => {
+    if (!editIds) return;
+    supabase
+      .from('community_partner_applications')
+      .select(COLUMNS)
+      .in('id', editIds.split(','))
+      .then(({ data }) => setEditPartners((data ?? []) as Row[]));
+  }, [editIds]);
   const { levelOf, refresh: refreshLevels } = useCommunityLevels();
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
   const shown = (rows ?? []).filter((p) => !q || [p.community_name, p.lead_name, p.email].some((f) => f?.toLowerCase().includes(q)));
 
+  // Searching looks through Waiting, Approved and Rejected at once.
+  const searching = q.length > 0;
+  useEffect(() => {
+    if (tab === 'approved' || searching) loadMembers();
+  }, [tab, searching, loadMembers]);
   const load = useCallback(() => {
     setRows(null);
-    supabase
-      .from('community_partner_applications')
-      .select(
-        'id, community_name, community_logo_url, community_description, lead_name, email, phone, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, whatsapp_url, level_override, status, created_at'
-      )
-      .eq('status', tab)
-      .order('created_at', { ascending: tab === 'pending' })
-      .limit(200)
+    let query = supabase.from('community_partner_applications').select(COLUMNS);
+    if (!searching) query = query.eq('status', tab);
+    query
+      .order('created_at', { ascending: !searching && tab === 'pending' })
+      .limit(searching ? 500 : 200)
       .then(({ data, error: e }) => {
         if (e) {
           setError('Couldn’t load applications. Check your connection, then switch tabs to try again.');
@@ -105,7 +139,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
           setRows(data as Row[]);
         }
       });
-  }, [tab]);
+  }, [tab, searching]);
   useEffect(load, [load]);
 
   async function setStatus(row: Row, status: Status, event: AdminEventKind) {
@@ -120,7 +154,8 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
     setBusyId(null);
     if (e) return setError(`Couldn’t update ${row.community_name}. Try again.`);
     notifyAdmins(event, row.community_name);
-    setRows((r) => r?.filter((x) => x.id !== row.id) ?? null);
+    // In a search it stays in the list with its new status; in a tab it moves out.
+    setRows((r) => (searching ? (r?.map((x) => (x.id === row.id ? { ...x, status } : x)) ?? null) : (r?.filter((x) => x.id !== row.id) ?? null)));
     onChanged();
   }
 
@@ -195,24 +230,52 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   return (
     <div>
       <AdminHeading page="partners" title="Partners" detail="Communities that applied on the website. Approved ones show in its partners section." />
-      <Segments label="Application status" value={tab} options={TABS} onChange={setTab} />
-      {rows !== null && rows.length > 0 && (
-        <div className="mx-4 mb-3 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--app-muted)]" aria-hidden="true" />
-          <label htmlFor="partner-search" className="sr-only">
-            Search partners
-          </label>
-          <input
-            id="partner-search"
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by community, lead or email"
-            className="w-full h-11 pl-10 pr-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]"
-          />
-        </div>
+      {/* One search for every status, above the tabs. */}
+      <div className="mx-4 mb-3 relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--app-muted)]" aria-hidden="true" />
+        <label htmlFor="partner-search" className="sr-only">
+          Search partners
+        </label>
+        <input
+          id="partner-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search all partners: name, lead or email"
+          className="w-full h-11 pl-10 pr-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]"
+        />
+      </div>
+      {searching ? (
+        <p className="px-5 mb-3 text-[13px] text-[var(--app-muted)]">Searching Waiting, Approved and Rejected{rows ? ` · ${shown.length} found` : ''}</p>
+      ) : (
+        <Segments label="Application status" value={tab} options={TABS} onChange={setTab} />
       )}
       <ErrorLine text={error} />
+
+      {!searching && tab === 'pending' && edits && edits.length > 0 && (
+        <section className="mb-5">
+          <h3 className="px-5 mb-2 text-[15px] font-bold">Changes waiting · {edits.length}</h3>
+          <ul className="mx-4 space-y-3">
+            {edits.map((e) => {
+              const p = editPartners.find((x) => x.id === e.targetId);
+              return (
+                <PartnerChangeCard
+                  key={e.id}
+                  edit={e}
+                  partner={p ? toDetails(p) : undefined}
+                  mine={e.proposedBy === authUser?.id}
+                  onDone={(approved, name) => {
+                    notifyAdmins(approved ? 'partner_change_approved' : 'partner_change_rejected', name);
+                    reloadEdits();
+                    onChanged();
+                  }}
+                />
+              );
+            })}
+          </ul>
+          {rows && rows.length > 0 && <h3 className="px-5 mt-6 mb-2 text-[15px] font-bold">New applications · {rows.length}</h3>}
+        </section>
+      )}
 
       {rows === null ? (
         <div className="flex justify-center py-10">
@@ -221,10 +284,14 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       ) : rows.length > 0 && shown.length === 0 ? (
         <EmptyState title="No partners match" body="Try part of the community’s name, the lead’s name or their email." />
       ) : rows.length === 0 ? (
-        <EmptyState
-          title={tab === 'pending' ? 'Nothing waiting' : tab === 'approved' ? 'No partners yet' : 'Nothing rejected'}
-          body={tab === 'pending' ? 'New applications show up here, and you get a notification.' : 'Applications move here when you change their status.'}
-        />
+        searching ? (
+          <EmptyState title="No partners match" body="Try part of the community’s name, the lead’s name or their email." />
+        ) : tab === 'pending' && edits?.length ? null : (
+          <EmptyState
+            title={tab === 'pending' ? 'Nothing waiting' : tab === 'approved' ? 'No partners yet' : 'Nothing rejected'}
+            body={tab === 'pending' ? 'New applications and changes show up here, and you get a notification.' : 'Applications move here when you change their status.'}
+          />
+        )
       ) : (
         <ul className="mx-4 space-y-3">
           {shown.map((p) => {
@@ -243,6 +310,17 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                     <p className="text-[13px] text-[var(--app-muted)]">
                       {p.lead_name} · {timeAgo(p.created_at)}
                     </p>
+                    {searching && (
+                      <span
+                        className="mt-1.5 inline-flex h-6 px-2.5 rounded-full text-[12px] font-bold items-center"
+                        style={{
+                          background: `color-mix(in srgb, ${STATUS_COLOR[p.status]} 16%, transparent)`,
+                          color: STATUS_COLOR[p.status],
+                        }}
+                      >
+                        {TABS.find((t) => t.id === p.status)?.label}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -386,6 +464,26 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                     }}
                   />
                 </label>
+                <button type="button" className="app-press mt-1 h-10 px-3 rounded-xl text-[13px] font-bold text-[var(--app-muted)]" onClick={() => setEditingId(p.id)}>
+                  Edit details
+                </button>
+                {(sentFor === p.id || (edits ?? []).some((e) => e.targetId === p.id)) && (
+                  <p className="mt-1 text-[13px] font-bold text-[var(--app-primary)]">A change to {p.community_name} is waiting for review.</p>
+                )}
+                {editingId === p.id && (
+                  <div className="mt-3 pt-3 border-t border-[var(--app-line)]">
+                    <PartnerEditForm
+                      partner={toDetails(p)}
+                      onCancel={() => setEditingId(null)}
+                      onSent={() => {
+                        setEditingId(null);
+                        setSentFor(p.id);
+                        logAdmin('partner_changed', p.community_name);
+                        reloadEdits();
+                      }}
+                    />
+                  </div>
+                )}
 
                 {confirmDelete === p.id ? (
                   <div className="mt-5 pt-4 border-t border-[var(--app-line)]">
