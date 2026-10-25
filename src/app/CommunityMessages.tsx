@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BellOff, Bell, Loader2, Megaphone, Send } from 'lucide-react';
+import { BellOff, Bell, Loader2, Lock, Megaphone, Send } from 'lucide-react';
 import { dailyLimit, LINK, sendCommunityMessage, shortAgo, useBroadcasts, type Broadcast } from '../lib/useBroadcasts';
 import { useCommunityLevels } from '../lib/useCommunities';
 
@@ -19,6 +19,7 @@ function Composer({
   communityName,
   sentToday,
   level,
+  counted,
   championFree,
   onSent,
 }: {
@@ -26,6 +27,7 @@ function Composer({
   communityName: string;
   sentToday: number;
   level: number;
+  counted: number;
   /** A Champion that hasn't used its one message to everyone without approval. */
   championFree: boolean;
   onSent: () => void;
@@ -34,6 +36,9 @@ function Composer({
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [everyone, setEveryone] = useState(false);
+  // Messages to everyone open at Rising (15 counted members).
+  const everyoneLocked = level < 1;
+  const [lockNote, setLockNote] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
@@ -72,19 +77,39 @@ function Composer({
         {[
           { v: false, label: 'Members' },
           { v: true, label: 'Everyone' },
-        ].map((o) => (
-          <button
-            key={o.label}
-            type="button"
-            role="radio"
-            aria-checked={everyone === o.v}
-            onClick={() => setEveryone(o.v)}
-            className={`h-9 rounded-full text-[14px] font-bold ${everyone === o.v ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : 'text-[var(--app-muted)]'}`}
-          >
-            {o.label}
-          </button>
-        ))}
+        ].map((o) => {
+          const locked = o.v && everyoneLocked;
+          return (
+            <button
+              key={o.label}
+              type="button"
+              role="radio"
+              aria-checked={everyone === o.v}
+              aria-disabled={locked || undefined}
+              aria-label={locked ? 'Everyone, locked until Rising' : undefined}
+              onClick={() => {
+                if (locked) return setLockNote(true);
+                setLockNote(false);
+                setEveryone(o.v);
+              }}
+              className={`h-9 rounded-full text-[14px] font-bold inline-flex items-center justify-center gap-1.5 ${
+                everyone === o.v ? 'bg-[var(--app-primary)] text-[var(--app-on-primary)]' : 'text-[var(--app-muted)]'
+              }`}
+            >
+              {o.label}
+              {locked && <Lock className="w-3.5 h-3.5" aria-hidden="true" />}
+            </button>
+          );
+        })}
       </div>
+      {lockNote && (
+        <div role="status" className="rounded-2xl bg-[var(--app-primary-soft)] p-3 flex gap-2.5">
+          <Lock className="w-4 h-4 mt-0.5 shrink-0 text-[var(--app-primary)]" aria-hidden="true" />
+          <p className="text-[14px] leading-snug">
+            <b>Unlocks at Rising.</b> Bring {communityName} to 15 counted members to message everyone in the app. You have {counted} of 15.
+          </p>
+        </div>
+      )}
       <p className="text-[13px] text-[var(--app-muted)]">
         {everyone
           ? championFree
@@ -136,7 +161,7 @@ export function CommunityMessages({
   onToggleMute: () => void;
 }) {
   const { items, reload } = useBroadcasts(communityId);
-  const { level } = useCommunityLevels().levelOf(communityId);
+  const { level, counted } = useCommunityLevels().levelOf(communityId);
   const championFree = level >= 3 && !(items ?? []).some((b) => b.audience === 'everyone' && b.status === 'sent' && !b.reviewedAt);
   const sentToday = (items ?? []).filter((b) => b.audience === 'members' && b.status === 'sent' && b.sentAt && Date.now() - new Date(b.sentAt).getTime() < DAY_MS).length;
   // Members only see what was sent; leads see their waiting and declined ones too.
@@ -144,7 +169,7 @@ export function CommunityMessages({
 
   return (
     <div className="space-y-3">
-      {canManage && <Composer communityId={communityId} communityName={communityName} sentToday={sentToday} level={level} championFree={championFree} onSent={reload} />}
+      {canManage && <Composer communityId={communityId} communityName={communityName} sentToday={sentToday} level={level} counted={counted} championFree={championFree} onSent={reload} />}
       {(shown.length > 0 || isMember) && (
         <section>
           <div className="px-1 flex items-center justify-between">

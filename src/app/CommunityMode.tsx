@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useAppTheme } from '../lib/useAppTheme';
+import { accentVars, useCommunityAccent } from '../lib/communityAccent';
 import { Home, Megaphone, UserPlus, Users } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import type { AdminRole } from '../lib/useAdmin';
@@ -166,6 +168,23 @@ export function CommunityMode({
   const data = useCommunityRows(communityId, people);
   const scroller = useRef<HTMLDivElement>(null);
   const c = byId(communityId);
+  // Its own colours, from its logo: community mode looks like the community's own app.
+  const { resolved } = useAppTheme(false);
+  const accent = useCommunityAccent(communityId, c?.community_name ?? '', c?.community_logo_url);
+  const vars = accentVars(accent, resolved === 'light') as CSSProperties;
+  // Opening: the logo on the community's colour, then the app settles in. Leaving: it shrinks back into the badge.
+  const [splash, setSplash] = useState(true);
+  const [leaving, setLeaving] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSplash(false), 1150);
+    return () => window.clearTimeout(t);
+  }, []);
+  const switchTo = (t: ModeTarget) => {
+    if (t.kind === 'community' && t.id === communityId) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return onSwitch(t);
+    setLeaving(true);
+    window.setTimeout(() => onSwitch(t), 340);
+  };
   const led = (mine ?? []).filter((m) => m.role === 'lead').map((m) => communities.find((x) => x.id === m.communityId)).filter((x): x is Community => Boolean(x));
 
   useEffect(() => {
@@ -180,12 +199,30 @@ export function CommunityMode({
   }, []);
 
   return (
-    <div className="app fixed inset-0 z-[58] flex flex-col bg-[var(--app-bg)] [background-image:var(--app-glow)] bg-no-repeat">
+    <>
+    {splash && c && (
+      <div className="community-splash" style={vars} aria-hidden="true">
+        <div className="community-splash-mark">
+          <span className="block rounded-[28px] overflow-hidden shadow-2xl">
+            <CommunityLogo c={c} size={104} />
+          </span>
+          <span className="mt-5 block text-[24px] font-extrabold tracking-tight">{c.community_name}</span>
+          <span className="mt-1 block text-[13px] font-bold uppercase tracking-[0.18em] opacity-75">Community</span>
+        </div>
+      </div>
+    )}
+    <div
+      style={vars}
+      className={`community-app${leaving ? ' is-leaving' : ''} app fixed inset-0 z-[58] flex flex-col bg-[var(--app-bg)] [background-image:var(--app-glow)] bg-no-repeat`}
+    >
       {/* Like admin mode: no back button top left; the LEAD badge switches. */}
       <header className="relative z-10 shrink-0 pt-[calc(env(safe-area-inset-top)+6px)] px-4 pb-2 h-[calc(env(safe-area-inset-top)+58px)] flex items-center gap-2.5 border-b border-[var(--app-line)]">
         {c ? <CommunityLogo c={c} size={32} /> : <span className="w-8 h-8" />}
-        <span className="flex-1 text-[16px] font-bold truncate">{c?.community_name ?? 'Community'}</span>
-        <ModeMenu current={{ kind: 'community', id: communityId }} adminRole={adminRole} led={led} onPick={onSwitch} />
+        <span className="flex-1 min-w-0 leading-tight">
+          <span className="block text-[16px] font-bold truncate">{c?.community_name ?? 'Community'}</span>
+          <span className="block text-[12px] font-semibold text-[var(--c-accent)]">Community app</span>
+        </span>
+        <ModeMenu current={{ kind: 'community', id: communityId }} adminRole={adminRole} led={led} onPick={switchTo} />
       </header>
 
       <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain pt-3 pb-8">
@@ -245,5 +282,6 @@ export function CommunityMode({
         </div>
       </nav>
     </div>
+    </>
   );
 }
