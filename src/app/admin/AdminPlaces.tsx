@@ -92,7 +92,7 @@ export function AdminPlaces({ onChanged }: { onChanged: () => void }) {
 
   return (
     <div>
-      <AdminHeading title="Places" detail="New places stay off the map until one of you approves them." />
+      <AdminHeading page="places" title="Places" detail="New places stay off the map until one of you approves them." />
       <Segments label="Place status" value={tab} options={TABS} onChange={setTab} />
       <ErrorLine text={error} />
 

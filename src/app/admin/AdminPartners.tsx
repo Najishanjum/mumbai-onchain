@@ -5,7 +5,7 @@ import { usePeopleStore } from '../../lib/usePeopleStore';
 import { CoLeadCard } from '../CommunitySheet';
 import { LEVELS, useCommunityLevels } from '../../lib/useCommunities';
 import { uploadCommunityLogo } from '../../lib/communityPartner';
-import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins, timeAgo, type AdminEventKind } from './shared';
+import { AdminHeading, EmptyState, ErrorLine, Segments, btn, logAdmin, notifyAdmins, timeAgo, type AdminEventKind } from './shared';
 
 type Status = 'pending' | 'approved' | 'rejected';
 
@@ -73,6 +73,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
     const { error: e } = await supabase.from('community_members').delete().eq('community_id', row.id).eq('user_id', userId);
     setBusyId(null);
     if (e) return setError(`Couldn’t remove ${name}. Try again.`);
+    logAdmin('partner_leader_removed', `${name}, ${row.community_name}`);
     loadMembers();
   }
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -136,6 +137,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       .eq('id', row.id);
     setBusyId(null);
     if (e) return setError(`Couldn’t save ${row.community_name}’s logo. Try again.`);
+    logAdmin('partner_logo', row.community_name);
     // The old file, when it's in our bucket.
     const old = row.community_logo_url.split('/community-logos/')[1];
     if (old) void supabase.storage.from('community-logos').remove([decodeURIComponent(old.split('?')[0])]);
@@ -153,6 +155,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       .eq('id', row.id);
     setBusyId(null);
     if (e) return setError(`Couldn’t save ${row.community_name}’s WhatsApp group. Try again.`);
+    logAdmin('partner_whatsapp', url ? row.community_name : `${row.community_name} (removed)`);
     setWaEdit(null);
     setRows((r) => r?.map((x) => (x.id === row.id ? { ...x, whatsapp_url: url } : x)) ?? null);
   }
@@ -167,6 +170,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       .eq('id', row.id);
     setBusyId(null);
     if (e) return setError(`Couldn’t change ${row.community_name}’s level. Try again.`);
+    logAdmin('partner_level', `${row.community_name}: ${level === null ? 'by count' : LEVELS[level].name}`);
     setRows((r) => r?.map((x) => (x.id === row.id ? { ...x, level_override: level } : x)) ?? null);
     void refreshLevels();
   }
@@ -187,7 +191,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
 
   return (
     <div>
-      <AdminHeading title="Partners" detail="Communities that applied on the website. Approved ones show in its partners section." />
+      <AdminHeading page="partners" title="Partners" detail="Communities that applied on the website. Approved ones show in its partners section." />
       <Segments label="Application status" value={tab} options={TABS} onChange={setTab} />
       <ErrorLine text={error} />
 

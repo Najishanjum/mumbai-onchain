@@ -5,7 +5,7 @@ import { usePeopleStore } from '../../lib/usePeopleStore';
 import { useCommunities } from '../../lib/useCommunities';
 import { reviewMessage, shortAgo, useAnnouncementReads, useBroadcasts, whatsAppText, type Broadcast } from '../../lib/useBroadcasts';
 import { CommunityLogo } from '../CommunitySheet';
-import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins } from './shared';
+import { AdminHeading, EmptyState, ErrorLine, Segments, btn, logAdmin, notifyAdmins } from './shared';
 
 // Where tapping the notification opens.
 const DESTINATIONS = [
@@ -292,6 +292,7 @@ function Requests({ items, nameOf, logoOf, onDone }: { items: Broadcast[]; nameO
     if ('error' in res) return setError(res.error);
     setResult(decision === 'approve' ? `Sent “${b.title}” to ${res.recipients} phones. ${nameOf(b)} got a notification.` : `Declined. ${nameOf(b)} got a notification.`);
     if (decision === 'approve') notifyAdmins('broadcast_sent', `“${b.title}” from ${nameOf(b)}, to ${res.recipients} phones`);
+    else logAdmin('request_declined', `“${b.title}” from ${nameOf(b)}${note ? ` · ${note}` : ''}`);
     onDone();
   }
 
@@ -410,7 +411,7 @@ export function AdminNotify({ reach }: { reach: number | null }) {
 
   return (
     <div>
-      <AdminHeading title="Notify" detail="Notifications on people’s phones, even with the app closed." />
+      <AdminHeading page="notify" title="Notify" detail="Notifications on people’s phones, even with the app closed." />
       <Segments
         label="Notify"
         value={tab}
