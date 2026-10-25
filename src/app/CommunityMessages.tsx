@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BellOff, Bell, Loader2, Lock, Megaphone, Send } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BellOff, Bell, Loader2, Lock, Megaphone, Send, X } from 'lucide-react';
 import { dailyLimit, LINK, sendCommunityMessage, shortAgo, useBroadcasts, type Broadcast } from '../lib/useBroadcasts';
 import { useCommunityLevels } from '../lib/useCommunities';
 
@@ -11,6 +11,47 @@ function StatusChip({ b }: { b: Broadcast }) {
   if (b.status === 'pending') return <span className="h-6 px-2.5 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] text-[12px] font-bold inline-flex items-center">Waiting for admins</span>;
   if (b.status === 'rejected') return <span className="h-6 px-2.5 rounded-full bg-[var(--app-live-soft)] text-[var(--app-live)] text-[12px] font-bold inline-flex items-center">Not sent</span>;
   return null;
+}
+
+/** Tapping the locked Everyone: what unlocks it, in a small pop-up. */
+function LockedPopup({ communityName, counted, onClose }: { communityName: string; counted: number; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-6" role="dialog" aria-modal="true" aria-labelledby="lock-title">
+      <button type="button" aria-label="Close" onClick={onClose} className="app-backdrop absolute inset-0 bg-black/55" />
+      <div className="app-pop relative w-full max-w-[340px] rounded-[28px] bg-[var(--app-surface)] border border-[var(--app-line)] p-5 pt-6 text-center shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="app-press absolute top-3 right-3 w-9 h-9 rounded-full bg-[var(--app-pressed)] flex items-center justify-center"
+        >
+          <X className="w-4 h-4" aria-hidden="true" />
+        </button>
+        <span className="mx-auto w-14 h-14 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] flex items-center justify-center">
+          <Lock className="w-6 h-6" aria-hidden="true" />
+        </span>
+        <h3 id="lock-title" className="mt-3 text-[19px] font-extrabold">
+          Unlocks at Rising
+        </h3>
+        <p className="mt-1.5 text-[15px] leading-snug text-[var(--app-muted)]">
+          Bring {communityName} to 15 counted members to message everyone in the app.
+        </p>
+        <div className="mt-4 h-2 rounded-full bg-[var(--app-pressed)] overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={15} aria-valuenow={Math.min(counted, 15)} aria-label={`${counted} of 15 counted members`}>
+          <div className="h-full rounded-full bg-[var(--app-primary)]" style={{ width: `${Math.min(100, (counted / 15) * 100)}%` }} />
+        </div>
+        <p className="mt-1.5 text-[13px] font-bold">{counted} / 15 counted</p>
+        <p className="mt-3 text-[13px] text-[var(--app-muted)]">Counted: people whose first community is yours, with a photo or a headline. Share your invite link to grow.</p>
+        <button type="button" onClick={onClose} className="app-press mt-4 w-full h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-bold">
+          Got it
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /** Leads and admins: write to the community's members, or ask to reach everyone. */
@@ -102,14 +143,7 @@ function Composer({
           );
         })}
       </div>
-      {lockNote && (
-        <div role="status" className="rounded-2xl bg-[var(--app-primary-soft)] p-3 flex gap-2.5">
-          <Lock className="w-4 h-4 mt-0.5 shrink-0 text-[var(--app-primary)]" aria-hidden="true" />
-          <p className="text-[14px] leading-snug">
-            <b>Unlocks at Rising.</b> Bring {communityName} to 15 counted members to message everyone in the app. You have {counted} of 15.
-          </p>
-        </div>
-      )}
+      {lockNote && <LockedPopup communityName={communityName} counted={counted} onClose={() => setLockNote(false)} />}
       <p className="text-[13px] text-[var(--app-muted)]">
         {everyone
           ? championFree
