@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { CalendarDays, Home, Loader2, User, Users } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import type { ConnectionStatus, PersonProfile } from '../types/person';
@@ -231,7 +231,9 @@ export const AppShell: React.FC<AppShellProps> = ({
     setActiveTab(toStore[next]);
   };
 
-  useEffect(() => {
+  // Before the new tab is drawn, so it never shows for a frame at the old
+  // tab's scroll (which flashed Schedule's header solid).
+  useLayoutEffect(() => {
     window.scrollTo({ top: 0 });
   }, [tab]);
 

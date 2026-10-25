@@ -35,7 +35,10 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
     const el = sentinelRef.current;
     if (!el) return;
     // The header is stuck once the line just above it has scrolled under the clock.
-    const io = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting), {
+    // While another tab is showing, this page is hidden and the line reads as
+    // "not on screen": that isn't scrolled, so the header stays clear and
+    // doesn't flash solid when you come back.
+    const io = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.height > 0), {
       // Roughly the status bar on a notched iPhone.
       rootMargin: '-64px 0px 0px 0px',
     });
