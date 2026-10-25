@@ -34,7 +34,9 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
     .map((m) => byId(m.communityId))
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
   // Opened from a community's app: that community, already picked.
-  const [postAs, setPostAs] = useState<string | null>(preselectedCommunityForSnap ?? null);
+  // From the community app it only posts as that community: no "You", no other communities.
+  const [fromCommunity] = useState(preselectedCommunityForSnap ?? null);
+  const [postAs, setPostAs] = useState<string | null>(fromCommunity);
   const postAsRules = postAs ? storyRules(levelOf(postAs).level) : null;
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -192,7 +194,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
           <>
             <div className="mt-4 app-label mb-2">Post as</div>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Post as">
-              {[{ id: null, name: 'You', logo: '' }, ...postAsOptions.map((c) => ({ id: c.id as string | null, name: c.community_name, logo: c.community_logo_url }))].map((o) => (
+              {[...(fromCommunity ? [] : [{ id: null, name: 'You', logo: '' }]), ...postAsOptions.filter((c) => !fromCommunity || c.id === fromCommunity).map((c) => ({ id: c.id as string | null, name: c.community_name, logo: c.community_logo_url }))].map((o) => (
                 <button
                   key={o.id ?? 'me'}
                   type="button"
