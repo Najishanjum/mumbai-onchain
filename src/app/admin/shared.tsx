@@ -52,7 +52,13 @@ export type AdminEventKind =
   | 'admin_removed'
   | 'event_added'
   | 'event_updated'
-  | 'event_hidden';
+  | 'event_hidden'
+  | 'place_changed'
+  | 'place_change_approved'
+  | 'place_change_rejected'
+  | 'partner_changed'
+  | 'partner_change_approved'
+  | 'partner_change_rejected';
 
 /** Smaller actions: kept in the page's history, without a push to the other admins. */
 export type AdminLogKind = 'partner_logo' | 'partner_whatsapp' | 'partner_level' | 'partner_leader_removed' | 'request_declined';
@@ -83,6 +89,12 @@ const ACTIONS: Record<AdminEventKind | AdminLogKind | 'request_approved', string
   event_added: 'added an event',
   event_updated: 'changed an event',
   event_hidden: 'hid an event',
+  place_changed: 'suggested a change to a place',
+  place_change_approved: 'approved a change to a place',
+  place_change_rejected: 'rejected a change to a place',
+  partner_changed: 'suggested a change to a partner',
+  partner_change_approved: 'approved a change to a partner',
+  partner_change_rejected: 'rejected a change to a partner',
 };
 
 // An icon and colour per action, so the history reads at a glance:
@@ -114,6 +126,12 @@ const ICONS: Record<string, { icon: LucideIcon; color: string }> = {
   admin_added: { icon: UserPlus, color: GOOD },
   admin_removed: { icon: UserMinus, color: BAD },
   broadcast_sent: { icon: Megaphone, color: SEND },
+  place_changed: { icon: Pencil, color: EDIT },
+  partner_changed: { icon: Pencil, color: EDIT },
+  place_change_approved: { icon: Check, color: GOOD },
+  partner_change_approved: { icon: Check, color: GOOD },
+  place_change_rejected: { icon: X, color: BAD },
+  partner_change_rejected: { icon: X, color: BAD },
 };
 
 const pageOf = (kind: string): AdminPage =>

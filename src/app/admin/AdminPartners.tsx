@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { CoLeadCard } from '../CommunitySheet';
 import { LEVELS, useCommunityLevels } from '../../lib/useCommunities';
+import { useWaitingEdits } from '../../lib/contentEdits';
+import { PartnerChangeCard, PartnerEditForm } from '../PartnerEdit';
 import { uploadCommunityLogo } from '../../lib/communityPartner';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, logAdmin, notifyAdmins, timeAgo, type AdminEventKind } from './shared';
 
@@ -48,6 +50,23 @@ const LINKS: { key: keyof Row; label: string }[] = [
 
 const WHATSAPP_GROUP = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/;
 
+const COLUMNS =
+  'id, community_name, community_logo_url, community_description, lead_name, email, phone, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, whatsapp_url, level_override, status, created_at';
+
+/** What the edit form and change cards read: the public details, nulls as empty. */
+const toDetails = (p: Row) => ({
+  id: p.id,
+  community_name: p.community_name,
+  community_description: p.community_description ?? '',
+  website_url: p.website_url ?? '',
+  x_url: p.x_url ?? '',
+  instagram_url: p.instagram_url ?? '',
+  linkedin_url: p.linkedin_url ?? '',
+  telegram_url: p.telegram_url ?? '',
+  discord_url: p.discord_url ?? '',
+  whatsapp_url: p.whatsapp_url ?? '',
+});
+
 // Applicants type these, so only real web links become links.
 const webUrl = (u: string | null) => (u && /^https?:\/\//i.test(u.trim()) ? u.trim() : null);
 
@@ -81,6 +100,20 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [waEdit, setWaEdit] = useState<{ id: string; value: string } | null>(null);
+  // Changes to details wait for review; the card shows one is waiting.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [sentFor, setSentFor] = useState<string | null>(null);
+  const { items: edits, reload: reloadEdits } = useWaitingEdits('partner');
+  const [editPartners, setEditPartners] = useState<Row[]>([]);
+  const editIds = (edits ?? []).map((e) => e.targetId).join(',');
+  useEffect(() => {
+    if (!editIds) return;
+    supabase
+      .from('community_partner_applications')
+      .select(COLUMNS)
+      .in('id', editIds.split(','))
+      .then(({ data }) => setEditPartners((data ?? []) as Row[]));
+  }, [editIds]);
   const { levelOf, refresh: refreshLevels } = useCommunityLevels();
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
@@ -90,9 +123,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
     setRows(null);
     supabase
       .from('community_partner_applications')
-      .select(
-        'id, community_name, community_logo_url, community_description, lead_name, email, phone, website_url, x_url, instagram_url, linkedin_url, telegram_url, discord_url, whatsapp_url, level_override, status, created_at'
-      )
+      .select(COLUMNS)
       .eq('status', tab)
       .order('created_at', { ascending: tab === 'pending' })
       .limit(200)
@@ -214,6 +245,31 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       )}
       <ErrorLine text={error} />
 
+      {tab === 'pending' && edits && edits.length > 0 && (
+        <section className="mb-5">
+          <h3 className="px-5 mb-2 text-[15px] font-bold">Changes waiting · {edits.length}</h3>
+          <ul className="mx-4 space-y-3">
+            {edits.map((e) => {
+              const p = editPartners.find((x) => x.id === e.targetId);
+              return (
+                <PartnerChangeCard
+                  key={e.id}
+                  edit={e}
+                  partner={p ? toDetails(p) : undefined}
+                  mine={e.proposedBy === authUser?.id}
+                  onDone={(approved, name) => {
+                    notifyAdmins(approved ? 'partner_change_approved' : 'partner_change_rejected', name);
+                    reloadEdits();
+                    onChanged();
+                  }}
+                />
+              );
+            })}
+          </ul>
+          {rows && rows.length > 0 && <h3 className="px-5 mt-6 mb-2 text-[15px] font-bold">New applications · {rows.length}</h3>}
+        </section>
+      )}
+
       {rows === null ? (
         <div className="flex justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" aria-label="Loading applications" />
@@ -221,10 +277,12 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       ) : rows.length > 0 && shown.length === 0 ? (
         <EmptyState title="No partners match" body="Try part of the community’s name, the lead’s name or their email." />
       ) : rows.length === 0 ? (
-        <EmptyState
-          title={tab === 'pending' ? 'Nothing waiting' : tab === 'approved' ? 'No partners yet' : 'Nothing rejected'}
-          body={tab === 'pending' ? 'New applications show up here, and you get a notification.' : 'Applications move here when you change their status.'}
-        />
+        tab === 'pending' && edits?.length ? null : (
+          <EmptyState
+            title={tab === 'pending' ? 'Nothing waiting' : tab === 'approved' ? 'No partners yet' : 'Nothing rejected'}
+            body={tab === 'pending' ? 'New applications and changes show up here, and you get a notification.' : 'Applications move here when you change their status.'}
+          />
+        )
       ) : (
         <ul className="mx-4 space-y-3">
           {shown.map((p) => {
@@ -386,6 +444,26 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                     }}
                   />
                 </label>
+                <button type="button" className="app-press mt-1 h-10 px-3 rounded-xl text-[13px] font-bold text-[var(--app-muted)]" onClick={() => setEditingId(p.id)}>
+                  Edit details
+                </button>
+                {(sentFor === p.id || (edits ?? []).some((e) => e.targetId === p.id)) && (
+                  <p className="mt-1 text-[13px] font-bold text-[var(--app-primary)]">A change to {p.community_name} is waiting for review.</p>
+                )}
+                {editingId === p.id && (
+                  <div className="mt-3 pt-3 border-t border-[var(--app-line)]">
+                    <PartnerEditForm
+                      partner={toDetails(p)}
+                      onCancel={() => setEditingId(null)}
+                      onSent={() => {
+                        setEditingId(null);
+                        setSentFor(p.id);
+                        logAdmin('partner_changed', p.community_name);
+                        reloadEdits();
+                      }}
+                    />
+                  </div>
+                )}
 
                 {confirmDelete === p.id ? (
                   <div className="mt-5 pt-4 border-t border-[var(--app-line)]">
