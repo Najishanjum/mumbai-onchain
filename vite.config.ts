@@ -253,6 +253,18 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
+              // Event covers from Luma's and Unsplash's image CDNs, resized by URL
+              // (see coverAt): kept on the phone, so switching days doesn't
+              // fetch them again. Opaque (status 0) since <img> loads them no-cors.
+              urlPattern: ({ url }) => url.host === 'images.lumacdn.com' || url.host === 'images.unsplash.com',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'event-covers',
+                expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [0, 200] }
+              }
+            },
+            {
               // Snap photos in Supabase Storage are immutable once uploaded.
               urlPattern: /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\//,
               handler: 'CacheFirst',
