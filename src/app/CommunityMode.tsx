@@ -1,13 +1,16 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import type { Snap } from '../types/snap';
+import { useSnapStore } from '../lib/useSnapStore';
+import { StoriesRow } from './Stories';
 import { useAppTheme } from '../lib/useAppTheme';
 import { communityVars } from '../lib/communityAccent';
 import { useWaitingEdits } from '../lib/contentEdits';
 import { PartnerEditForm } from './PartnerEdit';
-import { Home, Megaphone, UserPlus, Users } from 'lucide-react';
+import { Clock, Home, Lock, Megaphone, Plus, UserPlus, Users, X } from 'lucide-react';
 import type { PersonProfile } from '../types/person';
 import type { AdminRole } from '../lib/useAdmin';
 import { usePeopleStore } from '../lib/usePeopleStore';
-import { LEVELS, useCommunities, useCommunityLevels, type Community } from '../lib/useCommunities';
+import { LEVELS, storyRules, useCommunities, useCommunityLevels, type Community } from '../lib/useCommunities';
 import { shortAgo, useBroadcasts, useLeadAnnouncements } from '../lib/useBroadcasts';
 import { CoLeadCard, CommunityLogo, CommunityNumbers, InviteCard, MemberList, useCommunityRows } from './CommunitySheet';
 import { CommunityMessages } from './CommunityMessages';
@@ -149,7 +152,127 @@ function DetailsCard({ c }: { c: Community }) {
   );
 }
 
-function HomeTab({ c, data, goTo, isLead }: { c: Community; data: ReturnType<typeof useCommunityRows>; goTo: (t: Tab) => void; isLead: boolean }) {
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Why Post is locked or used up, and the story ladder (like a Telegram channel's boosts). */
+function StoryLevelsPopup({ c, level, counted, reason, onClose }: { c: Community; level: number; counted: number; reason: 'locked' | 'limit'; onClose: () => void }) {
+  const rules = storyRules(level);
+  const next = LEVELS.find((l) => l.level === level + 1);
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-6" role="dialog" aria-modal="true" aria-labelledby="story-levels-title">
+      <button type="button" aria-label="Close" onClick={onClose} className="app-backdrop absolute inset-0 bg-black/55" />
+      <div className="app-pop relative w-full max-w-[340px] rounded-[28px] bg-[var(--app-surface)] border border-[var(--app-line)] p-5 pt-6 shadow-2xl">
+        <button type="button" onClick={onClose} aria-label="Close" className="app-press absolute top-3 right-3 w-9 h-9 rounded-full bg-[var(--app-pressed)] flex items-center justify-center">
+          <X className="w-4 h-4" aria-hidden="true" />
+        </button>
+        <span className="mx-auto w-14 h-14 rounded-full bg-[var(--app-primary-soft)] text-[var(--app-primary)] flex items-center justify-center">
+          {reason === 'locked' ? <Lock className="w-6 h-6" aria-hidden="true" /> : <Clock className="w-6 h-6" aria-hidden="true" />}
+        </span>
+        <h3 id="story-levels-title" className="mt-3 text-center text-[19px] font-extrabold">
+          {reason === 'locked' ? 'Stories unlock at Rising' : rules?.perDay === 1 ? 'That’s today’s story' : `That’s today’s ${rules?.perDay} stories`}
+        </h3>
+        <p className="mt-1.5 text-center text-[15px] leading-snug text-[var(--app-muted)]">
+          {reason === 'locked'
+            ? `Bring ${c.community_name} to 15 counted members to post stories for them. You have ${counted} of 15.`
+            : `Post again in 24 hours.${next ? ` Reach ${next.name} (${next.at} counted) for more.` : ''}`}
+        </p>
+        <ul className="mt-4 rounded-2xl bg-[var(--app-pressed)] divide-y divide-[var(--app-line)] overflow-hidden">
+          {LEVELS.slice(1).map((l) => {
+            const r = storyRules(l.level)!;
+            const here = l.level === level;
+            return (
+              <li key={l.level} className={`flex items-center gap-3 px-3.5 py-2.5 ${here ? 'bg-[var(--app-primary-soft)]' : ''}`}>
+                <span className={`w-4 text-center text-[14px] ${l.level <= level ? 'text-[var(--app-primary)]' : 'text-[var(--app-faint)]'}`} aria-hidden="true">
+                  {l.level <= level ? '✓' : '·'}
+                </span>
+                <span className="flex-1 min-w-0 text-[14px] leading-snug">
+                  <b>{l.name}</b> <span className="text-[var(--app-muted)]">· {l.at} counted</span>
+                  <span className="block text-[13px] text-[var(--app-muted)]">
+                    {r.perDay} {r.perDay === 1 ? 'story' : 'stories'} a day, {r.audience === 'members' ? 'for your members' : 'for everyone in the app'}
+                  </span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <button type="button" onClick={onClose} className="app-press mt-4 w-full h-11 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[15px] font-bold">
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The community's stories: a Post button (as the community, unlocked by level)
+ * and the stories of the community and its members.
+ */
+function CommunityStories({ c, data, onOpenPerson }: { c: Community; data: ReturnType<typeof useCommunityRows>; onOpenPerson: (id: string) => void }) {
+  const { levelOf } = useCommunityLevels();
+  const { level, counted } = levelOf(c.id);
+  const rules = storyRules(level);
+  const { recentSnaps, setIsAddSnapModalOpen } = useSnapStore();
+  const memberIds = useMemo(() => new Set(data.rows.map((r) => r.p.id)), [data.rows]);
+  const filter = useCallback((s: Snap) => s.communityId === c.id || (!s.communityId && memberIds.has(s.authorId)), [c.id, memberIds]);
+  const today = recentSnaps.filter((s) => s.communityId === c.id && Date.now() - new Date(s.createdAt).getTime() < DAY_MS).length;
+  const left = rules ? Math.max(0, rules.perDay - today) : 0;
+  const [popup, setPopup] = useState<null | 'locked' | 'limit'>(null);
+  const post = () => {
+    if (!rules) return setPopup('locked');
+    if (!left) return setPopup('limit');
+    setIsAddSnapModalOpen(true, undefined, c.id);
+  };
+  return (
+    <section className="mb-4" aria-labelledby="community-stories">
+      <div className="px-5 mb-2 flex items-baseline justify-between gap-3">
+        <h3 id="community-stories" className="app-label">
+          Stories
+        </h3>
+        <span className="text-[12px] font-semibold text-[var(--app-muted)]">
+          {rules ? `${left} of ${rules.perDay} left today · ${rules.audience === 'members' ? 'members only' : 'everyone'}` : 'Unlocks at Rising'}
+        </span>
+      </div>
+      <StoriesRow
+        filter={filter}
+        onAddSnap={post}
+        onOpenPerson={onOpenPerson}
+        emptyText={rules ? 'Your members’ stories show up here too.' : 'Your members’ stories show up here.'}
+        leading={
+          <button type="button" onClick={post} aria-label={rules ? `Post a story as ${c.community_name}` : 'Community stories, locked'} className="app-press shrink-0 w-[72px] flex flex-col items-center gap-1.5">
+            <span className="relative">
+              <span className="block rounded-full p-[3px] bg-[var(--app-line)]">
+                <span className="block rounded-full p-[2px] bg-[var(--app-bg)]">
+                  <span className={`block rounded-full overflow-hidden ${rules ? '' : 'opacity-60'}`}>
+                    <CommunityLogo c={c} size={58} />
+                  </span>
+                </span>
+              </span>
+              <span className="absolute -right-0.5 -bottom-0.5 w-6 h-6 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] border-2 border-[var(--app-bg)] flex items-center justify-center">
+                {rules ? <Plus className="w-3.5 h-3.5" strokeWidth={3} aria-hidden="true" /> : <Lock className="w-3 h-3" strokeWidth={2.6} aria-hidden="true" />}
+              </span>
+            </span>
+            <span className="text-[12px] font-semibold w-full truncate text-center">{rules ? 'Post' : 'Locked'}</span>
+          </button>
+        }
+      />
+      {popup && <StoryLevelsPopup c={c} level={level} counted={counted} reason={popup} onClose={() => setPopup(null)} />}
+    </section>
+  );
+}
+
+function HomeTab({
+  c,
+  data,
+  goTo,
+  isLead,
+  onOpenPerson,
+}: {
+  c: Community;
+  data: ReturnType<typeof useCommunityRows>;
+  goTo: (t: Tab) => void;
+  isLead: boolean;
+  onOpenPerson: (id: string) => void;
+}) {
   const { items } = useBroadcasts(c.id, 5);
   const last = items?.find((b) => b.status === 'sent');
   const waiting = items?.filter((b) => b.status === 'pending').length ?? 0;
@@ -166,6 +289,7 @@ function HomeTab({ c, data, goTo, isLead }: { c: Community; data: ReturnType<typ
           </p>
         </div>
       </div>
+      <CommunityStories c={c} data={data} onOpenPerson={onOpenPerson} />
       <div className="mx-4 space-y-3">
         <LevelCard c={c} />
         <CommunityNumbers data={data} />
@@ -280,7 +404,7 @@ export function CommunityMode({
           <p className="pt-16 px-6 text-center text-[15px] text-[var(--app-muted)]">This community isn’t listed right now.</p>
         ) : (
           <>
-            {tab === 'home' && <HomeTab c={c} data={data} goTo={setTab} isLead={led.length > 0} />}
+            {tab === 'home' && <HomeTab c={c} data={data} goTo={setTab} isLead={led.length > 0} onOpenPerson={onOpenPerson} />}
             {tab === 'messages' && (
               <div>
                 <Heading title="Messages" detail="Pushes to your members' phones, with your community's name on them." />

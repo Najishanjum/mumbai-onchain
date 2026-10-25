@@ -29,6 +29,8 @@ export interface Snap {
   visibility?: 'public' | 'private';
   /** Posted as a community: shows with its name and logo. */
   communityId?: string;
+  /** A community's story for its members only, or for everyone (Champion). */
+  audience?: 'everyone' | 'members';
   reactions: SnapReactions;
   createdAt: string;
 }
@@ -43,4 +45,5 @@ export interface CreateSnapInput {
   location?: string;
   taggedPersonIds?: string[];
   communityId?: string;
+  audience?: 'everyone' | 'members';
 }

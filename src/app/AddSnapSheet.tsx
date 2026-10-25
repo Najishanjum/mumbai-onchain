@@ -9,7 +9,7 @@ import { isRealPerson } from '../lib/samples';
 import { PersonAvatar } from '../components/PersonAvatar';
 import { Sheet } from './ui';
 import { dayLabel, hasEnded, isLive, sortByStart, VENUE_TBA } from './time';
-import { useCommunities, useCommunityLevels } from '../lib/useCommunities';
+import { storyRules, useCommunities, useCommunityLevels } from '../lib/useCommunities';
 import { CommunityLogo } from './CommunitySheet';
 
 interface AddSnapSheetProps {
@@ -23,7 +23,7 @@ interface AddSnapSheetProps {
 const MAX_CAPTION = 140;
 
 function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit<AddSnapSheetProps, 'isOpen'>) {
-  const { addSnap } = useSnapStore();
+  const { addSnap, preselectedCommunityForSnap } = useSnapStore();
   const { people, myProfile, authUser } = usePeopleStore();
   const { savedIds } = useSavedEvents();
   // Leads of a Rising (or higher) community can post as it.
@@ -33,7 +33,9 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
     .filter((m) => m.role === 'lead' && levelOf(m.communityId).level >= 1)
     .map((m) => byId(m.communityId))
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
-  const [postAs, setPostAs] = useState<string | null>(null);
+  // Opened from a community's app: that community, already picked.
+  const [postAs, setPostAs] = useState<string | null>(preselectedCommunityForSnap ?? null);
+  const postAsRules = postAs ? storyRules(levelOf(postAs).level) : null;
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Best guess at where the photo was taken: the event they came from, then
@@ -86,6 +88,7 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
         location: ev && ev.location !== VENUE_TBA ? ev.location : 'Mumbai',
         taggedPersonIds: tagged,
         communityId: postAs ?? undefined,
+        audience: postAsRules?.audience,
       });
       if (preview) URL.revokeObjectURL(preview);
       onClose();
@@ -211,6 +214,11 @@ function SnapForm({ events, preselectedEventId, onClose, onCreateProfile }: Omit
                 </button>
               ))}
             </div>
+            {postAs && postAsRules && (
+              <p className="mt-2 text-[13px] text-[var(--app-muted)]">
+                {postAsRules.audience === 'members' ? `Only ${byId(postAs)?.community_name ?? 'the community'}’s members see it.` : 'Everyone in the app sees it.'} {postAsRules.perDay} a day at this level.
+              </p>
+            )}
           </>
         )}
 
