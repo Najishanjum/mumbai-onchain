@@ -32,6 +32,8 @@ export interface DbSnapRow {
   visibility?: string | null;
   /** Posted as a community (Rising level and up). */
   community_id?: string | null;
+  /** A community's story for its members only (below Champion). */
+  audience?: string | null;
   created_at?: string;
 }
 
@@ -42,9 +44,11 @@ interface SnapStoreState {
   activeSnapForViewer: Snap | null;
   isAddSnapModalOpen: boolean;
   preselectedEventIdForSnap?: string;
+  /** Opened from a community's app: post as that community. */
+  preselectedCommunityForSnap?: string;
   isSyncingSnaps: boolean;
   setActiveSnapForViewer: (snap: Snap | null) => void;
-  setIsAddSnapModalOpen: (isOpen: boolean, defaultEventId?: string) => void;
+  setIsAddSnapModalOpen: (isOpen: boolean, defaultEventId?: string, communityId?: string) => void;
   addSnap: (input: CreateSnapInput) => Promise<Snap>;
   deleteSnap: (snapId: string) => Promise<boolean>;
   toggleReaction: (snapId: string, reaction: SnapReactionType) => void;
@@ -82,6 +86,7 @@ function mapDbRowToSnap(row: DbSnapRow, peopleMap: Map<string, PersonProfile>, m
     taggedPersonIds: Array.isArray(row.tagged_person_ids) ? row.tagged_person_ids : [],
     visibility: (row.visibility as 'public' | 'private') || 'public',
     communityId: row.community_id || undefined,
+    audience: row.audience === 'members' ? 'members' : 'everyone',
     reactions: {
       heart: row.reactions?.heart ?? 0,
       fire: row.reactions?.fire ?? 0,
@@ -154,11 +159,13 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeSnapForViewer, setActiveSnapForViewer] = useState<Snap | null>(null);
   const [isAddSnapModalOpen, setIsAddSnapModalOpenState] = useState<boolean>(false);
   const [preselectedEventIdForSnap, setPreselectedEventIdForSnap] = useState<string | undefined>();
+  const [preselectedCommunityForSnap, setPreselectedCommunityForSnap] = useState<string | undefined>();
 
-  const setIsAddSnapModalOpen = useCallback((isOpen: boolean, defaultEventId?: string) => {
+  const setIsAddSnapModalOpen = useCallback((isOpen: boolean, defaultEventId?: string, communityId?: string) => {
     // Posting snaps is app-only; the website asks for the install instead.
     if (isOpen && !requireApp('snap')) return;
     setPreselectedEventIdForSnap(defaultEventId);
+    setPreselectedCommunityForSnap(communityId);
     setIsAddSnapModalOpenState(isOpen);
   }, []);
 
@@ -418,6 +425,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
       taggedPersonIds: input.taggedPersonIds || [],
       visibility: 'public',
       communityId: input.communityId,
+      audience: input.communityId ? input.audience ?? 'members' : 'everyone',
       reactions: { heart: 0, fire: 0, eyes: 0, clap: 0 },
       createdAt: new Date().toISOString(),
     };
@@ -442,14 +450,15 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
             reactions: newSnap.reactions,
             visibility: 'public',
             created_at: newSnap.createdAt,
-            ...(newSnap.communityId ? { community_id: newSnap.communityId } : {}),
+            ...(newSnap.communityId ? { community_id: newSnap.communityId, audience: newSnap.audience } : {}),
           },
         ]);
 
         if (dbError) {
           console.error('Supabase snaps insert failed:', dbError.message);
           // The photo is uploaded but nobody else would see the snap; say so.
-          throw new Error('Couldn’t post the snap. Try again in a moment.');
+          // A community's level or daily limit says why in its own words.
+          throw new Error(/communit/i.test(dbError.message) ? dbError.message : 'Couldn’t post the snap. Try again in a moment.');
         }
       } catch (dbErr) {
         throw dbErr instanceof Error ? dbErr : new Error('Couldn’t post the snap.');
@@ -604,6 +613,7 @@ export const SnapProvider: React.FC<{ children: React.ReactNode }> = ({ children
     activeSnapForViewer,
     isAddSnapModalOpen,
     preselectedEventIdForSnap,
+    preselectedCommunityForSnap,
     isSyncingSnaps,
     setActiveSnapForViewer,
     setIsAddSnapModalOpen,

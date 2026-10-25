@@ -19,9 +19,9 @@ const AHEAD_MS = 20 * 60 * 1000;
 
 // What each level unlocks, for the push (levels: supabase/migrations/20261103000000_community_levels.sql).
 const LEVELS: Record<number, { name: string; unlock: string }> = {
-  1: { name: 'Rising', unlock: 'You can now post stories as your community.' },
-  2: { name: 'Featured', unlock: 'You’re in Featured communities on Today, and get 3 messages a day.' },
-  3: { name: 'Champion', unlock: 'You’re pinned on the Partners page, and can message everyone once without approval.' },
+  1: { name: 'Rising', unlock: 'Community stories are open: 1 a day for your members, from your community’s Home.' },
+  2: { name: 'Featured', unlock: 'You’re in Featured communities on Today, with 3 messages and 3 stories a day.' },
+  3: { name: 'Champion', unlock: 'Your stories now reach everyone in the app, and you’re pinned on the Partners page.' },
 };
 
 /** Tells each community's leads when it reaches a new level. Each level is announced once. */

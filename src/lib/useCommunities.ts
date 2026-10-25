@@ -226,10 +226,19 @@ export function useCommunities(userId: string | null, profileId: string | null) 
 // ── Levels (supabase/migrations/20261103000000_community_levels.sql) ──────
 export const LEVELS = [
   { level: 0, name: 'Partner', at: 0, unlock: 'Your page, invite link and card, and 2 messages a day to members' },
-  { level: 1, name: 'Rising', at: 15, unlock: 'Stories posted as your community' },
-  { level: 2, name: 'Featured', at: 50, unlock: 'A spot in Featured communities on Today, and 3 messages a day' },
-  { level: 3, name: 'Champion', at: 100, unlock: 'Pinned on the Partners page, and one message to everyone without approval' },
+  { level: 1, name: 'Rising', at: 15, unlock: 'Community stories for your members, 1 a day' },
+  { level: 2, name: 'Featured', at: 50, unlock: 'A spot in Featured communities on Today, 3 messages and 3 stories a day' },
+  { level: 3, name: 'Champion', at: 100, unlock: 'Stories for everyone in the app, pinned on the Partners page, and one message to everyone without approval' },
 ] as const;
+
+/**
+ * What a level allows for community stories (same as check_community_snap in
+ * the database): none, then 1 a day for members, 3 a day, then everyone.
+ */
+export function storyRules(level: number): { perDay: number; audience: 'members' | 'everyone' } | null {
+  if (level < 1) return null;
+  return { perDay: level >= 2 ? 3 : 1, audience: level >= 3 ? 'everyone' : 'members' };
+}
 
 export interface CommunityLevel {
   level: number;

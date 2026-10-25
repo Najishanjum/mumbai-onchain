@@ -55,14 +55,14 @@ const STORY_LIFE_MS = 48 * 60 * 60 * 1000;
  * The last 48 hours of snaps, grouped by person (or by community, for stories
  * posted as one), oldest first inside each story, unseen stories first.
  */
-function useStories(seen: Set<string>) {
+function useStories(seen: Set<string>, filter?: (s: Snap) => boolean, mineFirst = true) {
   const { recentSnaps } = useSnapStore();
   const { people, myProfile } = usePeopleStore();
   const { communities } = useCommunities(null, null);
   return useMemo(() => {
     const byAuthor = new Map<string, Story>();
     const since = Date.now() - STORY_LIFE_MS;
-    for (const s of recentSnaps.filter((s) => isRealSnap(s) && new Date(s.createdAt).getTime() >= since)) {
+    for (const s of recentSnaps.filter((s) => isRealSnap(s) && new Date(s.createdAt).getTime() >= since && (!filter || filter(s)))) {
       const community = s.communityId ? communities.find((c) => c.id === s.communityId) : undefined;
       const key = community ? `c:${community.id}` : s.authorId;
       const person = people.find((p) => p.id === s.authorId) ?? (myProfile?.id === s.authorId ? myProfile : undefined);
@@ -78,9 +78,10 @@ function useStories(seen: Set<string>) {
       ...st,
       snaps: [...st.snaps].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     }));
-    const mine = stories.find((st) => st.key === myProfile?.id) ?? null;
+    // A community's row has no "Your story" bubble: yours sits with the rest.
+    const mine = mineFirst ? (stories.find((st) => st.key === myProfile?.id) ?? null) : null;
     const others = stories
-      .filter((st) => st.key !== myProfile?.id)
+      .filter((st) => st !== mine)
       .sort((a, b) => {
         const au = a.snaps.some((s) => !seen.has(s.id)) ? 0 : 1;
         const bu = b.snaps.some((s) => !seen.has(s.id)) ? 0 : 1;
@@ -88,7 +89,7 @@ function useStories(seen: Set<string>) {
         return b.snaps[b.snaps.length - 1].createdAt.localeCompare(a.snaps[a.snaps.length - 1].createdAt);
       });
     return { mine, others, myProfile };
-  }, [recentSnaps, people, myProfile, seen, communities]);
+  }, [recentSnaps, people, myProfile, seen, communities, filter, mineFirst]);
 }
 
 function Ring({ color, seen, children }: { color: string; seen: boolean; children: ReactNode }) {
@@ -111,14 +112,22 @@ export function StoriesRow({
   onOpenPerson,
   onOpenCommunity,
   className = '',
+  filter,
+  leading,
+  emptyText = 'Snaps people share show up here as stories.',
 }: {
   onAddSnap: () => void;
   onOpenPerson: (id: string) => void;
   onOpenCommunity?: (id: string) => void;
   className?: string;
+  /** Only these snaps (a community's row: its stories and its members'). Keep it stable (useCallback). */
+  filter?: (s: Snap) => boolean;
+  /** Replaces the "Your story" bubble (a community's Post button). */
+  leading?: ReactNode;
+  emptyText?: string;
 }) {
   const [seen, setSeen] = useState<Set<string>>(readSeen);
-  const { mine, others, myProfile } = useStories(seen);
+  const { mine, others, myProfile } = useStories(seen, filter, !leading);
   const queue = useMemo(() => (mine ? [mine, ...others] : others), [mine, others]);
   // The queue is frozen while watching, so marking snaps seen does not reorder it.
   const [viewing, setViewing] = useState<{ queue: Story[]; start: number } | null>(null);
@@ -144,34 +153,37 @@ export function StoriesRow({
   return (
     <>
       <div className={`app-scroll-x flex gap-3 overflow-x-auto px-4 pb-1 ${className}`}>
+        {leading}
         {/* Your story: add one, or watch your own */}
-        <button
-          type="button"
-          onClick={() => (mine ? open(mine) : onAddSnap())}
-          aria-label={mine ? 'Your story' : 'Add a snap to your story'}
-          className={bubble}
-        >
-          <span className="relative">
-            <Ring color="var(--app-primary)" seen={!mine || allSeen(mine)}>
-              {myProfile ? (
-                <PersonAvatar name={myProfile.name} avatarUrl={myProfile.avatar} size="lg" className="rounded-full! border-0! w-[58px]! h-[58px]!" />
-              ) : (
-                <span className="w-[58px] h-[58px] rounded-full bg-[var(--app-surface)] flex items-center justify-center" />
-              )}
-            </Ring>
-            <span
-              role="presentation"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddSnap();
-              }}
-              className="absolute -right-0.5 -bottom-0.5 w-6 h-6 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] border-2 border-[var(--app-bg)] flex items-center justify-center"
-            >
-              <Plus className="w-3.5 h-3.5" strokeWidth={3} aria-hidden="true" />
+        {!leading && (
+          <button
+            type="button"
+            onClick={() => (mine ? open(mine) : onAddSnap())}
+            aria-label={mine ? 'Your story' : 'Add a snap to your story'}
+            className={bubble}
+          >
+            <span className="relative">
+              <Ring color="var(--app-primary)" seen={!mine || allSeen(mine)}>
+                {myProfile ? (
+                  <PersonAvatar name={myProfile.name} avatarUrl={myProfile.avatar} size="lg" className="rounded-full! border-0! w-[58px]! h-[58px]!" />
+                ) : (
+                  <span className="w-[58px] h-[58px] rounded-full bg-[var(--app-surface)] flex items-center justify-center" />
+                )}
+              </Ring>
+              <span
+                role="presentation"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddSnap();
+                }}
+                className="absolute -right-0.5 -bottom-0.5 w-6 h-6 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] border-2 border-[var(--app-bg)] flex items-center justify-center"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={3} aria-hidden="true" />
+              </span>
             </span>
-          </span>
-          <span className="text-[12px] font-semibold w-full truncate text-center">Your story</span>
-        </button>
+            <span className="text-[12px] font-semibold w-full truncate text-center">Your story</span>
+          </button>
+        )}
 
         {others.map((st) => (
           <button
@@ -198,7 +210,7 @@ export function StoriesRow({
 
         {others.length === 0 && (
           <p className="self-center pl-1 pr-4 text-[14px] text-[var(--app-muted)] min-w-[200px]">
-            Snaps people share show up here as stories.
+            {emptyText}
           </p>
         )}
       </div>
@@ -439,7 +451,10 @@ function StoryViewer({
           </span>
           <span className="min-w-0">
             <span className="block text-[15px] font-bold truncate">{mine ? 'Your story' : story.name}</span>
-            <span className="block text-[12px] text-white/75 truncate">{snap.date}</span>
+            <span className="block text-[12px] text-white/75 truncate">
+              {snap.date}
+              {snap.audience === 'members' && ' · Members only'}
+            </span>
           </span>
         </button>
         {!mine && !story.communityId && (
