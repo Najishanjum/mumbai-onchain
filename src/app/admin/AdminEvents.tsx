@@ -14,7 +14,7 @@ import {
   type AppEventRow,
 } from '../../lib/appEvents';
 import { dayLabel, sortByStart } from '../time';
-import { eventCover } from '../covers';
+import { coverAt, eventCover } from '../covers';
 import { useBackToClose } from '../../lib/useBackToClose';
 import { AdminHeading, EmptyState, ErrorLine, Segments, btn, notifyAdmins } from './shared';
 
@@ -30,7 +30,7 @@ const dateField = `${field} h-12 w-full min-w-0 appearance-none text-left leadin
 function Thumb({ src }: { src: string | null | undefined }) {
   const [broken, setBroken] = useState(false);
   return src && !broken ? (
-    <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} className="w-11 h-11 shrink-0 rounded-lg object-cover bg-[var(--app-pressed)]" />
+    <img src={coverAt(src, 44, true) ?? src} alt="" loading="lazy" onError={() => setBroken(true)} className="w-11 h-11 shrink-0 rounded-lg object-cover bg-[var(--app-pressed)]" />
   ) : (
     <span className="w-11 h-11 shrink-0 rounded-lg bg-[var(--app-pressed)] flex items-center justify-center text-[var(--app-muted)]" aria-hidden="true">
       <CalendarDays className="w-5 h-5" />
@@ -149,7 +149,7 @@ function EventForm({
 
   return (
     <form onSubmit={save} className="mx-4 space-y-4">
-      {(d.image_url || cover) && <img src={d.image_url || cover!} alt="" className="w-full aspect-[2/1] object-cover rounded-2xl border border-[var(--app-line)]" />}
+      {(d.image_url || cover) && <img src={coverAt(d.image_url || cover, 480) ?? undefined} alt="" className="w-full aspect-[2/1] object-cover rounded-2xl border border-[var(--app-line)]" />}
       {partial && (
         <p className="rounded-2xl bg-[var(--app-primary-soft)] px-4 py-3 text-[14px]">The page didn’t have every detail. Check the date, time and venue before publishing.</p>
       )}
@@ -320,10 +320,36 @@ function CalendarPicker({
   );
 }
 
+// The last list read, so the page (and its count) shows straight away on the
+// next visit or launch, then refreshes quietly.
+const ROWS_KEY = 'mo_admin_events';
+let lastRows: AppEventRow[] | null = null;
+function cachedRows(): AppEventRow[] | null {
+  if (lastRows) return lastRows;
+  try {
+    const saved = JSON.parse(localStorage.getItem(ROWS_KEY) || 'null');
+    return Array.isArray(saved) ? (lastRows = saved) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Admin → Events: add from a Luma link or by hand, edit and hide. */
 export function AdminEvents() {
   const [tab, setTab] = useState<'add' | 'all'>('add');
-  const [rows, setRows] = useState<AppEventRow[] | null>(null);
+  const [rows, setRowsState] = useState<AppEventRow[] | null>(cachedRows);
+  const setRows = useCallback((next: AppEventRow[] | null | ((prev: AppEventRow[] | null) => AppEventRow[] | null)) => {
+    setRowsState((prev) => {
+      const value = typeof next === 'function' ? next(prev) : next;
+      lastRows = value;
+      try {
+        if (value) localStorage.setItem(ROWS_KEY, JSON.stringify(value));
+      } catch {
+        // fine: read again next time
+      }
+      return value;
+    });
+  }, []);
   const [error, setError] = useState('');
   const [link, setLink] = useState('');
   const [reading, setReading] = useState(false);
@@ -342,10 +368,14 @@ export function AdminEvents() {
       .from('app_events')
       .select(APP_EVENT_COLUMNS)
       .then(({ data, error: e }) => {
-        if (e) setError('Couldn’t load events. Check that the events migration has run.');
+        if (e) {
+          setError('Couldn’t load events. Check that the events migration has run.');
+          if (!lastRows) setRows([]);
+          return;
+        }
         setRows((data ?? []) as AppEventRow[]);
       });
-  }, []);
+  }, [setRows]);
   useEffect(load, [load]);
 
   const byId = useMemo(() => new Map((rows ?? []).map((r) => [r.id, r])), [rows]);
