@@ -789,3 +789,64 @@ html[data-app-theme='light'][data-app-admin] { --app-primary: #A3660A; }
   .admin-switch-side.admin-switch-flip { transform: none; }
   .admin-switch-progress { animation-duration: 500ms; }
 }
+
+/* ── Community mode: the community's own app ─────────────────────────────
+   Colours come from its logo (--c-accent, set on the element). Opening is an
+   app launch: the community's colour grows out of the badge top right with
+   its logo, then the app settles in underneath. Leaving shrinks it back. */
+.community-app .app-title {
+  background: linear-gradient(100deg, var(--c-accent), var(--c-accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.community-app {
+  animation: community-in 520ms 620ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.community-app.is-leaving {
+  animation: community-out 340ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+@keyframes community-in {
+  from { opacity: 0; transform: scale(0.95) translateY(12px); filter: blur(8px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes community-out {
+  from { clip-path: circle(150% at calc(100% - 52px) calc(env(safe-area-inset-top) + 34px)); opacity: 1; }
+  to { clip-path: circle(0% at calc(100% - 52px) calc(env(safe-area-inset-top) + 34px)); opacity: 0.4; }
+}
+.community-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-on-primary);
+  background: radial-gradient(120% 80% at 50% 30%, var(--c-accent), var(--c-accent-2));
+  animation: community-splash 1150ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+.community-splash-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 24px;
+  animation: community-mark 1150ms both;
+}
+@keyframes community-splash {
+  0% { clip-path: circle(0% at calc(100% - 52px) calc(env(safe-area-inset-top) + 34px)); opacity: 1; }
+  40% { clip-path: circle(150% at calc(100% - 52px) calc(env(safe-area-inset-top) + 34px)); opacity: 1; }
+  68% { opacity: 1; }
+  100% { clip-path: circle(150% at calc(100% - 52px) calc(env(safe-area-inset-top) + 34px)); opacity: 0; }
+}
+@keyframes community-mark {
+  0%, 18% { opacity: 0; transform: scale(0.6) translateY(16px); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  45% { opacity: 1; transform: none; }
+  70% { opacity: 1; transform: none; animation-timing-function: ease-in; }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .community-app, .community-app.is-leaving { animation: none; }
+  .community-splash { display: none; }
+}
