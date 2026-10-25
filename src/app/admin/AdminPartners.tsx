@@ -48,6 +48,8 @@ const LINKS: { key: keyof Row; label: string }[] = [
   { key: 'whatsapp_url', label: 'WhatsApp' },
 ];
 
+const STATUS_COLOR: Record<Status, string> = { pending: '#E0A43A', approved: '#3CC48C', rejected: '#F0525F' };
+
 const WHATSAPP_GROUP = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/;
 
 const COLUMNS =
@@ -83,9 +85,6 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       .select('community_id, user_id, profile_id, role, credited')
       .then(({ data }) => setMembers(data ?? []));
   }, []);
-  useEffect(() => {
-    if (tab === 'approved') loadMembers();
-  }, [tab, loadMembers]);
 
   async function removeLeader(row: Row, userId: string, name: string) {
     setBusyId(row.id);
@@ -119,14 +118,18 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   const q = query.trim().toLowerCase();
   const shown = (rows ?? []).filter((p) => !q || [p.community_name, p.lead_name, p.email].some((f) => f?.toLowerCase().includes(q)));
 
+  // Searching looks through Waiting, Approved and Rejected at once.
+  const searching = q.length > 0;
+  useEffect(() => {
+    if (tab === 'approved' || searching) loadMembers();
+  }, [tab, searching, loadMembers]);
   const load = useCallback(() => {
     setRows(null);
-    supabase
-      .from('community_partner_applications')
-      .select(COLUMNS)
-      .eq('status', tab)
-      .order('created_at', { ascending: tab === 'pending' })
-      .limit(200)
+    let query = supabase.from('community_partner_applications').select(COLUMNS);
+    if (!searching) query = query.eq('status', tab);
+    query
+      .order('created_at', { ascending: !searching && tab === 'pending' })
+      .limit(searching ? 500 : 200)
       .then(({ data, error: e }) => {
         if (e) {
           setError('Couldn’t load applications. Check your connection, then switch tabs to try again.');
@@ -136,7 +139,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
           setRows(data as Row[]);
         }
       });
-  }, [tab]);
+  }, [tab, searching]);
   useEffect(load, [load]);
 
   async function setStatus(row: Row, status: Status, event: AdminEventKind) {
@@ -151,7 +154,8 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
     setBusyId(null);
     if (e) return setError(`Couldn’t update ${row.community_name}. Try again.`);
     notifyAdmins(event, row.community_name);
-    setRows((r) => r?.filter((x) => x.id !== row.id) ?? null);
+    // In a search it stays in the list with its new status; in a tab it moves out.
+    setRows((r) => (searching ? (r?.map((x) => (x.id === row.id ? { ...x, status } : x)) ?? null) : (r?.filter((x) => x.id !== row.id) ?? null)));
     onChanged();
   }
 
@@ -226,26 +230,29 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   return (
     <div>
       <AdminHeading page="partners" title="Partners" detail="Communities that applied on the website. Approved ones show in its partners section." />
-      <Segments label="Application status" value={tab} options={TABS} onChange={setTab} />
-      {rows !== null && rows.length > 0 && (
-        <div className="mx-4 mb-3 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--app-muted)]" aria-hidden="true" />
-          <label htmlFor="partner-search" className="sr-only">
-            Search partners
-          </label>
-          <input
-            id="partner-search"
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by community, lead or email"
-            className="w-full h-11 pl-10 pr-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]"
-          />
-        </div>
+      {/* One search for every status, above the tabs. */}
+      <div className="mx-4 mb-3 relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--app-muted)]" aria-hidden="true" />
+        <label htmlFor="partner-search" className="sr-only">
+          Search partners
+        </label>
+        <input
+          id="partner-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search all partners: name, lead or email"
+          className="w-full h-11 pl-10 pr-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]"
+        />
+      </div>
+      {searching ? (
+        <p className="px-5 mb-3 text-[13px] text-[var(--app-muted)]">Searching Waiting, Approved and Rejected{rows ? ` · ${shown.length} found` : ''}</p>
+      ) : (
+        <Segments label="Application status" value={tab} options={TABS} onChange={setTab} />
       )}
       <ErrorLine text={error} />
 
-      {tab === 'pending' && edits && edits.length > 0 && (
+      {!searching && tab === 'pending' && edits && edits.length > 0 && (
         <section className="mb-5">
           <h3 className="px-5 mb-2 text-[15px] font-bold">Changes waiting · {edits.length}</h3>
           <ul className="mx-4 space-y-3">
@@ -277,7 +284,9 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
       ) : rows.length > 0 && shown.length === 0 ? (
         <EmptyState title="No partners match" body="Try part of the community’s name, the lead’s name or their email." />
       ) : rows.length === 0 ? (
-        tab === 'pending' && edits?.length ? null : (
+        searching ? (
+          <EmptyState title="No partners match" body="Try part of the community’s name, the lead’s name or their email." />
+        ) : tab === 'pending' && edits?.length ? null : (
           <EmptyState
             title={tab === 'pending' ? 'Nothing waiting' : tab === 'approved' ? 'No partners yet' : 'Nothing rejected'}
             body={tab === 'pending' ? 'New applications and changes show up here, and you get a notification.' : 'Applications move here when you change their status.'}
@@ -301,6 +310,17 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
                     <p className="text-[13px] text-[var(--app-muted)]">
                       {p.lead_name} · {timeAgo(p.created_at)}
                     </p>
+                    {searching && (
+                      <span
+                        className="mt-1.5 inline-flex h-6 px-2.5 rounded-full text-[12px] font-bold items-center"
+                        style={{
+                          background: `color-mix(in srgb, ${STATUS_COLOR[p.status]} 16%, transparent)`,
+                          color: STATUS_COLOR[p.status],
+                        }}
+                      >
+                        {TABS.find((t) => t.id === p.status)?.label}
+                      </span>
+                    )}
                   </div>
                 </div>
 
