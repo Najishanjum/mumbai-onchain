@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { History, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { Sheet } from '../ui';
 
 // Small pieces shared by the admin tabs.
 
@@ -35,9 +37,121 @@ export type AdminEventKind =
   | 'event_updated'
   | 'event_hidden';
 
-/** Tells the other admins what you just did ("Najish approved a place"). Best effort. */
+/** Smaller actions: kept in the page's history, without a push to the other admins. */
+export type AdminLogKind = 'partner_logo' | 'partner_whatsapp' | 'partner_level' | 'partner_leader_removed' | 'request_declined';
+
+export type AdminPage = 'events' | 'places' | 'stories' | 'partners' | 'notify' | 'team';
+
+// "<name> <what>" in the history.
+const ACTIONS: Record<AdminEventKind | AdminLogKind | 'request_approved', string> = {
+  place_approved: 'approved a place',
+  place_rejected: 'rejected a place',
+  place_hidden: 'hid a place from the map',
+  place_restored: 'put a place back on the map',
+  place_deleted: 'deleted a place',
+  story_removed: 'took down a story',
+  partner_approved: 'approved a community partner',
+  partner_rejected: 'rejected a partner application',
+  partner_reopened: 'moved a partner back to waiting',
+  partner_deleted: 'deleted a partner application',
+  partner_logo: 'changed a partner’s logo',
+  partner_whatsapp: 'changed a WhatsApp group',
+  partner_level: 'set a community’s level',
+  partner_leader_removed: 'removed a community leader',
+  broadcast_sent: 'sent a notification',
+  request_approved: 'approved a message to everyone',
+  request_declined: 'declined a message to everyone',
+  admin_added: 'added an admin',
+  admin_removed: 'removed an admin',
+  event_added: 'added an event',
+  event_updated: 'changed an event',
+  event_hidden: 'hid an event',
+};
+
+const pageOf = (kind: string): AdminPage =>
+  kind.startsWith('place')
+    ? 'places'
+    : kind.startsWith('story')
+      ? 'stories'
+      : kind.startsWith('partner')
+        ? 'partners'
+        : kind.startsWith('admin')
+          ? 'team'
+          : kind.startsWith('event')
+            ? 'events'
+            : 'notify';
+
+/** Keeps the action in its page's history. Best effort. */
+export function logAdmin(kind: AdminEventKind | AdminLogKind, detail: string) {
+  void supabase.auth.getSession().then(({ data }) => {
+    const user = data.session?.user;
+    if (user) void supabase.from('admin_activity').insert({ actor_id: user.id, page: pageOf(kind), kind, detail: detail.slice(0, 300) });
+  });
+}
+
+/** Tells the other admins what you just did ("Najish approved a place"), and keeps it in the history. Best effort. */
 export function notifyAdmins(kind: AdminEventKind, detail: string) {
   void supabase.functions.invoke('notify-connection', { body: { adminEvent: { kind, detail } } });
+  logAdmin(kind, detail);
+}
+
+interface ActivityRow {
+  id: string;
+  actor_name: string;
+  kind: string;
+  detail: string;
+  created_at: string;
+}
+
+/** One page's history (or everything, on Overview), newest first. */
+function HistorySheet({ page, title, onClose }: { page?: AdminPage; title: string; onClose: () => void }) {
+  const [rows, setRows] = useState<ActivityRow[] | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let live = true;
+    let q = supabase.from('admin_activity').select('id, actor_name, kind, detail, created_at').order('created_at', { ascending: false }).limit(100);
+    if (page) q = q.eq('page', page);
+    q.then(({ data, error: e }) => {
+      if (!live) return;
+      if (e) setError('Couldn’t load the history. Check your connection, or that the admin history migration has run.');
+      setRows((data ?? []) as ActivityRow[]);
+    });
+    return () => {
+      live = false;
+    };
+  }, [page]);
+
+  return (
+    <Sheet open onClose={onClose} label={`${title} history`}>
+      <div className="pt-3 pb-2">
+        <h2 className="px-5 app-title text-[26px]">{title} history</h2>
+        <p className="px-5 mt-1 text-[15px] text-[var(--app-muted)]">{page ? 'What admins did here, newest first.' : 'Everything admins did, newest first.'}</p>
+        <ErrorLine text={error} />
+        {rows === null ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" aria-label="Loading" />
+          </div>
+        ) : rows.length === 0 ? (
+          <p className="px-5 py-10 text-center text-[15px] text-[var(--app-muted)]">Nothing yet. Actions on this page show up here.</p>
+        ) : (
+          <ul className="mt-3 mx-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] divide-y divide-[var(--app-line)] overflow-hidden">
+            {rows.map((r) => (
+              <li key={r.id} className="px-4 py-3">
+                <p className="text-[15px] leading-snug">
+                  <b>{r.actor_name || 'An admin'}</b> {ACTIONS[r.kind as keyof typeof ACTIONS] ?? r.kind.replace(/_/g, ' ')}
+                </p>
+                {r.detail && <p className="mt-0.5 text-[14px] leading-snug text-[var(--app-muted)] line-clamp-2">{r.detail}</p>}
+                <p className="mt-1 text-[12px] font-semibold text-[var(--app-faint)]">
+                  {timeAgo(r.created_at)} ·{' '}
+                  {new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Sheet>
+  );
 }
 
 /** The numbers on Overview (and the waiting count on the Places tab). */
@@ -71,11 +185,24 @@ export function timeAgo(iso: string): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-export function AdminHeading({ title, detail }: { title: string; detail?: string }) {
+/** A page's title, with its history behind the clock icon (Overview: everything). */
+export function AdminHeading({ title, detail, page }: { title: string; detail?: string; page?: AdminPage }) {
+  const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <header className="px-5 pt-2 pb-4">
-      <h2 className="app-title text-[28px] font-bold">{title}</h2>
+      <div className="flex items-center gap-3">
+        <h2 className="app-title flex-1 text-[28px] font-bold">{title}</h2>
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(true)}
+          aria-label={`${title} history`}
+          className="app-press shrink-0 w-11 h-11 rounded-full bg-[var(--app-surface)] border border-[var(--app-line)] flex items-center justify-center"
+        >
+          <History className="w-5 h-5" aria-hidden="true" />
+        </button>
+      </div>
       {detail && <p className="mt-1 text-[15px] text-[var(--app-muted)]">{detail}</p>}
+      {historyOpen && <HistorySheet page={page} title={title} onClose={() => setHistoryOpen(false)} />}
     </header>
   );
 }

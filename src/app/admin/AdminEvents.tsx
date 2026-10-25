@@ -441,7 +441,7 @@ export function AdminEvents() {
 
   return (
     <div>
-      <AdminHeading title="Events" detail="Add events from a Luma link or by hand. They show in the app straight away." />
+      <AdminHeading page="events" title="Events" detail="Add events from a Luma link or by hand. They show in the app straight away." />
       <Segments
         label="Events"
         value={tab}

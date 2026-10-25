@@ -109,7 +109,7 @@ export function AdminTeam({ role }: { role: AdminRole }) {
 
   return (
     <div>
-      <AdminHeading title="Team" detail={isOwner ? 'Admins can review places, take down stories and send notifications.' : 'Only an owner can add or remove admins.'} />
+      <AdminHeading page="team" title="Team" detail={isOwner ? 'Admins can review places, take down stories and send notifications.' : 'Only an owner can add or remove admins.'} />
       <ErrorLine text={error} />
 
       {isOwner && (

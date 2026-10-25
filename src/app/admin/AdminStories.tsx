@@ -66,7 +66,7 @@ export function AdminStories({ onChanged }: { onChanged: () => void }) {
 
   return (
     <div>
-      <AdminHeading title="Stories" detail="Take down anything that shouldn’t be there. It disappears for everyone." />
+      <AdminHeading page="stories" title="Stories" detail="Take down anything that shouldn’t be there. It disappears for everyone." />
       <ErrorLine text={error} />
       {rows === null ? (
         <div className="flex justify-center py-10">
