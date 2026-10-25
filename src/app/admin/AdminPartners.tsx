@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowUpRight, Loader2, Mail, Phone } from 'lucide-react';
+import { ArrowUpRight, Loader2, Mail, Phone, Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { usePeopleStore } from '../../lib/usePeopleStore';
 import { CoLeadCard } from '../CommunitySheet';
@@ -82,6 +82,9 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [waEdit, setWaEdit] = useState<{ id: string; value: string } | null>(null);
   const { levelOf, refresh: refreshLevels } = useCommunityLevels();
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const shown = (rows ?? []).filter((p) => !q || [p.community_name, p.lead_name, p.email].some((f) => f?.toLowerCase().includes(q)));
 
   const load = useCallback(() => {
     setRows(null);
@@ -193,12 +196,30 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
     <div>
       <AdminHeading page="partners" title="Partners" detail="Communities that applied on the website. Approved ones show in its partners section." />
       <Segments label="Application status" value={tab} options={TABS} onChange={setTab} />
+      {rows !== null && rows.length > 0 && (
+        <div className="mx-4 mb-3 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--app-muted)]" aria-hidden="true" />
+          <label htmlFor="partner-search" className="sr-only">
+            Search partners
+          </label>
+          <input
+            id="partner-search"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by community, lead or email"
+            className="w-full h-11 pl-10 pr-4 rounded-2xl bg-[var(--app-surface)] border border-[var(--app-line)] text-[16px] outline-none focus:border-[var(--app-primary)] placeholder:text-[var(--app-faint)]"
+          />
+        </div>
+      )}
       <ErrorLine text={error} />
 
       {rows === null ? (
         <div className="flex justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" aria-label="Loading applications" />
         </div>
+      ) : rows.length > 0 && shown.length === 0 ? (
+        <EmptyState title="No partners match" body="Try part of the community’s name, the lead’s name or their email." />
       ) : rows.length === 0 ? (
         <EmptyState
           title={tab === 'pending' ? 'Nothing waiting' : tab === 'approved' ? 'No partners yet' : 'Nothing rejected'}
@@ -206,7 +227,7 @@ export function AdminPartners({ onChanged }: { onChanged: () => void }) {
         />
       ) : (
         <ul className="mx-4 space-y-3">
-          {rows.map((p) => {
+          {shown.map((p) => {
             const busy = busyId === p.id;
             const links = LINKS.map((l) => ({ label: l.label, href: webUrl(p[l.key] as string | null) })).filter((l) => l.href);
             return (
