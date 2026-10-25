@@ -381,6 +381,8 @@ export const JoinCommunitySheet: React.FC<JoinCommunitySheetProps> = ({ open, in
 
   const memberOf = new Set((mine ?? []).filter((m) => m.role === 'member').map((m) => m.communityId));
   const leads = new Set((mine ?? []).filter((m) => m.role === 'lead').map((m) => m.communityId));
+  // Up to 3 in all, counting the ones you lead.
+  const full = (mine ?? []).length >= MAX_COMMUNITIES;
   const q = query.trim().toLowerCase();
   const list = communities.filter((c) => !q || c.community_name.toLowerCase().includes(q));
 
@@ -481,7 +483,7 @@ export const JoinCommunitySheet: React.FC<JoinCommunitySheetProps> = ({ open, in
                         <button
                           type="button"
                           onClick={() => onJoin(c)}
-                          disabled={busyId !== null || memberOf.size >= MAX_COMMUNITIES}
+                          disabled={busyId !== null || full}
                           className="app-press h-9 px-4 rounded-full bg-[var(--app-primary)] text-[var(--app-on-primary)] text-[14px] font-semibold disabled:opacity-40"
                         >
                           {busyId === c.id ? '…' : 'Join'}
@@ -493,7 +495,7 @@ export const JoinCommunitySheet: React.FC<JoinCommunitySheetProps> = ({ open, in
                 {list.length === 0 && <p className="px-4 py-4 text-[15px] text-[var(--app-muted)]">No community called “{query}”.</p>}
               </div>
             )}
-            {memberOf.size >= MAX_COMMUNITIES && <p className="px-1 text-[14px] text-[var(--app-muted)]">You’re in {MAX_COMMUNITIES}, the most. Leave one from its page to join another.</p>}
+            {full && <p className="px-1 text-[14px] text-[var(--app-muted)]">You’re in {MAX_COMMUNITIES}, the most. Leave one from its page to join another.</p>}
           </>
         )}
         {error && <p className="px-1 text-[14px] text-[var(--app-live)]">{error}</p>}
