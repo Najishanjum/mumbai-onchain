@@ -13,6 +13,8 @@ import { usePeopleStore } from '../lib/usePeopleStore';
 import { useApplyAppPrefs } from '../lib/useAppPrefs';
 import { useSavedEvents } from '../lib/useSavedEvents';
 import { useSavedSync } from '../lib/useSavedSync';
+import { DEVCON_EVENT_ID, isSessionId, SESSION_PREFIX, sessionToEvent, useDevconSessions } from '../lib/devconSessions';
+import { ProgrammeSheet, SessionSheet } from './DevconProgramme';
 import { isRealPerson } from '../lib/samples';
 import { TodayScreen } from './TodayScreen';
 import { Scene } from './Scene';
@@ -169,8 +171,21 @@ export const AppShell: React.FC<AppShellProps> = ({
   if (!visited.has(tab)) setVisited(new Set(visited).add(tab));
   const realPeople = people.filter(isRealPerson);
   const { savedIds, isSaved, toggleSaved } = useSavedEvents();
+  // Devcon's programme: saved sessions sit in My plan as events.
+  const devconSessions = useDevconSessions();
+  const sessionEvents = React.useMemo(() => {
+    const devcon = events.find((e) => e.id === DEVCON_EVENT_ID);
+    return devconSessions.map((s) => sessionToEvent(s, devcon));
+  }, [devconSessions, events]);
+  const savedSessions = sessionEvents.filter((e) => isSaved(e.id));
+  const syncEvents = React.useMemo(() => [...events, ...sessionEvents], [events, sessionEvents]);
+  const [programmeOpen, setProgrammeOpen] = useState(false);
+  const [sessionCode, setSessionCode] = useState<string | null>(null);
+  const openSession = devconSessions.find((s) => s.code === sessionCode) ?? null;
+  // From My plan, a session opens its own page instead of an event's.
+  const openEventOrSession = (id: string) => (isSessionId(id) ? setSessionCode(id.slice(SESSION_PREFIX.length)) : onOpenEvent(id));
   // Saved events in the account, for "starts in 15 min" pushes.
-  useSavedSync(authUser?.id ?? null, events);
+  useSavedSync(authUser?.id ?? null, syncEvents);
   const [scheduleDay, setScheduleDay] = useState(() => defaultDay(events));
   const [isPassOpen, setIsPassOpen] = useState(false);
   const [isSaveCardOpen, setIsSaveCardOpen] = useState(false);
@@ -351,7 +366,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [followOpen, setFollowOpen] = useState(false);
   const followTried = React.useRef(false);
   const somethingOpen = Boolean(
-    selectedEvent || selectedPerson || isPassOpen || isScannerOpen || isMapOpen || joinSheet || openCommunityId || showAdmin || showCommunity || adminSwitch
+    selectedEvent || selectedPerson || isPassOpen || isScannerOpen || isMapOpen || joinSheet || openCommunityId || showAdmin || showCommunity || adminSwitch || programmeOpen || sessionCode
   );
   useEffect(() => {
     if (followTried.current || !myProfile || tab !== 'today' || somethingOpen || !shouldShowFollow()) return;
@@ -424,9 +439,12 @@ export const AppShell: React.FC<AppShellProps> = ({
           <div hidden={tab !== 'schedule'}>
           <ScheduleScreen
             events={events}
+            savedSessions={savedSessions}
+            sessionCount={(d) => devconSessions.filter((s) => s.day === d).length}
+            onOpenProgramme={() => setProgrammeOpen(true)}
             isSaved={isSaved}
             toggleSaved={toggleSaved}
-            onOpenEvent={onOpenEvent}
+            onOpenEvent={openEventOrSession}
             day={scheduleDay}
             onDayChange={setScheduleDay}
           />
@@ -534,7 +552,17 @@ export const AppShell: React.FC<AppShellProps> = ({
         toggleSaved={toggleSaved}
         people={realPeople}
         onOpenPerson={onSelectPerson}
+        onOpenProgramme={() => setProgrammeOpen(true)}
       />
+      <ProgrammeSheet
+        open={programmeOpen}
+        onClose={() => setProgrammeOpen(false)}
+        sessions={devconSessions}
+        isSaved={isSaved}
+        toggleSaved={toggleSaved}
+        onOpenSession={setSessionCode}
+      />
+      <SessionSheet session={openSession} onClose={() => setSessionCode(null)} isSaved={isSaved} toggleSaved={toggleSaved} />
       <PersonSheet
         person={selectedPerson}
         isCurrentUser={isSelectedPersonMe}
