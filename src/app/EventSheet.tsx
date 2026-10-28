@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Bookmark, CalendarPlus, Camera, Check, Clock, ExternalLink, MapPin, Navigation, TramFront, Users } from 'lucide-react';
+import { Bookmark, CalendarPlus, Camera, Check, Clock, ExternalLink, ListChecks, MapPin, Navigation, TramFront, Users } from 'lucide-react';
+import { DEVCON_EVENT_ID } from '../lib/devconSessions';
 import { formatDistance, nearestStations } from '../lib/nearestStation';
 import type { EventItem } from '../types/event';
 import type { PersonProfile } from '../types/person';
@@ -21,6 +22,8 @@ interface EventSheetProps {
   toggleSaved: (id: string) => void;
   people: PersonProfile[];
   onOpenPerson: (id: string) => void;
+  /** Devcon 8's own event page opens its programme. */
+  onOpenProgramme: () => void;
 }
 
 
@@ -42,7 +45,7 @@ function addToCalendar(e: EventItem) {
   else window.open(getGoogleCalendarUrl(e), '_blank', 'noopener,noreferrer');
 }
 
-export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved, toggleSaved, people, onOpenPerson }) => {
+export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved, toggleSaved, people, onOpenPerson, onOpenProgramme }) => {
   const { getSnapsByEvent, setActiveSnapForViewer, setIsAddSnapModalOpen } = useSnapStore();
   const { myProfile, authUser, connections } = usePeopleStore();
   const { mine, hereAt, checkIn, leave } = useCheckIns(authUser?.id ?? null);
@@ -198,6 +201,15 @@ export const EventSheet: React.FC<EventSheetProps> = ({ event, onClose, isSaved,
             <CalendarPlus className="w-4 h-4" aria-hidden="true" /> Calendar
           </button>
         </div>
+        {event.id === DEVCON_EVENT_ID && (
+          <button
+            type="button"
+            onClick={onOpenProgramme}
+            className="app-press mt-2 w-full h-12 rounded-full bg-[var(--app-primary-soft)] text-[15px] font-semibold inline-flex items-center justify-center gap-2"
+          >
+            <ListChecks className="w-[18px] h-[18px]" aria-hidden="true" /> Programme · talks and workshops
+          </button>
+        )}
 
         {(canHere || here.length > 0) && (
           <section className="mt-7">

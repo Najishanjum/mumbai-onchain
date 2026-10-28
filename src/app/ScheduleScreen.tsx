@@ -1,11 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, X, CalendarX } from 'lucide-react';
+import { Search, X, CalendarX, ChevronRight, ListChecks } from 'lucide-react';
 import type { EventItem } from '../types/event';
 import { EventRow, GroupedList } from './ui';
 import { dayLabel, dayNumber, eventDays, hasEnded, istDateKey, sortByStart, weekdayShort, WEEK_DAYS } from './time';
 
 interface ScheduleScreenProps {
   events: EventItem[];
+  /** Devcon sessions the user saved: they sit in My plan with the events. */
+  savedSessions: EventItem[];
+  /** Devcon sessions on a day, for the programme card. */
+  sessionCount: (day: string) => number;
+  onOpenProgramme: () => void;
   isSaved: (id: string) => boolean;
   toggleSaved: (id: string) => void;
   onOpenEvent: (id: string) => void;
@@ -17,6 +22,9 @@ type View = 'all' | 'mine';
 
 export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
   events,
+  savedSessions,
+  sessionCount,
+  onOpenProgramme,
   isSaved,
   toggleSaved,
   onOpenEvent,
@@ -61,14 +69,15 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
   const matches = (e: EventItem) =>
     !q || [e.title, e.organizer, e.location, e.category].some((f) => f?.toLowerCase().includes(q));
 
-  const pool = events.filter((e) => (view === 'mine' ? isSaved(e.id) : true)).filter(matches);
+  const pool = (view === 'mine' ? [...events.filter((e) => isSaved(e.id)), ...savedSessions] : events).filter(matches);
   // While searching, show matches across all days. Ended events go last.
   const now = new Date();
   const list = (q ? pool : pool.filter((e) => eventDays(e).includes(day))).sort(
     (a, b) => Number(hasEnded(a, now)) - Number(hasEnded(b, now)) || sortByStart(a, b)
   );
 
-  const savedCount = events.filter((e) => isSaved(e.id)).length;
+  const savedCount = events.filter((e) => isSaved(e.id)).length + savedSessions.length;
+  const sessionsToday = sessionCount(day);
 
   return (
     <div className="pb-6">
@@ -178,6 +187,20 @@ export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
           <p className="px-5 mb-2.5 text-[15px] font-semibold text-[var(--app-muted)]">
             {dayLabel(day, today)} · {list.length} event{list.length === 1 ? '' : 's'}
           </p>
+        )}
+        {!q && sessionsToday > 0 && (
+          <button
+            type="button"
+            onClick={onOpenProgramme}
+            className="app-press mx-4 mb-3 w-[calc(100%-2rem)] flex items-center gap-3 rounded-2xl bg-[var(--app-primary-soft)] px-4 py-3 text-left"
+          >
+            <ListChecks className="w-5 h-5 shrink-0" aria-hidden="true" />
+            <span className="flex-1 min-w-0">
+              <span className="block text-[15px] font-bold">Devcon 8 programme</span>
+              <span className="block text-[13px] text-[var(--app-muted)]">{sessionsToday} sessions this day · save the ones you want</span>
+            </span>
+            <ChevronRight className="w-5 h-5 shrink-0 text-[var(--app-muted)]" aria-hidden="true" />
+          </button>
         )}
         {list.length > 0 ? (
           <GroupedList>
